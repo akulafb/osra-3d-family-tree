@@ -1,0 +1,41 @@
+{
+  "nodes": [
+    { "id": 1, "name": "Basel Badran", "familyCluster": "Badran" },
+    { "id": 2, "name": "Baha Zabalawi", "familyCluster": "Zabalawi" },
+    { "id": 3, "name": "Fahd Badran", "familyCluster": "Badran" },
+    { "id": 4, "name": "May Badran", "familyCluster": "Badran" },
+    
+    { "id": 5, "name": "Mazen Kutob", "familyCluster": "Kutob" },
+    { "id": 6, "name": "Shatha Malhis", "familyCluster": "Malhis" },
+    { "id": 7, "name": "Layan Kutob", "familyCluster": "Kutob" },
+    { "id": 8, "name": "Kazem Kutob", "familyCluster": "Kutob" },
+    { "id": 9, "name": "Dareen Kutob", "familyCluster": "Kutob" },
+    { "id": 10, "name": "Taleen Kutob", "familyCluster": "Kutob" },
+    
+    { "id": 11, "name": "Aysha Badran", "familyCluster": "Badran" },
+    
+    { "id": 12, "name": "Ammar Hajjaj", "familyCluster": "Hajjaj" },
+    { "id": 13, "name": "Karim Hajjaj", "familyCluster": "Hajjaj" },
+    { "id": 14, "name": "Noora Hajjaj", "familyCluster": "Hajjaj" },
+    { "id": 15, "name": "Issa Hajjaj", "familyCluster": "Hajjaj" }
+  ],
+  "links": [
+    { "source": 1, "target": 2, "type": "marriage" },
+    { "source": 1, "target": 3, "type": "parent" },
+    { "source": 1, "target": 4, "type": "parent" },
+    
+    { "source": 5, "target": 6, "type": "marriage" },
+    { "source": 5, "target": 7, "type": "parent" },
+    { "source": 5, "target": 8, "type": "parent" },
+    { "source": 5, "target": 9, "type": "parent" },
+    { "source": 5, "target": 10, "type": "parent" },
+    
+    { "source": 3, "target": 9, "type": "marriage" },
+    { "source": 3, "target": 11, "type": "parent" },
+    
+    { "source": 4, "target": 12, "type": "marriage" },
+    { "source": 12, "target": 13, "type": "parent" },
+    { "source": 12, "target": 14, "type": "parent" },
+    { "source": 12, "target": 15, "type": "parent" }
+  ]
+}
