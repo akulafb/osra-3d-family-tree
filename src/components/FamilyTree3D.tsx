@@ -4,29 +4,30 @@ import React, { useCallback, useRef, useState, useEffect } from 'react';
 import ForceGraph3D from 'react-force-graph-3d';
 import SpriteText from 'three-spritetext';
 import * as THREE from 'three';
-import familyData from '../data/familyData.json';
-import { FamilyGraph, FamilyNode, FamilyLink } from '../types/graph';
+import { FamilyNode, FamilyLink } from '../types/graph';
+import { useFamilyData } from '../hooks/useFamilyData';
 
 const FamilyTree3D: React.FC = () => {
   const ForceGraph3DAny = ForceGraph3D as unknown as React.ComponentType<any>;
-  const graphData = familyData as FamilyGraph;
+  const { graphData, isLoading: dataLoading, error: dataError } = useFamilyData();
+  
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fgRef = useRef<any>();
   const [initialCameraPos, setInitialCameraPos] = useState<{ x: number; y: number; z: number } | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isSimulationLoading, setIsSimulationLoading] = useState(true);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Validate graph data
+  // Validate graph data when it loads
   useEffect(() => {
+    if (!graphData) return;
+    
     try {
-      if (!graphData || !graphData.nodes || !graphData.links) {
-        setError('Invalid graph data: missing nodes or links');
-        setIsLoading(false);
+      if (!graphData.nodes || !graphData.links) {
+        setValidationError('Invalid graph data: missing nodes or links');
         return;
       }
       if (graphData.nodes.length === 0) {
-        setError('No family members found in data');
-        setIsLoading(false);
+        setValidationError('No family members found in data');
         return;
       }
       // Validate all links reference valid nodes
@@ -35,16 +36,17 @@ const FamilyTree3D: React.FC = () => {
         l => !nodeIds.has(l.source) || !nodeIds.has(l.target)
       );
       if (invalidLinks.length > 0) {
-        setError(`Invalid links found: ${invalidLinks.length} link(s) reference non-existent nodes`);
-        setIsLoading(false);
+        setValidationError(`Invalid links found: ${invalidLinks.length} link(s) reference non-existent nodes`);
         return;
       }
-      setError(null);
+      setValidationError(null);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error loading data');
-      setIsLoading(false);
+      setValidationError(err instanceof Error ? err.message : 'Unknown error validating data');
     }
   }, [graphData]);
+
+  const error = dataError || validationError;
+  const isLoading = dataLoading || isSimulationLoading;
 
   // Store initial camera position for reset view
   useEffect(() => {
@@ -368,7 +370,7 @@ const FamilyTree3D: React.FC = () => {
         </div>
       )}
       <ForceGraph3DAny
-        graphData={graphData}
+        graphData={graphData || { nodes: [], links: [] }}
         nodeThreeObject={nodeThreeObject}
         linkDistance={linkDistance}
         linkStrength={linkStrength}
@@ -376,7 +378,7 @@ const FamilyTree3D: React.FC = () => {
         nodeRepulsion={8000}
         cooldownTicks={200}
         onEngineStop={() => {
-          setIsLoading(false); // Graph has finished initializing
+          setIsSimulationLoading(false); // Graph has finished initializing
         }}
         onSceneReady={handleSceneReady}
         onRenderFramePre={() => {
