@@ -134,10 +134,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
+      const redirectUrl = window.location.origin;
+      console.log('[AuthContext] Initiating Google Sign-In with redirect:', redirectUrl);
+      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}`,
+          redirectTo: redirectUrl,
         },
       });
       if (error) throw error;
