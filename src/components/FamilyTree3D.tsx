@@ -28,6 +28,11 @@ const FamilyTree3D: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isBulkInviteOpen, setIsBulkInviteOpen] = useState(false);
 
+  useEffect(() => {
+    console.log('[FamilyTree3D] Component mounted. Loading state:', { dataLoading, isSimulationLoading });
+    console.log('[FamilyTree3D] Graph data presence:', !!graphData, 'Nodes:', graphData?.nodes?.length, 'Links:', graphData?.links?.length);
+  }, [dataLoading, isSimulationLoading, graphData]);
+
   // Keyboard and Mouse state
   const [isSteeringActive, setIsSteeringActive] = useState(false); // Engine starts OFF
   const keysPressed = useRef<Record<string, boolean>>({});

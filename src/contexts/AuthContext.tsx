@@ -78,19 +78,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // Get initial session - use supabase.auth which is separate from REST API
     // Note: auth.getSession() doesn't rely on the problematic websocket
+    console.log('[AuthContext] Fetching initial session...');
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!isSubscribed) return;
       
-      console.log('[AuthContext] Initial session loaded:', !!session);
+      console.log('[AuthContext] Initial session result:', session ? 'Session found' : 'No session');
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchUserProfile(session.user.id, session.access_token);
       } else {
+        console.log('[AuthContext] No user in session, ending loading state.');
         setIsLoading(false);
       }
     }).catch((error) => {
-      console.error('[AuthContext] Error getting session:', error);
+      console.error('[AuthContext] CRITICAL: Error getting initial session:', error);
       setIsLoading(false);
     });
 
