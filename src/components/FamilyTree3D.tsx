@@ -258,6 +258,20 @@ const FamilyTree3D: React.FC = () => {
   const isLoading = dataLoading || isSimulationLoading;
   const error = dataError || validationError;
 
+  // Debug: Check for missing env vars
+  const hasEnvVars = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  if (!hasEnvVars) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100vh', background: '#0a0a0a', color: '#f59e0b', textAlign: 'center', padding: '20px' }}>
+        <div>
+          <h2>⚠️ Configuration Missing</h2>
+          <p>Supabase environment variables are not set. Please add <strong>VITE_SUPABASE_URL</strong> and <strong>VITE_SUPABASE_ANON_KEY</strong> to your Vercel project settings.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (error) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100vh', background: '#0a0a0a', color: '#ef4444', textAlign: 'center' }}><div><h2>Error Loading Family Tree</h2><p>{error}</p></div></div>;
 
   return (

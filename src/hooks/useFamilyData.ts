@@ -67,7 +67,10 @@ export function useFamilyData() {
 
       const linksData = await linksResponse.json();
       console.log('[useFamilyData] Raw links count from API:', linksData?.length);
-      console.log('[useFamilyData] First link raw:', linksData?.[0]);
+
+      if (!nodesData || nodesData.length === 0) {
+        console.warn('[useFamilyData] No nodes returned from Supabase');
+      }
 
       // Transform Supabase data to FamilyGraph format
       const nodes: FamilyNode[] = (nodesData || []).map((node: any) => ({
@@ -88,13 +91,7 @@ export function useFamilyData() {
       });
 
       console.log('[useFamilyData] Transformed links count:', links.length);
-      console.log('[useFamilyData] First transformed link:', links[0]);
       
-      // Check if user's links exist
-      const userNodeId = '10000000-1000-4000-8000-000000000003';
-      const userLinks = links.filter(l => l.source === userNodeId || l.target === userNodeId);
-      console.log(`[useFamilyData] Links for ${userNodeId}:`, userLinks.length, userLinks);
-
       setGraphData({ nodes, links });
       console.log('[useFamilyData] Loaded:', { nodes: nodes.length, links: links.length });
       setIsLoading(false);
