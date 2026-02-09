@@ -26,7 +26,7 @@ export default function ManageInvitesModal({
   targetNode,
   onSuccess,
 }: ManageInvitesModalProps) {
-  const { user, isAdmin, session } = useAuth();
+  const { user, session } = useAuth();
   const [invites, setInvites] = useState<Invite[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);

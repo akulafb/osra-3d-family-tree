@@ -70,13 +70,13 @@ export function useFamilyData() {
       console.log('[useFamilyData] First link raw:', linksData?.[0]);
 
       // Transform Supabase data to FamilyGraph format
-      const nodes: FamilyNode[] = (nodesData || []).map(node => ({
+      const nodes: FamilyNode[] = (nodesData || []).map((node: any) => ({
         id: node.id,
         name: node.name,
         familyCluster: node.family_cluster || undefined,
       }));
 
-      const links: FamilyLink[] = (linksData || []).map((link, idx) => {
+      const links: FamilyLink[] = (linksData || []).map((link: any, idx: number) => {
         if (idx < 3) {
           console.log(`[useFamilyData] Transforming link ${idx}:`, link);
         }

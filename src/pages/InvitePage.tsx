@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { supabase } from '../lib/supabase';
 
 type InviteStatus = 
   | 'loading' 
@@ -14,8 +13,7 @@ type InviteStatus =
 
 export default function InvitePage() {
   const { token } = useParams<{ token: string }>();
-  const { user, session, signInWithGoogle, refreshUserProfile } = useAuth();
-  const navigate = useNavigate();
+  const { user, session, signInWithGoogle } = useAuth();
   
   const [inviteStatus, setInviteStatus] = useState<InviteStatus>('loading');
   const [inviteData, setInviteData] = useState<any>(null);

@@ -43,15 +43,15 @@ export function PermissionTest() {
 
         if (userError) throw userError;
 
-        const userNodeId = userData?.node_id;
-        const isAdmin = userData?.role === 'admin';
+        const userNodeId = (userData as any)?.node_id;
+        const isAdmin = (userData as any)?.role === 'admin';
 
         console.log('[PermissionTest] User node ID:', userNodeId);
         console.log('[PermissionTest] Is admin:', isAdmin);
 
         // Test permissions for each node
         const nodeInfos: NodeInfo[] = [];
-        for (const node of nodesData || []) {
+        for (const node of (nodesData || []) as any[]) {
           const canEdit = await canEditNode(node.id, user.id);
           const rel = await getNodeRelationship(user.id, node.id);
           
@@ -138,7 +138,7 @@ export function PermissionTest() {
             </tr>
           </thead>
           <tbody>
-            {nodes.map(node => (
+            {(nodes as any[]).map((node: any) => (
               <tr 
                 key={node.id} 
                 style={{ 

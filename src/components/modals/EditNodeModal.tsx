@@ -17,7 +17,7 @@ export default function EditNodeModal({
   onSuccess,
   existingNodes,
 }: EditNodeModalProps) {
-  const { user, userProfile, isAdmin, session } = useAuth();
+  const { user, isAdmin, session } = useAuth();
   const [name, setName] = useState('');
   const [familyCluster, setFamilyCluster] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

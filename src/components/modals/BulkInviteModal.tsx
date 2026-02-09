@@ -28,9 +28,8 @@ export default function BulkInviteModal({
   userNodeId,
   onSuccess,
 }: BulkInviteModalProps) {
-  const { user, isAdmin, session } = useAuth();
+  const { user, session } = useAuth();
   const [relatives, setRelatives] = useState<RelativeWithInvite[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'select' | 'review'>('select');
@@ -54,15 +53,26 @@ export default function BulkInviteModal({
           const s = typeof l.source === 'object' ? l.source.id : l.source;
           const t = typeof l.target === 'object' ? l.target.id : l.target;
           return (s === userNodeId && t === nodeId) || (t === userNodeId && s === nodeId);
-        });
+        }) as any;
         
         if (link) {
           if (link.type === 'marriage') relationship = 'Spouse';
-          else if (link.type === 'parent') relationship = (typeof link.source === 'object' ? link.source.id : link.source) === nodeId ? 'Parent' : 'Child';
+          else if (link.type === 'parent') {
+            const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+            relationship = sourceId === nodeId ? 'Parent' : 'Child';
+          }
         } else {
           // Sibling check
-          const userParents = linksCopy.filter((l: any) => (typeof l.target === 'object' ? l.target.id : l.target) === userNodeId && l.type === 'parent').map((l: any) => typeof l.source === 'object' ? l.source.id : l.source);
-          const theirParents = linksCopy.filter((l: any) => (typeof l.target === 'object' ? l.target.id : l.target) === nodeId && l.type === 'parent').map((l: any) => typeof l.source === 'object' ? l.source.id : l.source);
+          const userParents = linksCopy.filter((l: any) => {
+            const t = typeof l.target === 'object' ? l.target.id : l.target;
+            return t === userNodeId && l.type === 'parent';
+          }).map((l: any) => typeof l.source === 'object' ? l.source.id : l.source);
+
+          const theirParents = linksCopy.filter((l: any) => {
+            const t = typeof l.target === 'object' ? l.target.id : l.target;
+            return t === nodeId && l.type === 'parent';
+          }).map((l: any) => typeof l.source === 'object' ? l.source.id : l.source);
+          
           if (userParents.some(p => theirParents.includes(p))) relationship = 'Sibling';
         }
 
@@ -105,7 +115,7 @@ export default function BulkInviteModal({
           counts[invite.node_id] = (counts[invite.node_id] || 0) + 1;
         }
       });
-      setRelatives(prev => prev.map(r => ({ ...r, existingInvites: counts[r.node.id] || 0 })));
+      setRelatives((prev: RelativeWithInvite[]) => prev.map(r => ({ ...r, existingInvites: counts[r.node.id] || 0 })));
     } catch (err) { console.error(err); }
   };
 
