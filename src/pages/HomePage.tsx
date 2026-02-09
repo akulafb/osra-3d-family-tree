@@ -99,7 +99,7 @@ export default function HomePage() {
       <div style={{
         position: 'absolute',
         top: '20px',
-        right: '20px',
+        left: '20px',
         zIndex: 1000
       }}>
         <button

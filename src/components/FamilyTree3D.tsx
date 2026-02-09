@@ -6,180 +6,205 @@ import SpriteText from 'three-spritetext';
 import * as THREE from 'three';
 import { FamilyNode, FamilyLink } from '../types/graph';
 import { useFamilyData } from '../hooks/useFamilyData';
+import { useAuth } from '../contexts/AuthContext';
+import AddRelativeModal from './modals/AddRelativeModal';
+import EditNodeModal from './modals/EditNodeModal';
+import BulkInviteModal from './modals/BulkInviteModal';
+import { canEdit } from '../lib/permissions';
 
 const FamilyTree3D: React.FC = () => {
   const ForceGraph3DAny = ForceGraph3D as unknown as React.ComponentType<any>;
-  const { graphData, isLoading: dataLoading, error: dataError } = useFamilyData();
+  const { graphData, isLoading: dataLoading, error: dataError, refetch } = useFamilyData();
+  const { user, userProfile } = useAuth();
   
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fgRef = useRef<any>();
   const [initialCameraPos, setInitialCameraPos] = useState<{ x: number; y: number; z: number } | null>(null);
   const [isSimulationLoading, setIsSimulationLoading] = useState(true);
   const [validationError, setValidationError] = useState<string | null>(null);
 
-  // Validate graph data when it loads
+  const [selectedNode, setSelectedNode] = useState<FamilyNode | null>(null);
+  const [canEditSelected, setCanEditSelected] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isBulkInviteOpen, setIsBulkInviteOpen] = useState(false);
+
+  // Keyboard and Mouse state
+  const [isSteeringActive, setIsSteeringActive] = useState(false); // Engine starts OFF
+  const keysPressed = useRef<Record<string, boolean>>({});
+  const mousePos = useRef({ x: 0, y: 0 });
+  const isMouseInWindow = useRef(true);
+
+  // Check permissions
+  useEffect(() => {
+    if (selectedNode && user && graphData?.links && userProfile?.node_id) {
+      const result = canEdit(selectedNode.id, userProfile.node_id, userProfile.role === 'admin', graphData.links);
+      setCanEditSelected(result);
+    } else {
+      setCanEditSelected(false);
+    }
+  }, [selectedNode, user, userProfile, graphData]);
+
+  // Data Validation
   useEffect(() => {
     if (!graphData) return;
-    
-    try {
-      if (!graphData.nodes || !graphData.links) {
-        setValidationError('Invalid graph data: missing nodes or links');
-        return;
-      }
-      if (graphData.nodes.length === 0) {
-        setValidationError('No family members found in data');
-        return;
-      }
-      // Validate all links reference valid nodes
-      const nodeIds = new Set(graphData.nodes.map(n => n.id));
-      const invalidLinks = graphData.links.filter(
-        l => !nodeIds.has(l.source) || !nodeIds.has(l.target)
-      );
-      if (invalidLinks.length > 0) {
-        setValidationError(`Invalid links found: ${invalidLinks.length} link(s) reference non-existent nodes`);
-        return;
-      }
+    if (!graphData.nodes || graphData.nodes.length === 0) {
+      setValidationError('No family members found in data');
+    } else {
       setValidationError(null);
-    } catch (err) {
-      setValidationError(err instanceof Error ? err.message : 'Unknown error validating data');
     }
   }, [graphData]);
 
-  const error = dataError || validationError;
-  const isLoading = dataLoading || isSimulationLoading;
-
-  // Store initial camera position for reset view
-  useEffect(() => {
-    if (fgRef.current && !initialCameraPos) {
-      const camera = fgRef.current.camera();
-      if (camera) {
-        setInitialCameraPos({
-          x: camera.position.x,
-          y: camera.position.y,
-          z: camera.position.z,
-        });
-      }
-    }
-  }, [initialCameraPos]);
-
-  // Function to restart the simulation (useful for testing parameter changes)
-  const restartSimulation = useCallback(() => {
-    if (fgRef.current) {
-      // Reset node positions and restart simulation
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      fgRef.current.graphData().nodes.forEach((node: any) => {
-        node.fx = undefined;
-        node.fy = undefined;
-        node.fz = undefined;
-      });
-      fgRef.current.d3Force('charge')?.restart();
-    }
-  }, []);
-
-  // Click-to-focus: Smoothly animate camera to focus on clicked node
+  // Focus Logic
   const handleNodeClick = useCallback((node: FamilyNode) => {
     if (!fgRef.current) return;
-
     const camera = fgRef.current.camera();
-    if (!camera) return;
+    const controls = fgRef.current.controls();
+    if (!camera || !controls) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const nodeData = node as any;
-    const nodePosition = {
-      x: nodeData.x || 0,
-      y: nodeData.y || 0,
-      z: nodeData.z || 0,
-    };
+    setSelectedNode(node);
+    
+    const nodePos = new THREE.Vector3(nodeData.x || 0, nodeData.y || 0, nodeData.z || 0);
+    const distance = 120;
+    
+    const direction = new THREE.Vector3().subVectors(camera.position, nodePos).normalize();
+    const targetPos = new THREE.Vector3().addVectors(nodePos, direction.multiplyScalar(distance));
 
-    // Calculate distance from camera to node
-    const distance = Math.sqrt(
-      Math.pow(camera.position.x - nodePosition.x, 2) +
-      Math.pow(camera.position.y - nodePosition.y, 2) +
-      Math.pow(camera.position.z - nodePosition.z, 2)
-    );
-
-    // Target camera position: offset from node to maintain viewing angle
-    const offsetDistance = Math.max(distance * 0.5, 100); // Stay at reasonable distance
-    const targetPosition = {
-      x: nodePosition.x + offsetDistance * 0.5,
-      y: nodePosition.y + offsetDistance * 0.5,
-      z: nodePosition.z + offsetDistance * 0.5,
-    };
-
-    // Smooth camera animation using lerp
-    const duration = 1000; // 1 second animation
+    const duration = 800;
     const startTime = Date.now();
-    const startPos = {
-      x: camera.position.x,
-      y: camera.position.y,
-      z: camera.position.z,
-    };
+    const startPos = camera.position.clone();
+    const startTarget = controls.target.clone();
 
     const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      
-      // Easing function (ease-in-out)
-      const eased = progress < 0.5
-        ? 2 * progress * progress
-        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      const progress = Math.min((Date.now() - startTime) / duration, 1);
+      const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
 
-      // Lerp camera position
-      camera.position.x = startPos.x + (targetPosition.x - startPos.x) * eased;
-      camera.position.y = startPos.y + (targetPosition.y - startPos.y) * eased;
-      camera.position.z = startPos.z + (targetPosition.z - startPos.z) * eased;
-
-      // Update camera look-at to focus on node
-      camera.lookAt(nodePosition.x, nodePosition.y, nodePosition.z);
+      camera.position.lerpVectors(startPos, targetPos, eased);
+      controls.target.lerpVectors(startTarget, nodePos, eased);
+      camera.lookAt(controls.target);
       camera.updateProjectionMatrix();
 
-      if (progress < 1) {
-        requestAnimationFrame(animate);
-      }
+      if (progress < 1) requestAnimationFrame(animate);
     };
-
     animate();
   }, []);
 
-  // Reset view: Return camera to initial position
-  const resetView = useCallback(() => {
-    if (!fgRef.current || !initialCameraPos) return;
+  // Continuous Flight Loop
+  useEffect(() => {
+    let frameId: number;
+    const baseSpeed = 1.2;
+    const boostMultiplier = 4.0;
+    const turnSpeed = 0.012;
+    const deadzone = 0.15;
 
-    const camera = fgRef.current.camera();
-    if (!camera) return;
+    const update = () => {
+      if (fgRef.current && !isAddModalOpen && !isEditModalOpen && !isBulkInviteOpen && 
+          document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+        
+        const camera = fgRef.current.camera();
+        const controls = fgRef.current.controls();
+        
+        if (camera && controls) {
+          // 1. Steering (Only if active and mouse in window)
+          if (isSteeringActive && isMouseInWindow.current) {
+            const dx = mousePos.current.x;
+            const dy = mousePos.current.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            if (dist > deadzone) {
+              const normalizedDist = (dist - deadzone) / (1 - deadzone);
+              const factor = Math.pow(normalizedDist, 4) * turnSpeed;
+              const yaw = -dx * factor;
+              const pitch = dy * factor;
+              
+              const direction = new THREE.Vector3().subVectors(controls.target, camera.position);
+              const right = new THREE.Vector3().crossVectors(direction, camera.up).normalize();
+              const upProj = direction.clone().normalize().dot(camera.up);
+              const canPitch = (pitch > 0 && upProj < 0.92) || (pitch < 0 && upProj > -0.92);
 
-    const duration = 1000;
-    const startTime = Date.now();
-    const startPos = {
-      x: camera.position.x,
-      y: camera.position.y,
-      z: camera.position.z,
+              direction.applyAxisAngle(camera.up, yaw);
+              if (canPitch) direction.applyAxisAngle(right, pitch);
+              controls.target.addVectors(camera.position, direction);
+            }
+          }
+
+          // 2. Thrust/Strafe
+          const moveSpeed = keysPressed.current['shift'] ? baseSpeed * boostMultiplier : baseSpeed;
+          const forward = new THREE.Vector3();
+          camera.getWorldDirection(forward);
+          const right = new THREE.Vector3().crossVectors(forward, camera.up).normalize();
+          const moveVec = new THREE.Vector3(0, 0, 0);
+
+          if (keysPressed.current['w'] || keysPressed.current['arrowup']) moveVec.add(forward);
+          if (keysPressed.current['s'] || keysPressed.current['arrowdown']) moveVec.add(forward.clone().negate());
+          if (keysPressed.current['a'] || keysPressed.current['arrowleft']) moveVec.add(right.clone().negate());
+          if (keysPressed.current['d'] || keysPressed.current['arrowright']) moveVec.add(right);
+
+          if (moveVec.lengthSq() > 0) {
+            moveVec.normalize().multiplyScalar(moveSpeed);
+            camera.position.add(moveVec);
+            controls.target.add(moveVec);
+          }
+          
+          camera.updateProjectionMatrix();
+        }
+      }
+      frameId = requestAnimationFrame(update);
     };
+    frameId = requestAnimationFrame(update);
+    return () => cancelAnimationFrame(frameId);
+  }, [isAddModalOpen, isEditModalOpen, isBulkInviteOpen, isSteeringActive]);
 
-    const animate = () => {
-      const elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
+  // Event Listeners
+  useEffect(() => {
+    const onDown = (e: KeyboardEvent) => {
+      const key = e.key.toLowerCase();
+      keysPressed.current[key] = true;
+      if (isAddModalOpen || isEditModalOpen || isBulkInviteOpen || document.activeElement?.tagName === 'INPUT') return;
       
-      const eased = progress < 0.5
-        ? 2 * progress * progress
-        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-
-      camera.position.x = startPos.x + (initialCameraPos.x - startPos.x) * eased;
-      camera.position.y = startPos.y + (initialCameraPos.y - startPos.y) * eased;
-      camera.position.z = startPos.z + (initialCameraPos.z - startPos.z) * eased;
-
-      camera.lookAt(0, 0, 0); // Look at center
-      camera.updateProjectionMatrix();
-
-      if (progress < 1) {
-        requestAnimationFrame(animate);
+      if (key === 'e') {
+        setIsSteeringActive(prev => !prev);
+      } else if (key === 'tab') {
+        e.preventDefault();
+        if (graphData?.nodes?.length) {
+          const idx = selectedNode ? graphData.nodes.findIndex(n => n.id === selectedNode.id) : -1;
+          const next = e.shiftKey ? (idx <= 0 ? graphData.nodes.length - 1 : idx - 1) : (idx + 1) % graphData.nodes.length;
+          setSelectedNode(graphData.nodes[next]);
+        }
+      } else if (key === 'enter' || key === ' ') {
+        if (selectedNode) { e.preventDefault(); handleNodeClick(selectedNode); }
+      } else if (key === 'escape') {
+        if (selectedNode) { e.preventDefault(); setSelectedNode(null); }
       }
     };
+    const onUp = (e: KeyboardEvent) => { keysPressed.current[e.key.toLowerCase()] = false; };
+    const onMove = (e: MouseEvent) => {
+      mousePos.current = {
+        x: (e.clientX / window.innerWidth) * 2 - 1,
+        y: -((e.clientY / window.innerHeight) * 2 - 1)
+      };
+    };
+    const onOut = () => { isMouseInWindow.current = false; };
+    const onIn = () => { isMouseInWindow.current = true; };
 
-    animate();
-  }, [initialCameraPos]);
+    window.addEventListener('keydown', onDown);
+    window.addEventListener('keyup', onUp);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseleave', onOut);
+    window.addEventListener('mouseenter', onIn);
+    
+    return () => {
+      window.removeEventListener('keydown', onDown);
+      window.removeEventListener('keyup', onUp);
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mouseleave', onOut);
+      window.removeEventListener('mouseenter', onIn);
+    };
+  }, [graphData, selectedNode, handleNodeClick, isAddModalOpen, isEditModalOpen, isBulkInviteOpen]);
 
+  // Node UI
   const nodeThreeObject = useCallback((node: FamilyNode) => {
+    const isSelected = selectedNode?.id === node.id;
     const sprite = new SpriteText(node.name);
     sprite.color = node.familyCluster === 'Badran' ? '#3b82f6' : 
                    node.familyCluster === 'Kutob' ? '#10b981' : 
@@ -188,295 +213,123 @@ const FamilyTree3D: React.FC = () => {
                    node.familyCluster === 'Malhis' ? '#8b5cf6' : '#f59e0b';
     sprite.textHeight = 8;
     
-    // Enable shadows: SpriteText doesn't cast shadows directly, so add a shadow-casting sphere
     const group = new THREE.Group();
+    const shadow = new THREE.Mesh(new THREE.SphereGeometry(2, 8, 8), new THREE.MeshStandardMaterial({ color: sprite.color, transparent: true, opacity: 0.1, emissive: sprite.color, emissiveIntensity: 0.2 }));
+    shadow.castShadow = true;
+    group.add(shadow);
     
-    // Add a small, subtle sphere that casts shadows (creates shadow on ground plane)
-    const shadowSphere = new THREE.Mesh(
-      new THREE.SphereGeometry(2, 8, 8), // Smaller sphere, fewer segments
-      new THREE.MeshStandardMaterial({ 
-        color: sprite.color,
-        transparent: true,
-        opacity: 0.1, // Very subtle, mostly invisible
-        emissive: sprite.color,
-        emissiveIntensity: 0.2
-      })
-    );
-    shadowSphere.castShadow = true;
-    shadowSphere.receiveShadow = false; // Don't receive shadows
-    group.add(shadowSphere);
+    if (isSelected) {
+      const aura = new THREE.Mesh(new THREE.SphereGeometry(14, 16, 16), new THREE.MeshBasicMaterial({ color: sprite.color, transparent: true, opacity: 0.2, wireframe: true }));
+      const glow = new THREE.Mesh(new THREE.SphereGeometry(18, 16, 16), new THREE.MeshBasicMaterial({ color: sprite.color, transparent: true, opacity: 0.05 }));
+      group.add(aura); group.add(glow);
+    }
     group.add(sprite);
-    
     return group;
-  }, []);
+  }, [selectedNode]);
 
-  // Configure link distance: shorter for parent links (keep families close), 
-  // longer for marriage links (bridge between clusters)
-  const linkDistance = useCallback((link: FamilyLink) => {
-    if (link.type === 'marriage') return 200; // Longer distance for marriage links
-    if (link.type === 'parent') return 40;    // Shorter distance for parent links
-    return 100; // Default fallback
-  }, []);
+  const resetView = useCallback(() => {
+    if (!fgRef.current || !initialCameraPos) return;
+    const camera = fgRef.current.camera();
+    const controls = fgRef.current.controls();
+    if (!camera || !controls) return;
+    const duration = 1000;
+    const startTime = Date.now();
+    const startPos = camera.position.clone();
+    const startTarget = controls.target.clone();
+    const animate = () => {
+      const progress = Math.min((Date.now() - startTime) / duration, 1);
+      const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      camera.position.lerpVectors(startPos, new THREE.Vector3(initialCameraPos.x, initialCameraPos.y, initialCameraPos.z), eased);
+      controls.target.lerpVectors(startTarget, new THREE.Vector3(0, 0, 0), eased);
+      camera.lookAt(controls.target);
+      camera.updateProjectionMatrix();
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+    animate();
+  }, [initialCameraPos]);
 
-  // Configure link strength: weaker for marriage links (flexible bridges),
-  // stronger for parent links (tight family bonds)
-  const linkStrength = useCallback((link: FamilyLink) => {
-    if (link.type === 'marriage') return 0.3; // Weaker - allows flexibility
-    if (link.type === 'parent') return 0.8;   // Stronger - keeps families tight
-    return 0.5; // Default fallback
-  }, []);
-
-  // Style link colors: different colors for different link types
-  const linkColor = useCallback((link: FamilyLink) => {
-    if (link.type === 'marriage') return '#f59e0b'; // Orange/amber for marriage links (bridges)
-    if (link.type === 'parent') return '#60a5fa';  // Light blue for parent links
-    return '#9ca3af'; // Gray default
-  }, []);
-
-  // Style link width: thicker for marriage links to make them stand out
-  const linkWidth = useCallback((link: FamilyLink) => {
-    if (link.type === 'marriage') return 3; // Thicker for marriage links
-    if (link.type === 'parent') return 1.5; // Thinner for parent links
-    return 2; // Default
-  }, []);
-
-  // Add directional arrows for parent links (parent → child)
-  const linkDirectionalArrowLength = useCallback((link: FamilyLink) => {
-    if (link.type === 'parent') return 8; // Show arrows for parent links
-    return 0; // No arrows for marriage links
-  }, []);
-
-  const linkDirectionalArrowColor = useCallback((link: FamilyLink) => {
-    if (link.type === 'parent') return '#60a5fa'; // Match parent link color
-    return '#000000';
-  }, []);
-
-  // Add curvature to marriage links to make them visually distinct (bridges)
-  const linkCurvature = useCallback((link: FamilyLink) => {
-    if (link.type === 'marriage') return 0.3; // Curved for marriage links (bridges)
-    return 0; // Straight for parent links
-  }, []);
-
-  // Depth cue handled via fog and lattice; keep node opacity constant
-
-  const handleSceneReady = useCallback((scene: THREE.Scene) => {
-    const renderer = fgRef.current?.renderer();
-    if (renderer) {
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      renderer.setClearColor(0x000000, 0);
+  useEffect(() => {
+    if (fgRef.current && !initialCameraPos) {
+      const camera = fgRef.current.camera();
+      if (camera) setInitialCameraPos({ x: camera.position.x, y: camera.position.y, z: camera.position.z });
     }
-    // Depth cue via fog; color matches background gradient edge
-    scene.fog = new THREE.Fog(0x0a0a0a, 250, 1400);
+  }, [initialCameraPos]);
 
-    // 3D lattice box for depth cues (non-interactive)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const oldLattice = (scene as any).latticeHelper;
-    if (oldLattice) scene.remove(oldLattice);
+  const isLoading = dataLoading || isSimulationLoading;
+  const error = dataError || validationError;
 
-    const size = 2000;
-    const divisions = 10;
-    const half = size / 2;
-    const step = size / divisions;
-    const vertices: number[] = [];
-
-    for (let i = 0; i <= divisions; i += 1) {
-      const p = -half + i * step;
-      for (let j = 0; j <= divisions; j += 1) {
-        const q = -half + j * step;
-
-        // Lines parallel to X axis
-        vertices.push(-half, p, q, half, p, q);
-        // Lines parallel to Y axis
-        vertices.push(p, -half, q, p, half, q);
-        // Lines parallel to Z axis
-        vertices.push(p, q, -half, p, q, half);
-      }
-    }
-
-    const latticeGeometry = new THREE.BufferGeometry();
-    latticeGeometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-    const latticeMaterial = new THREE.LineBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      opacity: 0.25,
-    });
-    const lattice = new THREE.LineSegments(latticeGeometry, latticeMaterial);
-    lattice.raycast = () => {};
-    scene.add(lattice);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (scene as any).latticeHelper = lattice;
-  }, []);
-
-
-  // Error state
-  if (error) {
-    return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-        height: '100%',
-        background: 'radial-gradient(ellipse at center, #1a3a52 0%, #0a0a0a 100%)',
-        color: '#ef4444',
-        fontSize: '18px',
-        textAlign: 'center',
-        padding: '20px',
-      }}>
-        <div>
-          <h2 style={{ marginBottom: '10px' }}>Error Loading Family Tree</h2>
-          <p>{error}</p>
-        </div>
-      </div>
-    );
-  }
+  if (error) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100vh', background: '#0a0a0a', color: '#ef4444', textAlign: 'center' }}><div><h2>Error Loading Family Tree</h2><p>{error}</p></div></div>;
 
   return (
-    <div style={{ 
-      position: 'relative', 
-      width: '100%', 
-      height: '100%',
-      background: 'radial-gradient(ellipse at center, #1a3a52 0%, #0a0a0a 100%)',
-    }}>
-      {/* Loading overlay */}
-      {isLoading && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'rgba(0, 0, 0, 0.7)',
-          zIndex: 1000,
-          color: '#fff',
-          fontSize: '18px',
-        }}>
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ marginBottom: '10px' }}>Loading Family Tree...</div>
-            <div style={{ 
-              width: '40px', 
-              height: '40px', 
-              border: '4px solid rgba(255,255,255,0.3)',
-              borderTop: '4px solid #fff',
-              borderRadius: '50%',
-              animation: 'spin 1s linear infinite',
-              margin: '0 auto',
-            }} />
-          </div>
-        </div>
-      )}
+    <div style={{ position: 'relative', width: '100%', height: '100%', background: 'radial-gradient(ellipse at center, #1a3a52 0%, #0a0a0a 100%)' }}>
+      {isLoading && <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.7)', zIndex: 1000, color: '#fff', fontSize: '18px' }}><div style={{ textAlign: 'center' }}><div>Loading Family Tree...</div><div style={{ width: '40px', height: '40px', border: '4px solid rgba(255,255,255,0.3)', borderTop: '4px solid #fff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '10px auto' }} /></div></div>}
+      
       <ForceGraph3DAny
         graphData={graphData || { nodes: [], links: [] }}
         nodeThreeObject={nodeThreeObject}
-        linkDistance={linkDistance}
-        linkStrength={linkStrength}
+        linkDistance={l => l.type === 'marriage' ? 200 : 40}
+        linkStrength={l => l.type === 'marriage' ? 0.3 : 0.8}
         ref={fgRef}
         nodeRepulsion={8000}
         cooldownTicks={200}
-        onEngineStop={() => {
-          setIsSimulationLoading(false); // Graph has finished initializing
-        }}
-        onSceneReady={handleSceneReady}
-        onRenderFramePre={() => {
+        onEngineStop={() => setIsSimulationLoading(false)}
+        onSceneReady={useCallback((scene: THREE.Scene) => {
           const renderer = fgRef.current?.renderer();
-          if (renderer) {
-            renderer.setClearColor(0x000000, 0);
-          }
-        }}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        onNodeDragEnd={(node: any) => {
-          node.fx = node.x;
-          node.fy = node.y;
-          node.fz = node.z;
-        }}
+          if (renderer) { renderer.shadowMap.enabled = true; renderer.setClearColor(0x000000, 0); }
+          scene.fog = new THREE.Fog(0x0a0a0a, 250, 1400);
+        }, [])}
         onNodeClick={handleNodeClick}
-        linkColor={linkColor}
-        linkWidth={linkWidth}
-        linkCurvature={linkCurvature}
-        linkDirectionalArrowLength={linkDirectionalArrowLength}
-        linkDirectionalArrowColor={linkDirectionalArrowColor}
-        linkDirectionalParticles={2}
-        linkDirectionalParticleSpeed={0.005}
+        linkColor={l => l.type === 'marriage' ? '#f59e0b' : '#60a5fa'}
+        linkWidth={l => l.type === 'marriage' ? 3 : 1.5}
+        linkCurvature={l => l.type === 'marriage' ? 0.3 : 0}
+        linkDirectionalArrowLength={l => l.type === 'parent' ? 8 : 0}
+        linkDirectionalArrowColor={() => '#60a5fa'}
         backgroundColor="rgba(0,0,0,0)"
         showNavInfo={true}
+        onBackgroundClick={() => setSelectedNode(null)}
       />
-      <div style={{
-        position: 'absolute',
-        top: '20px',
-        right: '20px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '10px',
-        zIndex: 10,
-      }}>
-        <button
-          onClick={restartSimulation}
-          aria-label="Restart force simulation"
-          style={{
-            padding: '10px 20px',
-            backgroundColor: '#3b82f6',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-            transition: 'background-color 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#2563eb';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#3b82f6';
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              restartSimulation();
-            }
-          }}
-        >
-          Restart Simulation
-        </button>
-        <button
-          onClick={resetView}
-          aria-label="Reset camera to initial view"
-          style={{
-            padding: '10px 20px',
-            backgroundColor: '#10b981',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: 'bold',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.3)',
-            transition: 'background-color 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#059669';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.backgroundColor = '#10b981';
-          }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              resetView();
-            }
-          }}
-        >
-          Reset View
-        </button>
+
+      {selectedNode && (
+        <div style={panelStyle}>
+          <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'white' }}>{selectedNode.name}</div>
+          <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+            {canEditSelected && (
+              <>
+                <button onClick={() => setIsEditModalOpen(true)} style={btnStyle('#f59e0b')}>✎ Edit</button>
+                <button onClick={() => setIsAddModalOpen(true)} style={btnStyle('#667eea')}>+ Add Relative</button>
+                {selectedNode.id === userProfile?.node_id && <button onClick={() => setIsBulkInviteOpen(true)} style={btnStyle('#10b981')}>Invite Family</button>}
+              </>
+            )}
+            <button onClick={() => setSelectedNode(null)} style={btnStyle('transparent', '#444')}>Close</button>
+          </div>
+        </div>
+      )}
+
+      {selectedNode && <AddRelativeModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} targetNode={selectedNode} onSuccess={() => { refetch(); setSelectedNode(null); }} existingNodes={graphData?.nodes || []} existingLinks={graphData?.links || []} />}
+      {userProfile?.node_id && <BulkInviteModal isOpen={isBulkInviteOpen} onClose={() => setIsBulkInviteOpen(false)} allNodes={graphData?.nodes || []} allLinks={graphData?.links ? [...graphData.links] : []} userNodeId={userProfile.node_id} onSuccess={() => {}} />}
+      {selectedNode && <EditNodeModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} targetNode={selectedNode} onSuccess={() => refetch()} existingNodes={graphData?.nodes || []} />}
+
+      <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 10 }}>
+        <button onClick={() => { setIsSimulationLoading(true); fgRef.current?.d3Force('charge')?.restart(); }} style={topBtnStyle('#3b82f6')}>Restart Simulation</button>
+        <button onClick={resetView} style={topBtnStyle('#10b981')}>Reset View</button>
+      </div>
+      
+      <div style={legendStyle}>
+        <div style={{ marginBottom: '4px', color: isSteeringActive ? '#10b981' : '#f59e0b' }}>
+          <strong>E</strong>: Mouse Steering ({isSteeringActive ? 'ACTIVE' : 'LOCKED'})
+        </div>
+        <div style={{ marginBottom: '4px' }}><strong>WASD</strong>: Move (Hold <strong>Shift</strong> for Boost)</div>
+        <div style={{ marginBottom: '4px' }}><strong>Tab</strong>: Cycle Names</div>
+        <div style={{ marginBottom: '4px' }}><strong>Enter</strong>: Focus selection</div>
+        <div><strong>Esc</strong>: Deselect</div>
       </div>
     </div>
   );
 };
 
-// Memoize component to prevent unnecessary re-renders
+const panelStyle: React.CSSProperties = { position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'rgba(42, 42, 42, 0.9)', padding: '15px 25px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 100, boxShadow: '0 4px 15px rgba(0,0,0,0.5)', border: '1px solid #444' };
+const btnStyle = (bg: string, border = 'none') => ({ padding: '8px 16px', backgroundColor: bg, color: 'white', border: border === 'none' ? 'none' : `1px solid ${border}`, borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' as const });
+const topBtnStyle = (bg: string) => ({ padding: '10px 20px', backgroundColor: bg, color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' as const });
+const legendStyle: React.CSSProperties = { position: 'absolute', bottom: '20px', right: '20px', backgroundColor: 'rgba(0, 0, 0, 0.5)', padding: '10px', borderRadius: '8px', color: '#ccc', fontSize: '0.75rem', pointerEvents: 'none', zIndex: 10, border: '1px solid rgba(255, 255, 255, 0.1)' };
+
 export default React.memo(FamilyTree3D);

@@ -125,6 +125,44 @@ export interface Database {
         Args: Record<PropertyKey, never>;
         Returns: boolean;
       };
+      get_invite_by_token: {
+        Args: {
+          invite_token: string;
+        };
+        Returns: {
+          token: string;
+          node_id: string;
+          expires_at: string;
+          claimed_by_user_id: string | null;
+          node_name: string;
+        } | null;
+      };
+      claim_invite_secure: {
+        Args: {
+          invite_token: string;
+          claiming_user_id: string;
+        };
+        Returns: {
+          success: boolean;
+          error?: string;
+          message?: string;
+          node_id?: string;
+        };
+      };
+      create_relative_secure: {
+        Args: {
+          new_node_name: string;
+          rel_type: string;
+          target_node_id: string;
+          creator_id: string;
+        };
+        Returns: {
+          success: boolean;
+          error?: string;
+          message?: string;
+          new_node_id?: string;
+        };
+      };
     };
     Enums: {
       [_ in never]: never;

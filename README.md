@@ -11,35 +11,35 @@ The goal is to create a collaborative family tree platform where multiple family
 This project was built progressively, with each step unlocking the next capability:
 
 ```mermaid
-flowchart TD
-    A[🎯 Goal: Visualize complex family relationships] --> B[📋 Need: Network-like structure with natural clustering]
-    B --> C[✅ Solution: Force-directed graphs with physics simulation]
-    C --> D[📋 Need: 3D space to separate family clusters]
-    D --> E[✅ Solution: react-force-graph-3d with Three.js/WebGL]
-    E --> F[📋 Need: Multiple users to collaborate on the tree]
-    F --> G[✅ Solution: Supabase database + Google OAuth]
-    G --> H[📋 Need: Users to only edit their immediate family]
-    H --> I[✅ Solution: Node binding system - each user bound to one node]
-    I --> J[📋 Need: Enforce 1-degree network permissions]
-    J --> K[✅ Solution: PostgreSQL RLS policies with is_within_1_degree function]
-    K --> L[📋 Need: Controlled onboarding without duplicates]
-    L --> M[✅ Solution: Invite token system for node claiming]
-    M --> N[📋 Need: Visual distinction between relationship types]
-    N --> O[✅ Solution: Color-coded links - parent blue, sibling green, marriage red]
-    O --> P[📋 Need: Intuitive navigation in 3D space]
-    P --> Q[✅ Solution: Google Earth-style orbit controls + click-to-focus]
-    Q --> R[🎉 Result: Multi-user 3D family tree with privacy controls]
+graph TD
+    A[Goal: Visualize<br/>family relationships] --> B[Need: Network<br/>structure]
+    B --> C[Force-directed<br/>graphs]
+    C --> D[Need: 3D<br/>separation]
+    D --> E[react-force-<br/>graph-3d]
+    
+    E --> F[Need: Multi-<br/>user collab]
+    F --> G[Supabase +<br/>OAuth]
+    G --> H[Need: Privacy<br/>controls]
+    H --> I[Node binding<br/>system]
+    
+    I --> J[Need: Permission<br/>enforcement]
+    J --> K[PostgreSQL<br/>RLS policies]
+    K --> L[Need: Controlled<br/>onboarding]
+    L --> M[Invite token<br/>system]
+    
+    M --> N[Need: Visual<br/>clarity]
+    N --> O[Color-coded<br/>links]
+    O --> P[Need: Intuitive<br/>navigation]
+    P --> Q[Starship FPS<br/>controls]
+    Q --> R[Result: Secure<br/>3D family tree]
 
-    style A fill:#e1f5ff,stroke:#0066cc,stroke-width:2px
-    style R fill:#d4edda,stroke:#28a745,stroke-width:2px
-    style C fill:#fff3cd,stroke:#ffc107,stroke-width:2px
-    style E fill:#fff3cd,stroke:#ffc107,stroke-width:2px
-    style G fill:#fff3cd,stroke:#ffc107,stroke-width:2px
-    style I fill:#fff3cd,stroke:#ffc107,stroke-width:2px
-    style K fill:#fff3cd,stroke:#ffc107,stroke-width:2px
-    style M fill:#fff3cd,stroke:#ffc107,stroke-width:2px
-    style O fill:#fff3cd,stroke:#ffc107,stroke-width:2px
-    style Q fill:#fff3cd,stroke:#ffc107,stroke-width:2px
+    classDef needStyle fill:#f8f9fa,stroke:#adb5bd,stroke-width:1px
+    classDef solutionStyle fill:#e9ecef,stroke:#6c757d,stroke-width:1px
+    classDef goalStyle fill:#f0f4f8,stroke:#7c8fa0,stroke-width:2px
+    
+    class A,R goalStyle
+    class B,D,F,H,J,L,N,P needStyle
+    class C,E,G,I,K,M,O,Q solutionStyle
 ```
 
 ### The Flow
@@ -60,7 +60,7 @@ flowchart TD
 
 8. **Made relationships visually clear**: All links looked the same, so we **color-coded them**—parent (blue), sibling (green), marriage (red)—making the family structure instantly readable
 
-9. **Made 3D navigation intuitive**: Flying through 3D was disorienting, so we added **Google Earth-style controls** with smooth orbiting and click-to-focus centering
+9. **Made 3D navigation immersive**: Flying through 3D was disorienting, so we developed **Starship FPS-style controls**. With WASD for thrust and mouse-based steering, exploring the family tree feels like navigating a 3D universe.
 
 Each solution unlocked the next challenge, building from a simple graph visualization into a fully collaborative, permission-controlled family tree platform.
 
@@ -70,15 +70,24 @@ Each solution unlocked the next challenge, building from a simple graph visualiz
 - **3D Force-Directed Graph**: Physics-based layout using react-force-graph-3d
 - **Multi-Cluster Architecture**: Multiple family clusters spatially separated in 3D space
 - **Marriage Links**: Visual bridges connecting different family clusters
-- **Google Earth-style Navigation**: Intuitive orbit, zoom, pan, and click-to-focus controls
-- **Node Metadata Display**: Name, birth date, birth place, and relationship information
+- **Starship FPS Navigation**: Immersive mouse steering and WASD movement
+- **Dynamic Node Interaction**: Click-to-focus and Tab-based node cycling with a glowing aura
+
+### Navigation Controls
+- **E**: Toggle Steering Engine (Enable/Disable Mouse Look)
+- **WASD / Arrows**: Forward/Backward thrust and Strafe Left/Right
+- **Shift**: Speed Boost
+- **Tab / Shift-Tab**: Cycle through family members
+- **Enter / Space**: Precision warp to selected node
+- **Esc**: Deselect / Reset orientation
+- **Mouse**: Directional steering (when engine is ON)
 
 ### Authentication & Permissions
 - **Google OAuth Integration**: Seamless sign-in via Supabase Auth
 - **Node Binding System**: Users bind to specific family tree nodes via invite tokens
-- **1-Degree Network Permissions**: Users can only view/edit their immediate relatives (self, parents, children, siblings, spouse)
+- **Hardened 1-Degree Model**: Rebuilt security layer (RLS) that supports relatives and siblings
+- **Atomic Operations**: Secure RPC functions (`create_relative_secure`) for data integrity
 - **Role-Based Access**: Admin role for full tree management
-- **Row-Level Security**: Database-enforced permissions via Supabase RLS policies
 
 ### Relationship Types
 - **Parent Links**: Vertical family structure
@@ -228,8 +237,8 @@ The project is configured for automatic deployment on Vercel:
 ### Force-Directed Layout
 The graph uses physics simulation to position nodes—connected nodes attract, while all nodes repel each other slightly. This creates natural clustering of family groups while maintaining readability.
 
-### Spatial Separation
-Family clusters start at different positions in 3D space (controlled by `family_cluster` field), preventing overlap and making inter-cluster marriage links visually prominent.
+### Starship Navigation
+The app uses a frame-based movement loop. The camera's "look direction" is driven by mouse position (steering), and movement is relative to that view. This allows users to "fly" through the clusters, maintaining a constant sense of presence in the family network.
 
 ### Node Binding
 Users must be "bound" to a specific node in the tree to gain access. This binding:
@@ -238,24 +247,53 @@ Users must be "bound" to a specific node in the tree to gain access. This bindin
 3. Enables personalized navigation (e.g., "center on my node")
 
 ### Invite System
+The tree follows a "distributed ownership" model - you can only "grow" the parts you're actually related to.
+
 Admins or existing family members can generate invite tokens for specific nodes. New users claim these tokens to bind their account, ensuring controlled onboarding and maintaining data integrity.
 
 ## [FB Notes]_ai
 
-**Key Technical Decisions:**
+**Phase 1: Visualization**
+We needed **A) a 3D graph**, **B) family clusters that don't overlap**, and **C) clear relationship types**.  
+**A = react-force-graph-3d** so we could lay out nodes with physics and navigate in 3D.  
+**B = family_cluster + spatial separation** so each family sits in its own region and marriage links show as bridges.  
+**C = Color-coded links** (parent, sibling, marriage) so the structure is readable at a glance.
 
-The force-directed graph physics runs at 60 FPS in the browser using Three.js WebGL rendering, with node repulsion and link attraction creating natural clustering without manual positioning. Each family cluster starts at a different position in 3D space (using `family_cluster` field), preventing overlap and making cross-cluster marriage links visually prominent as bridges.
+**Phase 2: Auth and identity**
+We needed **D) sign-in** and **E) a way to tie users to specific nodes**.  
+**D = Supabase + Google OAuth** so family members can sign in without managing passwords.  
+**E = Node binding** so each user is "this person in the tree" and we know their 1-degree network.
 
-The permission model uses graph traversal at the database level—`is_within_1_degree()` checks if two nodes share a parent (siblings), have a direct parent/child link, or are connected by marriage. This runs in PostgreSQL using recursive queries before any data leaves the database, providing defense-in-depth security even if the frontend is compromised.
+**Phase 3: Invites and production hardening**
+We needed **F) controlled onboarding** and **G) no silent failures**.  
+**F = Invite tokens** so only people with a link can claim a node and get access.  
+**G = One secure RPC (`claim_invite_secure`)** so claiming does validation + user creation + mark claimed in one transaction — no "success" in the UI with nothing in the DB.
 
-Node binding creates a one-to-one mapping between auth users and tree nodes, solving the identity problem—users aren't just "authenticated," they're "authenticated as this specific person in the tree." The invite token system enforces this mapping, preventing duplicate nodes and ensuring controlled tree growth.
+**Phase 4 & 5: Growth, Security, and Navigation**
+We've completed the core pillars of the 3D bridge:
+- **What**: Integrated full "Add Relative" and "Bulk Invite" systems with FPS-style "Starship" keyboard navigation.
+- **Why**: To allow the tree to grow securely from within, while making exploration feel like a high-fidelity 3D game rather than a static chart.
+- **How**: 
+  - Built **Atomic RPCs** in Supabase to ensure node and link creation never fail partially.
+  - Implemented a **"Master Rebuild"** of database RLS to harden the 1-degree security model against data mutations.
+  - Developed a **Frame-based Navigation Loop** with WASD thrust, Shift-boost, and an "Engine Toggle" (`E`) for precise, drift-free steering using mouse position.
+  - Added a **Glowing Aura** for Tab-based selection to keep track of your focus during flight.
 
-The spatial separation in 3D gives each family cluster ~500 units of separation on the XY plane, enough that force-directed repulsion doesn't pull them together, while marriage links (drawn in red) span these distances as visible bridges. The Google Earth-style controls (implemented via react-force-graph-3d's camera controls) make navigation feel natural—orbit to explore, click to center, zoom to focus.
+**The architecture decision**
+We use **raw `fetch()` to Supabase REST** for invite validation, claim, loading tree/profile data, and adding relatives. This bypasses the Supabase JS client's realtime websocket issues and ensures the app remains snappy and reliable.
 
-**What Makes This Work:**
-- Physics simulation scales to hundreds of nodes without performance degradation (GPU-accelerated)
-- RLS policies validate every database operation, not just read queries—inserts/updates/deletes all check `is_within_1_degree()`
-- The 1-degree network creates "distributed ownership"—no single user controls the whole tree, but everyone can curate their immediate family
-- Invite tokens are single-use and expire, preventing unauthorized access while enabling gradual family onboarding
+**The flow**
+1. **Invite claim**: User hits `/invite/:token` → we validate via RPC → they sign in with Google → we call `claim_invite_secure` → DB creates user, marks invite claimed → redirect home.
+2. **Loading the tree**: Authenticated request with session token fetches nodes and links; RLS enforces that only allowed data is returned.
+3. **Permissions**: `is_within_1_degree()` and `is_admin()` in the DB decide who can read/update what; inserts require you to be bound and (for links) within 1-degree.
+4. **Adding Relatives**: Click a node → `AddRelativeModal` → call `create_relative_secure` RPC → DB creates node + link + sets cluster in one transaction → refetch graph.
 
-This architecture transforms family tree creation from a single-author document into a collaborative graph database where privacy and permissions emerge naturally from the relationship structure itself.
+**Why this works**
+Visualization gives us the product; auth and binding give us identity; invites control growth; one RPC for claiming and another for adding relatives removes silent failures; RLS enforces permissions at the source. Each piece unlocks the next.
+
+**Key learnings**
+- RLS can block inserts without returning an error — use a SECURITY DEFINER RPC when the app legitimately needs to create a user record on invite claim or create links between nodes.
+- Atomic operations are king: Never create a Node and then a Link separately from the frontend; use a database function (RPC) to handle it in one transaction to avoid partial data (orphans).
+- Lock helper functions with `SET search_path = public` so they can't be abused via schema injection.
+- Tighten INSERT policies: don't use `WITH CHECK (true)`; require bound users and 1-degree checks so the tree can't be polluted.
+- If the Supabase client hangs, critical paths can use raw `fetch()` to the same REST API with your auth token.

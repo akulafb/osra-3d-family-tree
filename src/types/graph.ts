@@ -1,7 +1,7 @@
 // src/types/graph.ts
 
 export interface FamilyNode {
-  id: number;
+  id: string;  // UUID from Supabase
   name: string;
   birthDate?: string;
   birthPlace?: string;
@@ -9,8 +9,8 @@ export interface FamilyNode {
 }
 
 export interface FamilyLink {
-  source: number;
-  target: number;
+  source: string;  // UUID
+  target: string;  // UUID
   type: 'parent' | 'marriage';
 }
 

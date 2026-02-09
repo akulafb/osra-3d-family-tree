@@ -14,7 +14,7 @@ type InviteStatus =
 
 export default function InvitePage() {
   const { token } = useParams<{ token: string }>();
-  const { user, signInWithGoogle, refreshUserProfile } = useAuth();
+  const { user, session, signInWithGoogle, refreshUserProfile } = useAuth();
   const navigate = useNavigate();
   
   const [inviteStatus, setInviteStatus] = useState<InviteStatus>('loading');
@@ -28,43 +28,88 @@ export default function InvitePage() {
       return;
     }
 
-    const validateInvite = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('node_invites')
-          .select('*, nodes(name)')
-          .eq('token', token)
-          .single();
+    let cancelled = false;
 
-        if (error || !data) {
+    const validateInvite = async () => {
+      console.log('[InvitePage] Starting validation for token:', token);
+      
+      try {
+        // Bypass Supabase client (websocket hangs) - use raw fetch to REST API
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+        
+        console.log('[InvitePage] Calling RPC via fetch...');
+        const fetchStart = Date.now();
+        
+        const response = await fetch(
+          `${supabaseUrl}/rest/v1/rpc/get_invite_by_token`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+            },
+            body: JSON.stringify({ invite_token: token }),
+          }
+        );
+        
+        const fetchEnd = Date.now();
+        console.log('[InvitePage] REST API completed in', fetchEnd - fetchStart, 'ms, status:', response.status);
+        
+        if (cancelled) return;
+
+        if (!response.ok) {
+          console.error('[InvitePage] HTTP error:', response.status, response.statusText);
+          const errorText = await response.text();
+          console.error('[InvitePage] Error body:', errorText);
+          setInviteStatus('not_found');
+          return;
+        }
+        
+        const data = await response.json();
+        console.log('[InvitePage] Got data:', data);
+
+        // RPC returns null when no row found
+        if (!data || typeof data !== 'object') {
+          console.log('[InvitePage] No data, setting not_found');
           setInviteStatus('not_found');
           return;
         }
 
         // Check if already claimed
         if (data.claimed_by_user_id) {
+          console.log('[InvitePage] Already claimed');
           setInviteStatus('claimed');
+          setInviteData(data);
           return;
         }
 
         // Check if expired
         const expiresAt = new Date(data.expires_at);
         if (expiresAt < new Date()) {
+          console.log('[InvitePage] Expired');
           setInviteStatus('expired');
           setInviteData(data);
           return;
         }
 
+        console.log('[InvitePage] Valid! Setting status...');
         setInviteStatus('valid');
         setInviteData(data);
-      } catch (error) {
-        console.error('Error validating invite:', error);
+      } catch (err) {
+        if (cancelled) return;
+        console.error('[InvitePage] Exception:', err);
         setInviteStatus('error');
         setErrorMessage('Failed to validate invite');
       }
     };
 
     validateInvite();
+
+    return () => {
+      cancelled = true;
+    };
   }, [token]);
 
   // Auto-claim when user logs in
@@ -75,50 +120,74 @@ export default function InvitePage() {
   }, [user, inviteStatus, inviteData]);
 
   const claimInvite = async () => {
-    if (!user || !inviteData) return;
+    if (!user || !inviteData || !token) return;
 
+    console.log('[InvitePage] Claiming invite for user:', user.id);
     setInviteStatus('claiming');
 
     try {
-      // First, check if user already has a node binding
-      const { data: existingUser } = await supabase
-        .from('users')
-        .select('node_id')
-        .eq('id', user.id)
-        .single();
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      // Use authenticated session token
+      const authToken = session?.access_token || supabaseKey;
+      
+      // Call the secure RPC function that handles the entire claim flow atomically
+      console.log('[InvitePage] Calling claim_invite_secure RPC...');
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/rpc/claim_invite_secure`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({
+            invite_token: token,
+            claiming_user_id: user.id,
+          }),
+        }
+      );
 
-      if (existingUser?.node_id) {
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[InvitePage] RPC call failed:', errorText);
+        throw new Error('Failed to claim invite');
+      }
+
+      const result = await response.json();
+      console.log('[InvitePage] RPC result:', result);
+
+      // Check if the RPC returned an error
+      if (!result.success) {
+        console.error('[InvitePage] Claim failed:', result.error);
         setInviteStatus('error');
-        setErrorMessage('You are already bound to a node in the family tree.');
+        
+        // Map error codes to user-friendly messages
+        switch (result.error) {
+          case 'invalid_invite':
+            setErrorMessage('This invite link is not valid.');
+            break;
+          case 'already_claimed':
+            setInviteStatus('claimed');
+            setErrorMessage('This invite has already been claimed.');
+            break;
+          case 'already_bound':
+            setErrorMessage('You are already bound to a node in the family tree.');
+            break;
+          default:
+            setErrorMessage(result.message || 'Failed to claim invite. Please try again.');
+        }
         return;
       }
 
-      // Update the invite to mark as claimed
-      const { error: inviteError } = await supabase
-        .from('node_invites')
-        .update({ claimed_by_user_id: user.id })
-        .eq('token', token);
-
-      if (inviteError) throw inviteError;
-
-      // Create or update user profile to bind to node
-      const { error: userError } = await supabase
-        .from('users')
-        .upsert({
-          id: user.id,
-          node_id: inviteData.node_id,
-          role: 'user',
-        });
-
-      if (userError) throw userError;
-
-      // Refresh the user profile in auth context
-      await refreshUserProfile();
-
-      // Redirect to home
-      navigate('/');
+      // Success! Redirect with hard reload to ensure fresh auth context
+      console.log('[InvitePage] Claim successful! Redirecting...');
+      window.location.href = '/';
+      
     } catch (error) {
-      console.error('Error claiming invite:', error);
+      console.error('[InvitePage] Error claiming invite:', error);
       setInviteStatus('error');
       setErrorMessage('Failed to claim invite. Please try again.');
     }
@@ -149,7 +218,7 @@ export default function InvitePage() {
                 color: '#667eea',
                 marginBottom: '30px'
               }}>
-                {inviteData?.nodes?.name}
+                {inviteData?.node_name ?? 'a family member'}
               </p>
               <button
                 onClick={signInWithGoogle}

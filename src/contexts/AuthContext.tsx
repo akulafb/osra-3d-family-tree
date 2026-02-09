@@ -25,52 +25,109 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch user profile from the users table
-  const fetchUserProfile = async (userId: string) => {
+  // Fetch user profile from the users table using raw fetch (avoid websocket hang)
+  const fetchUserProfile = async (userId: string, authToken?: string) => {
     try {
-      const { data, error } = await supabase
-        .from('users')
-        .select('*')
-        .eq('id', userId)
-        .single();
+      console.log('[AuthContext] Fetching profile for user:', userId);
+      
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      // Use provided token or fall back to anon key
+      const token = authToken || supabaseKey;
 
-      if (error) throw error;
-      setUserProfile(data);
+      const response = await fetch(
+        `${supabaseUrl}/rest/v1/users?id=eq.${userId}&select=*`,
+        {
+          method: 'GET',
+          headers: {
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch profile: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      
+      if (data && data.length > 0) {
+        console.log('[AuthContext] Profile loaded:', { node_id: data[0].node_id, role: data[0].role });
+        setUserProfile(data[0]);
+      } else {
+        console.log('[AuthContext] No profile found for user');
+        setUserProfile(null);
+      }
+      
+      // Done loading after profile fetch completes
+      setIsLoading(false);
     } catch (error) {
-      console.error('Error fetching user profile:', error);
+      console.error('[AuthContext] Error fetching user profile:', error);
       setUserProfile(null);
+      setIsLoading(false);
     }
   };
 
   // Initialize auth state
   useEffect(() => {
-    // Get initial session
+    console.log('[AuthContext] Initializing...');
+    
+    let isSubscribed = true;
+    
+    // Get initial session - use supabase.auth which is separate from REST API
+    // Note: auth.getSession() doesn't rely on the problematic websocket
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isSubscribed) return;
+      
+      console.log('[AuthContext] Initial session loaded:', !!session);
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchUserProfile(session.user.id);
+        fetchUserProfile(session.user.id, session.access_token);
+      } else {
+        setIsLoading(false);
       }
+    }).catch((error) => {
+      console.error('[AuthContext] Error getting session:', error);
       setIsLoading(false);
     });
 
-    // Listen for auth changes
+    // Listen for auth changes - but debounce to prevent loops
+    let lastUserId: string | null = null;
+    
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
+      if (!isSubscribed) return;
       
-      if (session?.user) {
-        await fetchUserProfile(session.user.id);
-      } else {
-        setUserProfile(null);
+      console.log('[AuthContext] Auth state changed:', _event);
+      
+      // Only update if user actually changed or signed out
+      const newUserId = newSession?.user?.id ?? null;
+      
+      if (newUserId === lastUserId && _event === 'SIGNED_IN') {
+        console.log('[AuthContext] Same user, skipping duplicate fetch');
+        return;
       }
       
-      setIsLoading(false);
+      lastUserId = newUserId;
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
+      
+      if (newSession?.user) {
+        await fetchUserProfile(newSession.user.id, newSession.access_token);
+      } else {
+        setUserProfile(null);
+        setIsLoading(false);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isSubscribed = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signInWithGoogle = async () => {
@@ -100,8 +157,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshUserProfile = async () => {
-    if (user) {
-      await fetchUserProfile(user.id);
+    if (user && session) {
+      await fetchUserProfile(user.id, session.access_token);
     }
   };
 
