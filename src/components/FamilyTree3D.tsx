@@ -29,6 +29,8 @@ const FamilyTree3D: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isBulkInviteOpen, setIsBulkInviteOpen] = useState(false);
   const [isPresetsOpen, setIsPresetsOpen] = useState(false);
+  const [showLegend, setShowLegend] = useState(true);
+  const [activePreset, setActivePreset] = useState<string | null>(null);
 
   const uniqueClusters = React.useMemo(() => {
     if (!graphData?.nodes) return [];
@@ -108,6 +110,7 @@ const FamilyTree3D: React.FC = () => {
   const resetView = useCallback(() => {
     if (!fgRef.current || !initialCameraPos || !graphData) return;
 
+    setActivePreset(null);
     // Clear all fixed positions
     graphData.nodes.forEach((node: any) => {
       node.fx = undefined;
@@ -347,24 +350,45 @@ const FamilyTree3D: React.FC = () => {
 
     if (!clusterName) return;
 
+    setActivePreset(clusterName);
     const levels = calculateGenerationLevels(clusterName);
-    const generationHeight = 150;
+    const generationHeight = 250; 
+    const horizontalSpread = 300; 
+
+    // Group nodes by level to spread them out
+    const nodesByLevel: Record<number, any[]> = {};
+    graphData.nodes.forEach((node: any) => {
+      if (node.familyCluster === clusterName) {
+        const level = levels.get(node.id) || 0;
+        if (!nodesByLevel[level]) nodesByLevel[level] = [];
+        nodesByLevel[level].push(node);
+      }
+    });
 
     graphData.nodes.forEach((node: any) => {
       if (node.familyCluster === clusterName) {
         const level = levels.get(node.id) || 0;
+        const siblingsAtLevel = nodesByLevel[level];
+        const index = siblingsAtLevel.indexOf(node);
+        const offset = (index - (siblingsAtLevel.length - 1) / 2) * horizontalSpread;
+        
+        node.x = offset; 
         node.fy = level * generationHeight;
         node.fz = 0;
-        node.fx = undefined; // Free on X
+        node.fx = undefined; 
       } else {
-        node.fz = -400; // Push to background
+        node.fz = -600; 
         node.fx = undefined;
         node.fy = undefined;
       }
     });
 
-    // Reheat simulation to apply fixed positions
-    fgRef.current.d3ReheatSimulation();
+    // Reheat simulation with high intensity
+    if (fgRef.current) {
+      fgRef.current.d3AlphaTarget(0.3); // Keep it "hot" longer
+      setTimeout(() => fgRef.current?.d3AlphaTarget(0), 2000);
+      fgRef.current.d3ReheatSimulation();
+    }
 
     // Focus camera on the cluster
     if (type === 'me' && userProfile?.node_id) {
@@ -404,6 +428,42 @@ const FamilyTree3D: React.FC = () => {
     return group;
   }, [selectedNode]);
 
+  const linkThreeObject = useCallback((link: any) => {
+    if (activePreset && link.type === 'parent') {
+      const sourceCluster = typeof link.source === 'object' ? link.source.familyCluster : null;
+      const targetCluster = typeof link.target === 'object' ? link.target.familyCluster : null;
+      
+      // Only apply elbows to links within the active family cluster
+      if (sourceCluster === activePreset && targetCluster === activePreset) {
+        const geometry = new THREE.BufferGeometry();
+        const material = new THREE.LineBasicMaterial({ color: '#60a5fa' });
+        const line = new THREE.Line(geometry, material);
+        return line;
+      }
+    }
+    return null;
+  }, [activePreset]);
+
+  const linkPositionUpdate = useCallback((line: any, { start, end }: any, link: any) => {
+    if (activePreset && link.type === 'parent' && line instanceof THREE.Line) {
+      const sourceCluster = typeof link.source === 'object' ? link.source.familyCluster : null;
+      const targetCluster = typeof link.target === 'object' ? link.target.familyCluster : null;
+
+      if (sourceCluster === activePreset && targetCluster === activePreset) {
+        const midY = (start.y + end.y) / 2;
+        const points = [
+          new THREE.Vector3(start.x, start.y, start.z),
+          new THREE.Vector3(start.x, midY, start.z),
+          new THREE.Vector3(end.x, midY, end.z),
+          new THREE.Vector3(end.x, end.y, end.z)
+        ];
+        line.geometry.setFromPoints(points);
+        return true;
+      }
+    }
+    return false;
+  }, [activePreset]);
+
   useEffect(() => {
     if (fgRef.current && !initialCameraPos) {
       const camera = fgRef.current.camera();
@@ -437,21 +497,48 @@ const FamilyTree3D: React.FC = () => {
       <ForceGraph3DAny
         graphData={graphData || { nodes: [], links: [] }}
         nodeThreeObject={nodeThreeObject}
-        linkDistance={(l: any) => l.type === 'marriage' ? 200 : 40}
-        linkStrength={(l: any) => l.type === 'marriage' ? 0.3 : 0.8}
+        linkThreeObject={linkThreeObject}
+        linkPositionUpdate={linkPositionUpdate}
+        linkDistance={(l: any) => {
+          if (activePreset) {
+            const s = typeof l.source === 'object' ? l.source.familyCluster : null;
+            const t = typeof l.target === 'object' ? l.target.familyCluster : null;
+            if (s === activePreset && t === activePreset) {
+              return l.type === 'marriage' ? 400 : 200; 
+            }
+          }
+          return l.type === 'marriage' ? 200 : 40;
+        }}
+        linkStrength={(l: any) => {
+          if (activePreset) {
+            const s = typeof l.source === 'object' ? l.source.familyCluster : null;
+            const t = typeof l.target === 'object' ? l.target.familyCluster : null;
+            if (s === activePreset && t === activePreset) {
+              return 0.1; 
+            }
+          }
+          return l.type === 'marriage' ? 0.3 : 0.8;
+        }}
         ref={fgRef}
-        nodeRepulsion={8000}
-        cooldownTicks={200}
+        nodeRepulsion={activePreset ? 100000 : 8000}
+        cooldownTicks={activePreset ? 600 : 200}
         onEngineStop={() => setIsSimulationLoading(false)}
         onSceneReady={useCallback((scene: THREE.Scene) => {
           const renderer = fgRef.current?.renderer();
           if (renderer) { renderer.shadowMap.enabled = true; renderer.setClearColor(0x000000, 0); }
-          scene.fog = new THREE.Fog(0x0a0a0a, 250, 1400);
+          scene.fog = new THREE.Fog(0x0a0a0a, 250, 3000);
         }, [])}
         onNodeClick={handleNodeClick}
         linkColor={(l: any) => l.type === 'marriage' ? '#f59e0b' : '#60a5fa'}
         linkWidth={(l: any) => l.type === 'marriage' ? 3 : 1.5}
-        linkCurvature={(l: any) => l.type === 'marriage' ? 0.3 : 0}
+        linkCurvature={(l: any) => {
+          if (activePreset) {
+            const s = typeof l.source === 'object' ? l.source.familyCluster : null;
+            const t = typeof l.target === 'object' ? l.target.familyCluster : null;
+            if (s === activePreset && t === activePreset) return 0;
+          }
+          return l.type === 'marriage' ? 0.3 : 0;
+        }}
         linkDirectionalArrowLength={(l: any) => l.type === 'parent' ? 8 : 0}
         linkDirectionalArrowColor={() => '#60a5fa'}
         backgroundColor="rgba(0,0,0,0)"
@@ -480,6 +567,14 @@ const FamilyTree3D: React.FC = () => {
       {selectedNode && <EditNodeModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} targetNode={selectedNode} onSuccess={() => refetch()} existingNodes={graphData?.nodes || []} />}
 
       <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 10 }}>
+        <button 
+          onClick={() => setShowLegend(!showLegend)} 
+          style={{ ...topBtnStyle(showLegend ? '#444' : '#3b82f6'), width: '40px', padding: '10px 0', marginLeft: 'auto' }}
+          title={showLegend ? 'Hide Controls' : 'Show Controls'}
+        >
+          {showLegend ? '👁️' : '👁️‍🗨️'}
+        </button>
+
         <button onClick={() => { setIsSimulationLoading(true); fgRef.current?.d3Force('charge')?.restart(); }} style={topBtnStyle('#3b82f6')}>Restart Simulation</button>
         
         <div style={{ position: 'relative' }} ref={presetsRef}>
@@ -514,15 +609,17 @@ const FamilyTree3D: React.FC = () => {
         <button onClick={resetView} style={topBtnStyle('#10b981')}>Reset View</button>
       </div>
       
-      <div style={legendStyle}>
-        <div style={{ marginBottom: '4px', color: isSteeringActive ? '#10b981' : '#f59e0b' }}>
-          <strong>E</strong>: Mouse Steering ({isSteeringActive ? 'ACTIVE' : 'LOCKED'})
+      {showLegend && (
+        <div style={legendStyle}>
+          <div style={{ marginBottom: '4px', color: isSteeringActive ? '#10b981' : '#f59e0b' }}>
+            <strong>E</strong>: Mouse Steering ({isSteeringActive ? 'ACTIVE' : 'LOCKED'})
+          </div>
+          <div style={{ marginBottom: '4px' }}><strong>WASD</strong>: Move (Hold <strong>Shift</strong> for Boost)</div>
+          <div style={{ marginBottom: '4px' }}><strong>Tab</strong>: Cycle Names</div>
+          <div style={{ marginBottom: '4px' }}><strong>Enter</strong>: Focus selection</div>
+          <div><strong>Esc</strong>: Deselect</div>
         </div>
-        <div style={{ marginBottom: '4px' }}><strong>WASD</strong>: Move (Hold <strong>Shift</strong> for Boost)</div>
-        <div style={{ marginBottom: '4px' }}><strong>Tab</strong>: Cycle Names</div>
-        <div style={{ marginBottom: '4px' }}><strong>Enter</strong>: Focus selection</div>
-        <div><strong>Esc</strong>: Deselect</div>
-      </div>
+      )}
     </div>
   );
 };

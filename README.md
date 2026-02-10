@@ -288,8 +288,29 @@ We use **raw `fetch()` to Supabase REST** for invite validation, claim, loading 
 3. **Permissions**: `is_within_1_degree()` and `is_admin()` in the DB decide who can read/update what; inserts require you to be bound and (for links) within 1-degree.
 4. **Adding Relatives**: Click a node → `AddRelativeModal` → call `create_relative_secure` RPC → DB creates node + link + sets cluster in one transaction → refetch graph.
 
+**Phase 6: Presets & Hierarchical Views**
+We needed **H) classic tree readability** and **I) clean visual paths**.
+**H = Family Presets (2D)** so users can toggle a cluster into a clean vertical hierarchy with parents at the top and children below. Non-family nodes are pushed to the background to maintain focus.
+**I = Orthogonal "Elbow" Connectors** so parent-child links in the 2D view follow clean right-angle paths instead of crossing lines, making generations easy to trace at a glance.
+
+**Key learnings**
+- 3D space can be leveraged for focus: By moving unrelated nodes to a distant Z-plane (`fz = -600`), the active family cluster "pops" into a 2D viewport without losing the context of the wider network.
+- Custom link rendering in `react-force-graph-3d` requires both `linkThreeObject` for creation and `linkPositionUpdate` for frame-by-frame alignment, especially when using non-straight geometries like elbows.
+- BFS is the right tool for hierarchical leveling: By identifying "roots" in a cluster and traversing down, we can assign reliable `fy` coordinates to represent generations.
+- Physics vs. Hierarchy: To prevent siblings from clumping, we use a "Shock-Spread" approach—pre-calculating wide horizontal offsets and drastically weakening link strength during the transition.
+
+**The architecture decision**
+We use **BFS (Breadth-First Search)** on the client-side to calculate generation levels whenever a family preset is selected. This allows the layout to be dynamic and cluster-specific without needing persistent hierarchical data in the database.
+
+**The flow**
+1. **Selection**: User opens "Presets" and clicks a family name.
+2. **Analysis**: We run BFS starting from that family's "roots" (nodes with no parents in that cluster) to assign levels (0, 1, 2...).
+3. **Layout**: We fix nodes in that cluster to `fz=0` and `fy = level * 250`, while pushing others to `fz=-600`.
+4. **Shock-Spread**: We manually offset siblings by `300` units horizontally to ensure the physics engine doesn't clump them together under their parents.
+5. **Rendering**: For the active cluster, parent-child links switch to custom orthogonal "elbow" connectors via `linkThreeObject`.
+
 **Why this works**
-Visualization gives us the product; auth and binding give us identity; invites control growth; one RPC for claiming and another for adding relatives removes silent failures; RLS enforces permissions at the source. Each piece unlocks the next.
+It gives the user the "best of both worlds": an immersive, connected 3D galaxy for general exploration, and a clean, traditional family tree view for deep-diving into specific lineages.
 
 **Key learnings**
 - RLS can block inserts without returning an error — use a SECURITY DEFINER RPC when the app legitimately needs to create a user record on invite claim or create links between nodes.
