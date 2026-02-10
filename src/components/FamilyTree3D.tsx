@@ -262,36 +262,6 @@ const FamilyTree3D: React.FC = () => {
     if (node) handleNodeClick(node);
   }, [graphData, handleNodeClick]);
 
-  const resetView = useCallback(() => {
-    if (!fgRef.current || !initialCameraPos || !graphData) return;
-
-    // Clear all fixed positions
-    graphData.nodes.forEach((node: any) => {
-      node.fx = undefined;
-      node.fy = undefined;
-      node.fz = undefined;
-    });
-    fgRef.current.d3ReheatSimulation();
-
-    const camera = fgRef.current.camera();
-    const controls = fgRef.current.controls();
-    if (!camera || !controls) return;
-    const duration = 1000;
-    const startTime = Date.now();
-    const startPos = camera.position.clone();
-    const startTarget = controls.target.clone();
-    const animate = () => {
-      const progress = Math.min((Date.now() - startTime) / duration, 1);
-      const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-      camera.position.lerpVectors(startPos, new THREE.Vector3(initialCameraPos.x, initialCameraPos.y, initialCameraPos.z), eased);
-      controls.target.lerpVectors(startTarget, new THREE.Vector3(0, 0, 0), eased);
-      camera.lookAt(controls.target);
-      camera.updateProjectionMatrix();
-      if (progress < 1) requestAnimationFrame(animate);
-    };
-    animate();
-  }, [initialCameraPos, graphData]);
-
   const calculateGenerationLevels = useCallback((clusterName: string) => {
     if (!graphData) return new Map<string, number>();
 
