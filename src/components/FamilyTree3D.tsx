@@ -567,14 +567,6 @@ const FamilyTree3D: React.FC = () => {
       {selectedNode && <EditNodeModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} targetNode={selectedNode} onSuccess={() => refetch()} existingNodes={graphData?.nodes || []} />}
 
       <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 10 }}>
-        <button 
-          onClick={() => setShowLegend(!showLegend)} 
-          style={{ ...topBtnStyle(showLegend ? '#444' : '#3b82f6'), width: '40px', padding: '10px 0', marginLeft: 'auto' }}
-          title={showLegend ? 'Hide Controls' : 'Show Controls'}
-        >
-          {showLegend ? '👁️' : '👁️‍🗨️'}
-        </button>
-
         <button onClick={() => { setIsSimulationLoading(true); fgRef.current?.d3Force('charge')?.restart(); }} style={topBtnStyle('#3b82f6')}>Restart Simulation</button>
         
         <div style={{ position: 'relative' }} ref={presetsRef}>
@@ -609,17 +601,39 @@ const FamilyTree3D: React.FC = () => {
         <button onClick={resetView} style={topBtnStyle('#10b981')}>Reset View</button>
       </div>
       
-      {showLegend && (
-        <div style={legendStyle}>
-          <div style={{ marginBottom: '4px', color: isSteeringActive ? '#10b981' : '#f59e0b' }}>
-            <strong>E</strong>: Mouse Steering ({isSteeringActive ? 'ACTIVE' : 'LOCKED'})
-          </div>
-          <div style={{ marginBottom: '4px' }}><strong>WASD</strong>: Move (Hold <strong>Shift</strong> for Boost)</div>
-          <div style={{ marginBottom: '4px' }}><strong>Tab</strong>: Cycle Names</div>
-          <div style={{ marginBottom: '4px' }}><strong>Enter</strong>: Focus selection</div>
-          <div><strong>Esc</strong>: Deselect</div>
+      <div 
+        onClick={() => setShowLegend(!showLegend)}
+        style={{ 
+          ...legendStyle, 
+          cursor: 'pointer', 
+          pointerEvents: 'auto',
+          transition: 'all 0.3s ease',
+          userSelect: 'none'
+        }}
+      >
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: showLegend ? '8px' : '0',
+          gap: '10px'
+        }}>
+          <strong style={{ fontSize: '0.8rem', color: '#fff' }}>NAV CONTROLS</strong>
+          <span>{showLegend ? '👁️' : '👁️‍🗨️'}</span>
         </div>
-      )}
+
+        {showLegend && (
+          <>
+            <div style={{ marginBottom: '4px', color: isSteeringActive ? '#10b981' : '#f59e0b' }}>
+              <strong>E</strong>: Mouse Steering ({isSteeringActive ? 'ACTIVE' : 'LOCKED'})
+            </div>
+            <div style={{ marginBottom: '4px' }}><strong>WASD</strong>: Move (Hold <strong>Shift</strong> for Boost)</div>
+            <div style={{ marginBottom: '4px' }}><strong>Tab</strong>: Cycle Names</div>
+            <div style={{ marginBottom: '4px' }}><strong>Enter</strong>: Focus selection</div>
+            <div><strong>Esc</strong>: Deselect</div>
+          </>
+        )}
+      </div>
     </div>
   );
 };
@@ -628,6 +642,6 @@ const panelStyle: React.CSSProperties = { position: 'absolute', bottom: '40px', 
 const btnStyle = (bg: string, border = 'none') => ({ padding: '8px 16px', backgroundColor: bg, color: 'white', border: border === 'none' ? 'none' : `1px solid ${border}`, borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' as const });
 const topBtnStyle = (bg: string) => ({ padding: '10px 20px', backgroundColor: bg, color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' as const, width: '100%', textAlign: 'center' as const });
 const presetMenuStyle: React.CSSProperties = { position: 'absolute', top: '100%', right: 0, marginTop: '5px', backgroundColor: 'rgba(42, 42, 42, 0.95)', borderRadius: '8px', border: '1px solid #444', overflowX: 'hidden', overflowY: 'auto', maxHeight: '400px', minWidth: '180px', boxShadow: '0 4px 15px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', zIndex: 20 };
-const legendStyle: React.CSSProperties = { position: 'absolute', bottom: '20px', right: '20px', backgroundColor: 'rgba(0, 0, 0, 0.5)', padding: '10px', borderRadius: '8px', color: '#ccc', fontSize: '0.75rem', pointerEvents: 'none', zIndex: 10, border: '1px solid rgba(255, 255, 255, 0.1)' };
+const legendStyle: React.CSSProperties = { position: 'absolute', bottom: '20px', right: '20px', backgroundColor: 'rgba(0, 0, 0, 0.7)', padding: '12px', borderRadius: '8px', color: '#ccc', fontSize: '0.75rem', zIndex: 10, border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' };
 
 export default React.memo(FamilyTree3D);
