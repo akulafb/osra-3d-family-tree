@@ -341,7 +341,8 @@ const FamilyTree3D: React.FC = () => {
 
     let clusterName = type;
     if (type === 'me') {
-      clusterName = userProfile?.familyCluster || '';
+      const userNode = graphData.nodes.find(n => n.id === userProfile?.node_id);
+      clusterName = userNode?.familyCluster || '';
     }
 
     if (!clusterName) return;
