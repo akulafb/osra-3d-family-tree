@@ -55,7 +55,7 @@ export default function HomePage() {
         )}
 
         <button
-          onClick={signInWithGoogle}
+          onClick={() => signInWithGoogle()}
           disabled={!hasEnvVars}
           style={{
             padding: '15px 40px',

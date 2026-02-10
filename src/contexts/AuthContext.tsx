@@ -134,7 +134,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = async (customRedirect?: string) => {
     try {
-      const redirectUrl = customRedirect || window.location.origin;
+      // Ensure customRedirect is a string (prevents issues if passed directly to onClick)
+      const redirectUrl = typeof customRedirect === 'string' ? customRedirect : window.location.origin;
       console.log('[AuthContext] Initiating Google Sign-In with redirect:', redirectUrl);
       
       const { error } = await supabase.auth.signInWithOAuth({
