@@ -31,15 +31,17 @@ graph TD
     N --> O[Color-coded<br/>links]
     O --> P[Need: Intuitive<br/>navigation]
     P --> Q[Starship FPS<br/>controls]
-    Q --> R[Result: Secure<br/>3D family tree]
+    Q --> R[Need: Hierarchical<br/>clarity]
+    R --> S[Presets +<br/>Elbow links]
+    S --> T[Result: Secure<br/>3D family tree]
 
     classDef needStyle fill:#f8f9fa,stroke:#adb5bd,stroke-width:1px
     classDef solutionStyle fill:#e9ecef,stroke:#6c757d,stroke-width:1px
     classDef goalStyle fill:#f0f4f8,stroke:#7c8fa0,stroke-width:2px
     
-    class A,R goalStyle
-    class B,D,F,H,J,L,N,P needStyle
-    class C,E,G,I,K,M,O,Q solutionStyle
+    class A,T goalStyle
+    class B,D,F,H,J,L,N,P,R needStyle
+    class C,E,G,I,K,M,O,Q,S solutionStyle
 ```
 
 ### The Flow
@@ -62,6 +64,8 @@ graph TD
 
 9. **Made 3D navigation immersive**: Flying through 3D was disorienting, so we developed **Starship FPS-style controls**. With WASD for thrust and mouse-based steering, exploring the family tree feels like navigating a 3D universe.
 
+10. **Added hierarchical focus**: While 3D is great for exploration, sometimes you need a clean, traditional view. We added **Family Presets (2D)** which use BFS to arrange clusters into clean vertical hierarchies with orthogonal **"elbow" connectors**, pushing unrelated nodes into the background to remove distraction.
+
 Each solution unlocked the next challenge, building from a simple graph visualization into a fully collaborative, permission-controlled family tree platform.
 
 ## Features
@@ -72,6 +76,8 @@ Each solution unlocked the next challenge, building from a simple graph visualiz
 - **Marriage Links**: Visual bridges connecting different family clusters
 - **Starship FPS Navigation**: Immersive mouse steering and WASD movement
 - **Dynamic Node Interaction**: Click-to-focus and Tab-based node cycling with a glowing aura
+- **Family Presets (2D)**: Instant hierarchical transformation of any family cluster
+- **Orthogonal Elbow Links**: Clean, right-angle parent-child paths in 2D views
 
 ### Navigation Controls
 - **E**: Toggle Steering Engine (Enable/Disable Mouse Look)
@@ -99,7 +105,8 @@ Each solution unlocked the next challenge, building from a simple graph visualiz
 ### Frontend
 - **React 18** + **TypeScript**: Type-safe component architecture
 - **react-force-graph-3d**: Three.js wrapper for 3D force-directed graphs
-- **Three.js/WebGL**: Hardware-accelerated 3D rendering
+- **Three.js/WebGL**: Hardware-accelerated 3D rendering and custom link geometries
+- **D3-force**: Physics engine for natural node clustering
 - **React Router**: Client-side routing for invite links and pages
 - **Vite**: Fast development server and optimized builds
 
@@ -251,6 +258,9 @@ The tree follows a "distributed ownership" model - you can only "grow" the parts
 
 Admins or existing family members can generate invite tokens for specific nodes. New users claim these tokens to bind their account, ensuring controlled onboarding and maintaining data integrity.
 
+### Hierarchical Leveling (BFS)
+To generate the 2D hierarchical views, the application performs a Breadth-First Search (BFS) starting from the "roots" of a family cluster (nodes with no parents within that cluster). This determines the generation level (0, 1, 2...) for each person, which is then mapped to a fixed vertical Y-coordinate.
+
 ## [FB Notes]_ai
 
 **Phase 1: Visualization**
@@ -291,9 +301,24 @@ We use **raw `fetch()` to Supabase REST** for invite validation, claim, loading 
 **Why this works**
 Visualization gives us the product; auth and binding give us identity; invites control growth; one RPC for claiming and another for adding relatives removes silent failures; RLS enforces permissions at the source. Each piece unlocks the next.
 
+**Phase 6: Presets & Hierarchical Views**
+We needed **H) classic tree readability** and **I) clean visual paths**.
+**H = Family Presets (2D)** so users can toggle a cluster into a clean vertical hierarchy with parents at the top and children below. Non-family nodes are pushed to the background to maintain focus.
+**I = Orthogonal "Elbow" Connectors** so parent-child links in the 2D view follow clean right-angle paths instead of crossing lines, making generations easy to trace at a glance.
+
 **Key learnings**
-- RLS can block inserts without returning an error — use a SECURITY DEFINER RPC when the app legitimately needs to create a user record on invite claim or create links between nodes.
-- Atomic operations are king: Never create a Node and then a Link separately from the frontend; use a database function (RPC) to handle it in one transaction to avoid partial data (orphans).
-- Lock helper functions with `SET search_path = public` so they can't be abused via schema injection.
-- Tighten INSERT policies: don't use `WITH CHECK (true)`; require bound users and 1-degree checks so the tree can't be polluted.
-- If the Supabase client hangs, critical paths can use raw `fetch()` to the same REST API with your auth token.
+- 3D space can be leveraged for focus: By moving unrelated nodes to a distant Z-plane (`fz = -600`), the active family cluster "pops" into a 2D viewport without losing the context of the wider network.
+- Custom link rendering in `react-force-graph-3d` requires both `linkThreeObject` for creation and `linkPositionUpdate` for frame-by-frame alignment, especially when using non-straight geometries like elbows.
+- BFS is the right tool for hierarchical leveling: By identifying "roots" in a cluster and traversing down, we can assign reliable `fy` coordinates to represent generations.
+
+**The architecture decision**
+We use **BFS (Breadth-First Search)** on the client-side to calculate generation levels whenever a family preset is selected. This allows the layout to be dynamic and cluster-specific without needing persistent hierarchical data in the database.
+
+**The flow**
+1. **Selection**: User opens "Presets" and clicks a family name.
+2. **Analysis**: We run BFS starting from that family's "roots" (nodes with no parents in that cluster) to assign levels (0, 1, 2...).
+3. **Layout**: We fix nodes in that cluster to `fz=0` and `fy = level * 150`, while pushing others to `fz=-600`.
+4. **Rendering**: For the active cluster, parent-child links switch to custom orthogonal "elbow" connectors via `linkThreeObject`.
+
+**Why this works**
+It gives the user the "best of both worlds": an immersive, connected 3D galaxy for general exploration, and a clean, traditional family tree view for deep-diving into specific lineages.
