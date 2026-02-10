@@ -18,6 +18,7 @@ const FamilyTree3D: React.FC = () => {
   const { user, userProfile } = useAuth();
   
   const fgRef = useRef<any>();
+  const presetsRef = useRef<HTMLDivElement>(null);
   const [initialCameraPos, setInitialCameraPos] = useState<{ x: number; y: number; z: number } | null>(null);
   const [isSimulationLoading, setIsSimulationLoading] = useState(true);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -27,6 +28,16 @@ const FamilyTree3D: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isBulkInviteOpen, setIsBulkInviteOpen] = useState(false);
+  const [isPresetsOpen, setIsPresetsOpen] = useState(false);
+
+  const uniqueClusters = React.useMemo(() => {
+    if (!graphData?.nodes) return [];
+    const clusters = new Set<string>();
+    graphData.nodes.forEach(n => {
+      if (n.familyCluster) clusters.add(n.familyCluster);
+    });
+    return Array.from(clusters).sort();
+  }, [graphData]);
 
   // Keyboard and Mouse state
   const [isSteeringActive, setIsSteeringActive] = useState(false); // Engine starts OFF
@@ -88,6 +99,36 @@ const FamilyTree3D: React.FC = () => {
     };
     animate();
   }, []);
+
+  const resetView = useCallback(() => {
+    if (!fgRef.current || !initialCameraPos || !graphData) return;
+
+    // Clear all fixed positions
+    graphData.nodes.forEach((node: any) => {
+      node.fx = undefined;
+      node.fy = undefined;
+      node.fz = undefined;
+    });
+    fgRef.current.d3ReheatSimulation();
+
+    const camera = fgRef.current.camera();
+    const controls = fgRef.current.controls();
+    if (!camera || !controls) return;
+    const duration = 1000;
+    const startTime = Date.now();
+    const startPos = camera.position.clone();
+    const startTarget = controls.target.clone();
+    const animate = () => {
+      const progress = Math.min((Date.now() - startTime) / duration, 1);
+      const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      camera.position.lerpVectors(startPos, new THREE.Vector3(initialCameraPos.x, initialCameraPos.y, initialCameraPos.z), eased);
+      controls.target.lerpVectors(startTarget, new THREE.Vector3(0, 0, 0), eased);
+      camera.lookAt(controls.target);
+      camera.updateProjectionMatrix();
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+    animate();
+  }, [initialCameraPos, graphData]);
 
   // Continuous Flight Loop
   useEffect(() => {
@@ -193,14 +234,144 @@ const FamilyTree3D: React.FC = () => {
     window.addEventListener('mouseleave', onOut);
     window.addEventListener('mouseenter', onIn);
     
+    const onClickOutside = (e: MouseEvent) => {
+      if (presetsRef.current && !presetsRef.current.contains(e.target as Node)) {
+        setIsPresetsOpen(false);
+      }
+    };
+    window.addEventListener('mousedown', onClickOutside);
+    
     return () => {
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseleave', onOut);
       window.removeEventListener('mouseenter', onIn);
+      window.removeEventListener('mousedown', onClickOutside);
     };
   }, [graphData, selectedNode, handleNodeClick, isAddModalOpen, isEditModalOpen, isBulkInviteOpen]);
+
+  // Preset Focus Logic
+  const focusNodeById = useCallback((nodeId: string) => {
+    const node = graphData?.nodes?.find(n => n.id === nodeId);
+    if (node) handleNodeClick(node);
+  }, [graphData, handleNodeClick]);
+
+  const calculateGenerationLevels = useCallback((clusterName: string) => {
+    if (!graphData) return new Map<string, number>();
+
+    const nodesInCluster = graphData.nodes.filter(n => n.familyCluster === clusterName);
+    const clusterNodeIds = new Set(nodesInCluster.map(n => n.id));
+    
+    const getSafeId = (val: any) => {
+      if (!val) return null;
+      if (typeof val === 'string') return val;
+      if (typeof val === 'object' && val.id) return val.id;
+      return null;
+    };
+
+    // 1. Find roots in this cluster (nodes with no parents in this cluster)
+    const roots = nodesInCluster.filter(node => {
+      const hasParentInCluster = graphData.links.some(link => {
+        const s = getSafeId(link.source);
+        const t = getSafeId(link.target);
+        return t === node.id && link.type === 'parent' && clusterNodeIds.has(s || '');
+      });
+      return !hasParentInCluster;
+    });
+
+    const levels = new Map<string, number>();
+    const queue: { id: string; level: number }[] = [];
+
+    roots.forEach(r => {
+      levels.set(r.id, 0);
+      queue.push({ id: r.id, level: 0 });
+    });
+
+    // BFS to assign levels
+    let head = 0;
+    while (head < queue.length) {
+      const { id, level } = queue[head++];
+
+      graphData.links.forEach(link => {
+        const s = getSafeId(link.source);
+        const t = getSafeId(link.target);
+
+        if (s === id && t && clusterNodeIds.has(t)) {
+          if (!levels.has(t)) {
+            const nextLevel = link.type === 'parent' ? level + 1 : level;
+            levels.set(t, nextLevel);
+            queue.push({ id: t, level: nextLevel });
+          }
+        } else if (t === id && s && clusterNodeIds.has(s)) {
+          if (!levels.has(s)) {
+            // If we're at a node and find its spouse or parent
+            const nextLevel = link.type === 'marriage' ? level : level - 1;
+            // Only go "up" if it's a parent, but we started from roots so we mostly go down
+            if (link.type === 'marriage') {
+              levels.set(s, nextLevel);
+              queue.push({ id: s, level: nextLevel });
+            }
+          }
+        }
+      });
+    }
+    
+    // Assign 0 to any orphans
+    nodesInCluster.forEach(n => {
+      if (!levels.has(n.id)) levels.set(n.id, 0);
+    });
+
+    return levels;
+  }, [graphData]);
+
+  const applyPreset = useCallback((type: string) => {
+    setIsPresetsOpen(false);
+    if (!fgRef.current || !graphData) return;
+
+    if (type === 'overview') {
+      resetView();
+      return;
+    }
+
+    let clusterName = type;
+    if (type === 'me') {
+      clusterName = userProfile?.familyCluster || '';
+    }
+
+    if (!clusterName) return;
+
+    const levels = calculateGenerationLevels(clusterName);
+    const generationHeight = 150;
+
+    graphData.nodes.forEach((node: any) => {
+      if (node.familyCluster === clusterName) {
+        const level = levels.get(node.id) || 0;
+        node.fy = level * generationHeight;
+        node.fz = 0;
+        node.fx = undefined; // Free on X
+      } else {
+        node.fz = -400; // Push to background
+        node.fx = undefined;
+        node.fy = undefined;
+      }
+    });
+
+    // Reheat simulation to apply fixed positions
+    fgRef.current.d3ReheatSimulation();
+
+    // Focus camera on the cluster
+    if (type === 'me' && userProfile?.node_id) {
+      focusNodeById(userProfile.node_id);
+    } else {
+      // Find a good representative for the cluster
+      const rep = (clusterName === 'Badran') 
+        ? graphData.nodes.find(n => n.name === 'Basel Badran')
+        : graphData.nodes.find(n => n.familyCluster === clusterName);
+      
+      if (rep) focusNodeById(rep.id);
+    }
+  }, [userProfile, graphData, calculateGenerationLevels, resetView, focusNodeById]);
 
   // Node UI
   const nodeThreeObject = useCallback((node: FamilyNode) => {
@@ -226,27 +397,6 @@ const FamilyTree3D: React.FC = () => {
     group.add(sprite);
     return group;
   }, [selectedNode]);
-
-  const resetView = useCallback(() => {
-    if (!fgRef.current || !initialCameraPos) return;
-    const camera = fgRef.current.camera();
-    const controls = fgRef.current.controls();
-    if (!camera || !controls) return;
-    const duration = 1000;
-    const startTime = Date.now();
-    const startPos = camera.position.clone();
-    const startTarget = controls.target.clone();
-    const animate = () => {
-      const progress = Math.min((Date.now() - startTime) / duration, 1);
-      const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-      camera.position.lerpVectors(startPos, new THREE.Vector3(initialCameraPos.x, initialCameraPos.y, initialCameraPos.z), eased);
-      controls.target.lerpVectors(startTarget, new THREE.Vector3(0, 0, 0), eased);
-      camera.lookAt(controls.target);
-      camera.updateProjectionMatrix();
-      if (progress < 1) requestAnimationFrame(animate);
-    };
-    animate();
-  }, [initialCameraPos]);
 
   useEffect(() => {
     if (fgRef.current && !initialCameraPos) {
@@ -311,6 +461,36 @@ const FamilyTree3D: React.FC = () => {
 
       <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 10 }}>
         <button onClick={() => { setIsSimulationLoading(true); fgRef.current?.d3Force('charge')?.restart(); }} style={topBtnStyle('#3b82f6')}>Restart Simulation</button>
+        
+        <div style={{ position: 'relative' }} ref={presetsRef}>
+          <button onClick={() => setIsPresetsOpen(!isPresetsOpen)} style={topBtnStyle('#8b5cf6')}>Presets ▾</button>
+          {isPresetsOpen && (
+            <div style={presetMenuStyle}>
+              <div style={{ padding: '8px 15px', fontSize: '0.7rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Views</div>
+              <button onClick={() => applyPreset('me')} className="preset-item">Focus on Me</button>
+              <button onClick={() => applyPreset('overview')} className="preset-item">3D Global View (Reset)</button>
+              
+              <div style={{ height: '1px', background: '#444', margin: '4px 0' }} />
+              <div style={{ padding: '8px 15px', fontSize: '0.7rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Family Presets (2D)</div>
+              
+              {uniqueClusters.map(cluster => (
+                <button 
+                  key={cluster} 
+                  onClick={() => applyPreset(cluster)} 
+                  className="preset-item"
+                  style={{ color: cluster === 'Badran' ? '#3b82f6' : 
+                                  cluster === 'Kutob' ? '#10b981' : 
+                                  cluster === 'Hajjaj' ? '#f59e0b' :
+                                  cluster === 'Zabalawi' ? '#ec4899' :
+                                  cluster === 'Malhis' ? '#8b5cf6' : '#fff' }}
+                >
+                  {cluster} Family
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
         <button onClick={resetView} style={topBtnStyle('#10b981')}>Reset View</button>
       </div>
       
@@ -329,7 +509,8 @@ const FamilyTree3D: React.FC = () => {
 
 const panelStyle: React.CSSProperties = { position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'rgba(42, 42, 42, 0.9)', padding: '15px 25px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 100, boxShadow: '0 4px 15px rgba(0,0,0,0.5)', border: '1px solid #444' };
 const btnStyle = (bg: string, border = 'none') => ({ padding: '8px 16px', backgroundColor: bg, color: 'white', border: border === 'none' ? 'none' : `1px solid ${border}`, borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' as const });
-const topBtnStyle = (bg: string) => ({ padding: '10px 20px', backgroundColor: bg, color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' as const });
+const topBtnStyle = (bg: string) => ({ padding: '10px 20px', backgroundColor: bg, color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' as const, width: '100%', textAlign: 'center' as const });
+const presetMenuStyle: React.CSSProperties = { position: 'absolute', top: '100%', right: 0, marginTop: '5px', backgroundColor: 'rgba(42, 42, 42, 0.95)', borderRadius: '8px', border: '1px solid #444', overflowX: 'hidden', overflowY: 'auto', maxHeight: '400px', minWidth: '180px', boxShadow: '0 4px 15px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', zIndex: 20 };
 const legendStyle: React.CSSProperties = { position: 'absolute', bottom: '20px', right: '20px', backgroundColor: 'rgba(0, 0, 0, 0.5)', padding: '10px', borderRadius: '8px', color: '#ccc', fontSize: '0.75rem', pointerEvents: 'none', zIndex: 10, border: '1px solid rgba(255, 255, 255, 0.1)' };
 
 export default React.memo(FamilyTree3D);
