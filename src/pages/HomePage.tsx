@@ -20,6 +20,8 @@ export default function HomePage() {
 
   // If not logged in, show login screen
   if (!user) {
+    const hasEnvVars = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
+
     return (
       <div style={{
         display: 'flex',
@@ -36,15 +38,32 @@ export default function HomePage() {
         <p style={{ color: 'white', fontSize: '1.2rem', marginBottom: '20px' }}>
           Explore your family connections in 3D space
         </p>
+        
+        {!hasEnvVars && (
+          <div style={{ 
+            background: 'rgba(255, 0, 0, 0.2)', 
+            border: '1px solid #ff4444', 
+            padding: '15px', 
+            borderRadius: '8px', 
+            color: 'white',
+            maxWidth: '400px',
+            textAlign: 'center',
+            marginBottom: '20px'
+          }}>
+            <strong>⚠️ Configuration Error:</strong> Supabase environment variables are not detected. Please ensure <strong>VITE_SUPABASE_URL</strong> and <strong>VITE_SUPABASE_ANON_KEY</strong> are set in Vercel.
+          </div>
+        )}
+
         <button
           onClick={signInWithGoogle}
+          disabled={!hasEnvVars}
           style={{
             padding: '15px 40px',
             fontSize: '1.1rem',
-            background: 'white',
+            background: hasEnvVars ? 'white' : '#ccc',
             border: 'none',
             borderRadius: '8px',
-            cursor: 'pointer',
+            cursor: hasEnvVars ? 'pointer' : 'not-allowed',
             fontWeight: 'bold',
             color: '#667eea',
             boxShadow: '0 4px 6px rgba(0,0,0,0.1)'

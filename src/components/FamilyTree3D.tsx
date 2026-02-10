@@ -4,13 +4,13 @@ import React, { useCallback, useRef, useState, useEffect } from 'react';
 import ForceGraph3D from 'react-force-graph-3d';
 import SpriteText from 'three-spritetext';
 import * as THREE from 'three';
-import { FamilyNode, FamilyLink } from '../types/graph';
+import { FamilyNode } from '../types/graph';
 import { useFamilyData } from '../hooks/useFamilyData';
 import { useAuth } from '../contexts/AuthContext';
 import AddRelativeModal from './modals/AddRelativeModal';
 import EditNodeModal from './modals/EditNodeModal';
 import BulkInviteModal from './modals/BulkInviteModal';
-import { canEdit } from '../lib/permissions';
+import { canEdit, FamilyLink } from '../lib/permissions';
 
 const FamilyTree3D: React.FC = () => {
   const ForceGraph3DAny = ForceGraph3D as unknown as React.ComponentType<any>;
@@ -39,6 +39,11 @@ const FamilyTree3D: React.FC = () => {
     return Array.from(clusters).sort();
   }, [graphData]);
 
+  useEffect(() => {
+    console.log('[FamilyTree3D] Component mounted. Loading state:', { dataLoading, isSimulationLoading });
+    console.log('[FamilyTree3D] Graph data presence:', !!graphData, 'Nodes:', graphData?.nodes?.length, 'Links:', graphData?.links?.length);
+  }, [dataLoading, isSimulationLoading, graphData]);
+
   // Keyboard and Mouse state
   const [isSteeringActive, setIsSteeringActive] = useState(false); // Engine starts OFF
   const keysPressed = useRef<Record<string, boolean>>({});
@@ -48,7 +53,7 @@ const FamilyTree3D: React.FC = () => {
   // Check permissions
   useEffect(() => {
     if (selectedNode && user && graphData?.links && userProfile?.node_id) {
-      const result = canEdit(selectedNode.id, userProfile.node_id, userProfile.role === 'admin', graphData.links);
+      const result = canEdit(selectedNode.id, userProfile.node_id, userProfile.role === 'admin', graphData.links as FamilyLink[]);
       setCanEditSelected(result);
     } else {
       setCanEditSelected(false);
@@ -438,6 +443,20 @@ const FamilyTree3D: React.FC = () => {
   const isLoading = dataLoading || isSimulationLoading;
   const error = dataError || validationError;
 
+  // Debug: Check for missing env vars
+  const hasEnvVars = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  if (!hasEnvVars) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100vh', background: '#0a0a0a', color: '#f59e0b', textAlign: 'center', padding: '20px' }}>
+        <div>
+          <h2>⚠️ Configuration Missing</h2>
+          <p>Supabase environment variables are not set. Please add <strong>VITE_SUPABASE_URL</strong> and <strong>VITE_SUPABASE_ANON_KEY</strong> to your Vercel project settings.</p>
+        </div>
+      </div>
+    );
+  }
+
   if (error) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100vh', background: '#0a0a0a', color: '#ef4444', textAlign: 'center' }}><div><h2>Error Loading Family Tree</h2><p>{error}</p></div></div>;
 
   return (
@@ -447,8 +466,8 @@ const FamilyTree3D: React.FC = () => {
       <ForceGraph3DAny
         graphData={graphData || { nodes: [], links: [] }}
         nodeThreeObject={nodeThreeObject}
-        linkDistance={l => l.type === 'marriage' ? 200 : 40}
-        linkStrength={l => l.type === 'marriage' ? 0.3 : 0.8}
+        linkDistance={(l: any) => l.type === 'marriage' ? 200 : 40}
+        linkStrength={(l: any) => l.type === 'marriage' ? 0.3 : 0.8}
         ref={fgRef}
         nodeRepulsion={8000}
         cooldownTicks={200}
@@ -459,10 +478,10 @@ const FamilyTree3D: React.FC = () => {
           scene.fog = new THREE.Fog(0x0a0a0a, 250, 1400);
         }, [])}
         onNodeClick={handleNodeClick}
-        linkColor={l => l.type === 'marriage' ? '#f59e0b' : '#60a5fa'}
-        linkWidth={l => l.type === 'marriage' ? 3 : 1.5}
-        linkCurvature={l => l.type === 'marriage' ? 0.3 : 0}
-        linkDirectionalArrowLength={l => l.type === 'parent' ? 8 : 0}
+        linkColor={(l: any) => l.type === 'marriage' ? '#f59e0b' : '#60a5fa'}
+        linkWidth={(l: any) => l.type === 'marriage' ? 3 : 1.5}
+        linkCurvature={(l: any) => l.type === 'marriage' ? 0.3 : 0}
+        linkDirectionalArrowLength={(l: any) => l.type === 'parent' ? 8 : 0}
         linkDirectionalArrowColor={() => '#60a5fa'}
         backgroundColor="rgba(0,0,0,0)"
         showNavInfo={true}
@@ -485,7 +504,7 @@ const FamilyTree3D: React.FC = () => {
         </div>
       )}
 
-      {selectedNode && <AddRelativeModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} targetNode={selectedNode} onSuccess={() => { refetch(); setSelectedNode(null); }} existingNodes={graphData?.nodes || []} existingLinks={graphData?.links || []} />}
+      {selectedNode && <AddRelativeModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} targetNode={selectedNode} onSuccess={() => { refetch(); setSelectedNode(null); }} existingNodes={graphData?.nodes || []} />}
       {userProfile?.node_id && <BulkInviteModal isOpen={isBulkInviteOpen} onClose={() => setIsBulkInviteOpen(false)} allNodes={graphData?.nodes || []} allLinks={graphData?.links ? [...graphData.links] : []} userNodeId={userProfile.node_id} onSuccess={() => {}} />}
       {selectedNode && <EditNodeModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} targetNode={selectedNode} onSuccess={() => refetch()} existingNodes={graphData?.nodes || []} />}
 

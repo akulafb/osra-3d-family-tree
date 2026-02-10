@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { FamilyNode } from '../../types/graph';
-import { canCreateLink } from '../../lib/permissions';
 
 interface AddRelativeModalProps {
   isOpen: boolean;
@@ -9,7 +8,6 @@ interface AddRelativeModalProps {
   targetNode: FamilyNode;
   onSuccess: () => void;
   existingNodes: FamilyNode[];
-  existingLinks: any[];
 }
 
 type RelationshipType = 'parent' | 'child' | 'spouse' | 'sibling';
@@ -19,10 +17,9 @@ export default function AddRelativeModal({
   onClose,
   targetNode,
   onSuccess,
-  existingNodes,
-  existingLinks
+  existingNodes
 }: AddRelativeModalProps) {
-  const { user, userProfile, isAdmin, session } = useAuth();
+  const { user, session } = useAuth();
   const [name, setName] = useState('');
   const [relationship, setRelationship] = useState<RelationshipType>('child');
   const [isSubmitting, setIsSubmitting] = useState(false);

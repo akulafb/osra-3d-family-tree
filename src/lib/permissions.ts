@@ -2,6 +2,7 @@
 // These helpers check if the current user can perform actions on specific nodes
 
 import { FamilyNode, FamilyLink } from '../types/graph';
+export type { FamilyNode, FamilyLink };
 
 import { supabase } from './supabase';
 
@@ -29,7 +30,7 @@ export async function canEditNode(
       .eq('id', userId)
       .single();
     
-    const userNodeId = userData?.node_id;
+    const userNodeId = (userData as any)?.node_id;
     if (!userNodeId) return false;
 
     // User can always edit their own node
@@ -39,8 +40,15 @@ export async function canEditNode(
     const { data: links } = await supabase.from('links').select('*');
     if (!links) return false;
 
+    // Standardize links for isWithin1Degree
+    const familyLinks: FamilyLink[] = links.map((link: any) => ({
+      source: link.source_node_id,
+      target: link.target_node_id,
+      type: link.type as 'parent' | 'marriage',
+    }));
+
     // Check if node is within 1-degree network
-    return isWithin1Degree(targetNodeId, userNodeId, links);
+    return isWithin1Degree(targetNodeId, userNodeId, familyLinks);
   } catch (err) {
     console.error('Error checking edit permission:', err);
     return false;
@@ -95,6 +103,32 @@ function getSafeId(val: any): string | null {
   if (typeof val === 'string') return val;
   if (typeof val === 'object' && val.id) return val.id;
   return null;
+}
+
+/**
+ * Get all nodes within 1-degree of a user's node
+ */
+export async function get1DegreeNodes(userId: string): Promise<string[]> {
+  try {
+    const { data: userData } = await supabase.from('users').select('node_id').eq('id', userId).single();
+    const userNodeId = (userData as any)?.node_id;
+    if (!userNodeId) return [];
+
+    const { data: links } = await supabase.from('links').select('*');
+    if (!links) return [userNodeId];
+
+    // Standardize links
+    const familyLinks: FamilyLink[] = links.map((link: any) => ({
+      source: link.source_node_id,
+      target: link.target_node_id,
+      type: link.type as 'parent' | 'marriage',
+    }));
+
+    return get1DegreeNodesSync(userNodeId, [], familyLinks);
+  } catch (err) {
+    console.error('Error getting 1-degree nodes:', err);
+    return [];
+  }
 }
 
 /**
@@ -160,7 +194,7 @@ export async function getNodeRelationship(
 ): Promise<{ type: RelationshipType; label: string }> {
   try {
     const { data: userData } = await supabase.from('users').select('node_id').eq('id', userId).single();
-    const userNodeId = userData?.node_id;
+    const userNodeId = (userData as any)?.node_id;
     if (!userNodeId) return { type: 'unrelated', label: 'Not bound' };
     if (targetNodeId === userNodeId) return { type: 'self', label: 'You' };
 
@@ -201,7 +235,7 @@ export async function getNodeRelationship(
  */
 export function get1DegreeNodesSync(
   userNodeId: string | null | undefined,
-  nodes: FamilyNode[],
+  _nodes: FamilyNode[], // Prefix with underscore to ignore unused
   links: FamilyLink[]
 ): string[] {
   if (!userNodeId || !links || !Array.isArray(links)) return [];
@@ -230,7 +264,7 @@ export function get1DegreeNodesSync(
 export function canCreateLink(
   sourceNodeId: string,
   targetNodeId: string,
-  linkType: 'parent' | 'sibling' | 'marriage',
+  _linkType: 'parent' | 'sibling' | 'marriage', // Prefix with underscore to ignore unused
   userNodeId: string | null | undefined,
   isAdmin: boolean,
   existingLinks: FamilyLink[]
