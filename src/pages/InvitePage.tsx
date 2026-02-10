@@ -219,7 +219,7 @@ export default function InvitePage() {
                 {inviteData?.node_name ?? 'a family member'}
               </p>
               <button
-                onClick={signInWithGoogle}
+                onClick={() => signInWithGoogle(window.location.href)}
                 style={{
                   padding: '15px 40px',
                   fontSize: '1.1rem',
@@ -269,7 +269,7 @@ export default function InvitePage() {
             </p>
             {!user && (
               <button
-                onClick={signInWithGoogle}
+                onClick={() => signInWithGoogle(window.location.href)}
                 style={{
                   padding: '15px 40px',
                   fontSize: '1.1rem',

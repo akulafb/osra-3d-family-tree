@@ -192,7 +192,12 @@ export default function BulkInviteModal({
   };
 
   const copyLink = (token: string) => {
-    navigator.clipboard.writeText(`${window.location.origin}/invite/${token}`);
+    // Ensure we always use the production domain for invites, even if the admin is on a preview/deployment URL
+    const baseUrl = window.location.hostname.includes('vercel.app') 
+      ? 'https://3d-family-tree-vert.vercel.app' 
+      : window.location.origin;
+      
+    navigator.clipboard.writeText(`${baseUrl}/invite/${token}`);
     setCopiedToken(token);
     setTimeout(() => setCopiedToken(null), 2000);
   };

@@ -12,7 +12,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAdmin: boolean;
   isBound: boolean; // User has a node_id binding
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: (redirectTo?: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
 }
@@ -132,9 +132,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (customRedirect?: string) => {
     try {
-      const redirectUrl = window.location.origin;
+      const redirectUrl = customRedirect || window.location.origin;
       console.log('[AuthContext] Initiating Google Sign-In with redirect:', redirectUrl);
       
       const { error } = await supabase.auth.signInWithOAuth({
