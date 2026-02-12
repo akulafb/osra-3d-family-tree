@@ -158,6 +158,28 @@ export function isWithin1Degree(
 
   if (sharesParent) return true;
 
+  // NEW: Check for parent's spouse (e.g. mother if I'm linked to father)
+  const isParentsSpouse = userParents.some(parentId => 
+    links.some((link: any) => {
+      const s = getSafeId(link.source);
+      const t = getSafeId(link.target);
+      return link.type === 'marriage' && 
+             ((s === parentId && t === targetNodeId) || (t === parentId && s === targetNodeId));
+    })
+  );
+  if (isParentsSpouse) return true;
+
+  // NEW: Check for child's parent (e.g. spouse who isn't explicitly linked to me but is linked to my child)
+  const userChildren = getChildren(userNodeId, links);
+  const isChildsParent = userChildren.some(childId => 
+    links.some((link: any) => {
+      const s = getSafeId(link.source);
+      const t = getSafeId(link.target);
+      return link.type === 'parent' && t === childId && s === targetNodeId;
+    })
+  );
+  if (isChildsParent) return true;
+
   return false;
 }
 
@@ -224,6 +246,22 @@ export async function getNodeRelationship(
     const targetParents = getParents(targetNodeId, familyLinks);
     if (userParents.some(p => targetParents.includes(p))) return { type: 'sibling', label: 'Sibling' };
 
+    // Parent's spouse
+    const isParentsSpouse = userParents.some(parentId => 
+      familyLinks.some(link => 
+        link.type === 'marriage' && 
+        ((link.source === parentId && link.target === targetNodeId) || (link.target === parentId && link.source === targetNodeId))
+      )
+    );
+    if (isParentsSpouse) return { type: 'parent', label: 'Parent' };
+
+    // Child's other parent
+    const userChildren = getChildren(userNodeId, familyLinks);
+    const isChildsOtherParent = userChildren.some(childId => 
+      familyLinks.some(link => link.type === 'parent' && link.target === childId && link.source === targetNodeId)
+    );
+    if (isChildsOtherParent) return { type: 'spouse', label: 'Spouse' };
+
     return { type: 'unrelated', label: 'Not 1-degree' };
   } catch (err) {
     return { type: 'unrelated', label: 'Error' };
@@ -251,8 +289,31 @@ export function get1DegreeNodesSync(
 
   const userParents = getParents(userNodeId, links);
   userParents.forEach(parentId => {
+    // Siblings
     const siblings = getChildren(parentId, links).filter(id => id !== userNodeId);
     siblings.forEach(id => oneDegreeIds.add(id));
+    
+    // Parent's spouse
+    links.forEach((link: any) => {
+      if (link.type === 'marriage') {
+        const s = getSafeId(link.source);
+        const t = getSafeId(link.target);
+        if (s === parentId && t) oneDegreeIds.add(t);
+        else if (t === parentId && s) oneDegreeIds.add(s);
+      }
+    });
+  });
+
+  // NEW: Child's other parent
+  const userChildren = getChildren(userNodeId, links);
+  userChildren.forEach(childId => {
+    links.forEach((link: any) => {
+      if (link.type === 'parent') {
+        const s = getSafeId(link.source);
+        const t = getSafeId(link.target);
+        if (t === childId && s && s !== userNodeId) oneDegreeIds.add(s);
+      }
+    });
   });
 
   return Array.from(oneDegreeIds);
