@@ -74,6 +74,33 @@ export default function BulkInviteModal({
           }).map((l: any) => typeof l.source === 'object' ? l.source.id : l.source);
           
           if (userParents.some(p => theirParents.includes(p))) relationship = 'Sibling';
+          else {
+            // Parent's Spouse check (Step-parent or other biological parent)
+            const isParentsSpouse = userParents.some(parentId => 
+              linksCopy.some((l: any) => {
+                const s = typeof l.source === 'object' ? l.source.id : l.source;
+                const t = typeof l.target === 'object' ? l.target.id : l.target;
+                return l.type === 'marriage' && ((s === parentId && t === nodeId) || (t === parentId && s === nodeId));
+              })
+            );
+            if (isParentsSpouse) relationship = 'Parent';
+            else {
+              // Child's other parent check
+              const userChildren = linksCopy.filter((l: any) => {
+                const s = typeof l.source === 'object' ? l.source.id : l.source;
+                return s === userNodeId && l.type === 'parent';
+              }).map((l: any) => typeof l.target === 'object' ? l.target.id : l.target);
+
+              const isChildsParent = userChildren.some(childId => 
+                linksCopy.some((l: any) => {
+                  const s = typeof l.source === 'object' ? l.source.id : l.source;
+                  const t = typeof l.target === 'object' ? l.target.id : l.target;
+                  return l.type === 'parent' && t === childId && s === nodeId;
+                })
+              );
+              if (isChildsParent) relationship = 'Spouse';
+            }
+          }
         }
 
         return { node, relationship, existingInvites: 0, selected: false };
