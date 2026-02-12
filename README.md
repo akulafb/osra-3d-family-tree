@@ -117,15 +117,25 @@ Each solution unlocked the next challenge, building from a simple graph visualiz
 ```
 src/
 ├── components/
-│   └── FamilyTree3D.tsx          # Main 3D visualization component
+│   ├── FamilyTree3D.tsx          # Main 3D visualization component
+│   ├── modals/                   # AddRelative, EditNode, BulkInvite modals
+│   └── landing/                  # Landing page sections
+│       ├── LandingPage.tsx       # Main landing orchestrator
+│       ├── HeroSection.tsx       # Hero with scroll indicator
+│       ├── SequenceViewer.tsx    # Scroll-driven frame player
+│       ├── HangarTransition.tsx  # Post-sequence CTA
+│       ├── HowItWorks.tsx        # 4-step process cards
+│       └── MetricsSection.tsx    # Animated stats counters
 ├── contexts/
 │   └── AuthContext.tsx           # Authentication state management
 ├── hooks/
-│   └── useFamilyData.ts          # Family tree data fetching logic
+│   ├── useFamilyData.ts          # Family tree data fetching logic
+│   └── useImageSequence.ts       # Frame preloading for landing
 ├── lib/
-│   └── supabase.ts               # Supabase client configuration
+│   ├── supabase.ts               # Supabase client configuration
+│   └── permissions.ts            # 1-degree permission helpers
 ├── pages/
-│   ├── HomePage.tsx              # Main tree visualization page
+│   ├── HomePage.tsx              # Landing or tree (auth-gated)
 │   └── InvitePage.tsx            # Invite token claim page
 ├── types/
 │   ├── database.ts               # Supabase generated types
@@ -133,6 +143,7 @@ src/
 ├── App.tsx                       # Route definitions
 └── main.tsx                      # Application entry point
 
+public/frames/                    # Landing page sequence (001.png - 100.png)
 supabase-policies.sql             # RLS policies and helper functions
 supabase-seed.sql                 # Sample family tree data
 ```
@@ -318,3 +329,24 @@ It gives the user the "best of both worlds": an immersive, connected 3D galaxy f
 - Lock helper functions with `SET search_path = public` so they can't be abused via schema injection.
 - Tighten INSERT policies: don't use `WITH CHECK (true)`; require bound users and 1-degree checks so the tree can't be polluted.
 - If the Supabase client hangs, critical paths can use raw `fetch()` to the same REST API with your auth token.
+
+**Phase 7: The Landing Experience**
+We needed **J) a compelling entry point** and **K) smooth frame playback**.
+**J = Cinematic scroll sequence** so visitors travel through a galaxy of planets (individuals) and solar systems (families) before arriving at the hangar doors.
+**K = Motion.dev scroll sync** so 100 PNG frames play smoothly as the user scrolls, with smart preloading that starts below the fold to avoid the "loading..." flash.
+
+**The architecture decision**
+We use **Motion's `useScroll` and `useTransform`** to map scroll progress directly to frame indices. The sequence container is 400vh tall with a sticky inner viewport, giving users a long, satisfying scroll through space. Frames preload in phases—first 30 immediately, rest progressively—so playback is seamless once they reach the sequence.
+
+**The flow**
+1. **Hero**: Gradient background with animated starfield, scroll indicator bouncing below.
+2. **Preload zone**: 20vh buffer where frames load in background, spinner visible.
+3. **Sequence**: Sticky full-viewport player showing frames 1-100 as user scrolls 400vh.
+4. **Metrics**: Animated counters spring up showing tree stats (123 individuals, 11 families).
+5. **Hangar CTA**: Post-sequence reveal with "You Have Arrived" message.
+6. **How It Works**: 4-step cards explaining the invite-only flow.
+
+**Key learnings**
+- Sticky positioning with scroll-linked transforms creates a "movie playback" effect without video files.
+- Family name overlays were attempted but removed—timing with scroll was unpredictable; clean sequence is better.
+- Progress indicators (Start → Hangar bar) give users spatial awareness during long scrolls.
