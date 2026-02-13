@@ -1,5 +1,6 @@
 import { motion, useSpring, useTransform } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
+import { usePublicMetrics } from '../hooks/usePublicMetrics';
 
 interface AnimatedNumberProps {
   value: number;
@@ -9,16 +10,16 @@ interface AnimatedNumberProps {
 function AnimatedNumber({ value, suffix = '' }: AnimatedNumberProps) {
   const [isInView, setIsInView] = useState(false);
   const ref = useRef<HTMLSpanElement>(null);
-  
+
   // Create a motion value that springs to the target
   const springValue = useSpring(0, {
     damping: 30,
     stiffness: 100,
   });
-  
+
   // Transform the spring value to an integer
   const displayValue = useTransform(springValue, (latest) => Math.floor(latest));
-  
+
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => {
@@ -29,14 +30,14 @@ function AnimatedNumber({ value, suffix = '' }: AnimatedNumberProps) {
       },
       { threshold: 0.5 }
     );
-    
+
     if (ref.current) {
       observer.observe(ref.current);
     }
-    
+
     return () => observer.disconnect();
   }, [value, springValue, isInView]);
-  
+
   return (
     <span ref={ref}>
       <motion.span>{displayValue}</motion.span>
@@ -46,6 +47,13 @@ function AnimatedNumber({ value, suffix = '' }: AnimatedNumberProps) {
 }
 
 export function MetricsSection() {
+  const { individuals, families, isLoading, hasError } = usePublicMetrics();
+
+  // Hide component if fetch failed
+  if (hasError) {
+    return null;
+  }
+
   return (
     <section
       style={{
@@ -76,9 +84,11 @@ export function MetricsSection() {
               fontWeight: 700,
               color: '#fff',
               lineHeight: 1,
+              opacity: isLoading ? 0.5 : 1,
+              transition: 'opacity 0.3s',
             }}
           >
-            <AnimatedNumber value={123} />
+            <AnimatedNumber value={individuals} />
           </div>
           <div
             style={{
@@ -108,9 +118,11 @@ export function MetricsSection() {
               fontWeight: 700,
               color: '#fff',
               lineHeight: 1,
+              opacity: isLoading ? 0.5 : 1,
+              transition: 'opacity 0.3s',
             }}
           >
-            <AnimatedNumber value={11} />
+            <AnimatedNumber value={families} />
           </div>
           <div
             style={{

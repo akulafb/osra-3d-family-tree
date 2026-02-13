@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { motion, useScroll, useTransform } from 'motion/react';
-import { useImageSequence } from '../../hooks/useImageSequence';
+import { useImageSequence } from '../hooks/useImageSequence';
 
 interface SequenceViewerProps {
   frameCount?: number;

@@ -1,5 +1,5 @@
 import FamilyTree3D from '../components/FamilyTree3D';
-import { LandingPage } from '../components/landing/LandingPage';
+import { LandingPage } from '../landing/LandingPage';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function HomePage() {
