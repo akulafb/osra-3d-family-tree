@@ -1,6 +1,6 @@
 // src/components/FamilyTree3D.tsx
 
-import React, { useCallback, useRef, useState, useEffect } from 'react';
+import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import ForceGraph3D from 'react-force-graph-3d';
 import SpriteText from 'three-spritetext';
 import * as THREE from 'three';
@@ -12,13 +12,152 @@ import EditNodeModal from './modals/EditNodeModal';
 import BulkInviteModal from './modals/BulkInviteModal';
 import { canEdit, FamilyLink } from '../lib/permissions';
 
+// V3 Shared Assets
+const planetTextures = [
+  '/planet-textures/earth.jpg',
+  '/planet-textures/jupiter.jpg',
+  '/planet-textures/mars.jpg',
+  '/planet-textures/mercury.jpg',
+  '/planet-textures/neptune.jpg',
+  '/planet-textures/saturn.jpg',
+  '/planet-textures/uranus.jpg',
+  '/planet-textures/venus.jpg',
+  '/planet-textures/sun.jpg'
+];
+
+const textureLoader = new THREE.TextureLoader();
+const planetMaterialCache = new Map<string, THREE.MeshPhysicalMaterial>();
+
+const getPlanetMaterial = (nodeId: string) => {
+  // Use node ID to deterministically assign a planet texture
+  let hash = 0;
+  for (let i = 0; i < nodeId.length; i++) {
+    hash = nodeId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const texturePath = planetTextures[Math.abs(hash) % planetTextures.length];
+
+  if (!planetMaterialCache.has(texturePath)) {
+    const texture = textureLoader.load(texturePath);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    
+    planetMaterialCache.set(texturePath, new THREE.MeshPhysicalMaterial({
+      map: texture,
+      roughness: 0.8,
+      metalness: 0.1,
+      clearcoat: 0.3,
+      clearcoatRoughness: 0.2,
+      transmission: 0,
+      thickness: 0,
+      side: THREE.FrontSide
+    }));
+  }
+  return planetMaterialCache.get(texturePath)!;
+};
+
+// Material cache for cluster colors (Metallic Spheres)
+const materialCache = new Map<string, THREE.MeshPhysicalMaterial>();
+const getMaterial = (color: string) => {
+  if (!materialCache.has(color)) {
+    materialCache.set(color, new THREE.MeshPhysicalMaterial({
+      color,
+      transparent: true,
+      opacity: 0.4,
+      roughness: 0.8,
+      metalness: 0.2,
+      clearcoat: 1.0,
+      clearcoatRoughness: 0.1,
+      transmission: 0.3,
+      thickness: 2,
+      side: THREE.DoubleSide
+    }));
+  }
+  return materialCache.get(color)!;
+};
+
+const familyColors: Record<string, string> = {
+  'Badran': '#0066ff',   // Deep Blue
+  'Kutob': '#00ff88',    // Vibrant Green
+  'Hajjaj': '#ffaa00',   // Bright Orange
+  'Zabalawi': '#ff00aa', // Hot Pink
+  'Malhis': '#aa00ff',   // Electric Purple
+  'Shawa': '#ff3333',    // Crimson
+  'Dajani': '#33ffff',   // Cyan
+  'Masri': '#ffff33',    // Yellow
+  'Tamimi': '#00ff00',   // Lime
+  'Husaini': '#ff0000',  // Red
+  'Nabulsi': '#ff6600',  // Orange-Red
+  'Ghazali': '#00ccff',  // Sky Blue
+  'Rifai': '#cc00ff',    // Violet
+  'Qudsi': '#66ff00',    // Bright Lime
+  'Jaabari': '#ff0066',  // Rose
+  'Khalidi': '#00ffcc',  // Aquamarine
+};
+
+const getClusterColor = (cluster: string | undefined | null) => {
+  if (!cluster) return '#ffffff';
+  if (familyColors[cluster]) return familyColors[cluster];
+  
+  // Deterministic fallback for unknown clusters
+  const colors = Object.values(familyColors);
+  let hash = 0;
+  for (let i = 0; i < cluster.length; i++) {
+    hash = cluster.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
+// Helper for descendant tracking
+const getDescendantIds = (nodeId: string, links: FamilyLink[]): string[] => {
+  const descendants: string[] = [];
+  const queue = [nodeId];
+  const visited = new Set<string>();
+
+  while (queue.length > 0) {
+    const currentId = queue.shift()!;
+    if (visited.has(currentId)) continue;
+    visited.add(currentId);
+
+    // Only follow parent -> child links (excluding marriage)
+    const children = links
+      .filter(l => {
+        const sourceId = typeof l.source === 'object' ? (l.source as any).id : l.source;
+        return sourceId === currentId && l.type === 'parent';
+      })
+      .map(l => typeof l.target === 'object' ? (l.target as any).id : l.target);
+
+    descendants.push(...children);
+    queue.push(...children);
+  }
+  return descendants;
+};
+
 const FamilyTree3D: React.FC = () => {
   const ForceGraph3DAny = ForceGraph3D as unknown as React.ComponentType<any>;
   const { graphData, isLoading: dataLoading, error: dataError, refetch } = useFamilyData();
   const { user, userProfile } = useAuth();
-  
+
+  // V3 Geometries (memoized to prevent recreation)
+  const geometries = useMemo(() => ({
+    sphere: new THREE.SphereGeometry(10, 16, 16), // Reduced detail for performance
+    aura: new THREE.SphereGeometry(18, 12, 12),   // Reduced detail
+    glow: new THREE.SphereGeometry(22, 12, 12)    // Reduced detail
+  }), []);
+
   const fgRef = useRef<any>();
   const presetsRef = useRef<HTMLDivElement>(null);
+
+  // Global rotation state for moire/rotation (performance boost!)
+  const rotationRef = useRef(0);
+  useEffect(() => {
+    let frameId: number;
+    const animate = () => {
+      rotationRef.current += 0.007; // Slowed down by 30%
+      frameId = requestAnimationFrame(animate);
+    };
+    animate();
+    return () => cancelAnimationFrame(frameId);
+  }, []);
+
   const [initialCameraPos, setInitialCameraPos] = useState<{ x: number; y: number; z: number } | null>(null);
   const [isSimulationLoading, setIsSimulationLoading] = useState(true);
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -29,8 +168,70 @@ const FamilyTree3D: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isBulkInviteOpen, setIsBulkInviteOpen] = useState(false);
   const [isPresetsOpen, setIsPresetsOpen] = useState(false);
+  const [isTextureMenuOpen, setIsTextureMenuOpen] = useState(false);
+  const textureRef = useRef<HTMLDivElement>(null);
   const [showLegend, setShowLegend] = useState(true);
   const [activePreset, setActivePreset] = useState<string | null>(null);
+  const [renderError, setRenderError] = useState<string | null>(null);
+
+  // V3 Features: Toggles and Collapsed state
+  const [showNames, setShowNames] = useState(true);
+  const [nodeTexture, setNodeTexture] = useState<'spheres' | 'planets' | 'none'>('planets');
+  const [showArrows, setShowArrows] = useState(false);
+  const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    console.log('[FamilyTree3D] Component state:', { 
+      hasData: !!graphData, 
+      nodesCount: graphData?.nodes?.length,
+      linksCount: graphData?.links?.length,
+      showNames, 
+      nodeTexture, 
+      showArrows,
+      collapsedCount: collapsedNodes.size 
+    });
+  }, [graphData, showNames, nodeTexture, showArrows, collapsedNodes]);
+
+  const toggleNodeCollapse = useCallback((nodeId: string) => {
+    console.log('[FamilyTree3D] Toggling collapse for node:', nodeId);
+    setCollapsedNodes(prev => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) next.delete(nodeId);
+      else next.add(nodeId);
+      return next;
+    });
+  }, []);
+
+  const filteredGraphData = useMemo(() => {
+    try {
+      if (!graphData) return { nodes: [], links: [] };
+
+      const hiddenNodes = new Set<string>();
+      collapsedNodes.forEach(id => {
+        const descendants = getDescendantIds(id, graphData.links as FamilyLink[]);
+        descendants.forEach(dId => hiddenNodes.add(dId));
+      });
+
+      const filtered = {
+        nodes: graphData.nodes.filter(n => !hiddenNodes.has(n.id)),
+        links: (graphData.links as any[]).filter(l => {
+          const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
+          const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+          return !hiddenNodes.has(sourceId) && !hiddenNodes.has(targetId);
+        })
+      };
+      console.log('[FamilyTree3D] Filtered data:', { 
+        originalNodes: graphData.nodes.length, 
+        filteredNodes: filtered.nodes.length,
+        hiddenCount: hiddenNodes.size
+      });
+      return filtered;
+    } catch (err) {
+      console.error('[FamilyTree3D] Error filtering graph data:', err);
+      setRenderError('Error filtering graph data: ' + (err instanceof Error ? err.message : String(err)));
+      return { nodes: [], links: [] };
+    }
+  }, [graphData, collapsedNodes]);
 
   const uniqueClusters = React.useMemo(() => {
     if (!graphData?.nodes) return [];
@@ -246,6 +447,9 @@ const FamilyTree3D: React.FC = () => {
       if (presetsRef.current && !presetsRef.current.contains(e.target as Node)) {
         setIsPresetsOpen(false);
       }
+      if (textureRef.current && !textureRef.current.contains(e.target as Node)) {
+        setIsTextureMenuOpen(false);
+      }
     };
     window.addEventListener('mousedown', onClickOutside);
     
@@ -403,30 +607,66 @@ const FamilyTree3D: React.FC = () => {
     }
   }, [userProfile, graphData, calculateGenerationLevels, resetView, focusNodeById]);
 
-  // Node UI
+  // Node UI with visual upgrades
   const nodeThreeObject = useCallback((node: FamilyNode) => {
-    const isSelected = selectedNode?.id === node.id;
-    const sprite = new SpriteText(node.name);
-    sprite.color = node.familyCluster === 'Badran' ? '#3b82f6' : 
-                   node.familyCluster === 'Kutob' ? '#10b981' : 
-                   node.familyCluster === 'Hajjaj' ? '#f59e0b' :
-                   node.familyCluster === 'Zabalawi' ? '#ec4899' :
-                   node.familyCluster === 'Malhis' ? '#8b5cf6' : '#f59e0b';
-    sprite.textHeight = 8;
-    
-    const group = new THREE.Group();
-    const shadow = new THREE.Mesh(new THREE.SphereGeometry(2, 8, 8), new THREE.MeshStandardMaterial({ color: sprite.color, transparent: true, opacity: 0.1, emissive: sprite.color, emissiveIntensity: 0.2 }));
-    shadow.castShadow = true;
-    group.add(shadow);
-    
-    if (isSelected) {
-      const aura = new THREE.Mesh(new THREE.SphereGeometry(14, 16, 16), new THREE.MeshBasicMaterial({ color: sprite.color, transparent: true, opacity: 0.2, wireframe: true }));
-      const glow = new THREE.Mesh(new THREE.SphereGeometry(18, 16, 16), new THREE.MeshBasicMaterial({ color: sprite.color, transparent: true, opacity: 0.05 }));
-      group.add(aura); group.add(glow);
+    try {
+      const isSelected = selectedNode?.id === node.id;
+      const color = getClusterColor(node.familyCluster);
+      const group = new THREE.Group();
+
+      // 1. Core Sphere / Planet
+      if (nodeTexture !== 'none') {
+        const material = nodeTexture === 'planets' ? getPlanetMaterial(node.id) : getMaterial(color);
+        const sphere = new THREE.Mesh(geometries.sphere, material);
+        group.add(sphere);
+
+        // Performance-friendly animation - attach to mesh to ensure it's called during render
+        const speedFactor = 0.5 + Math.random() * 0.5;
+        sphere.onBeforeRender = () => {
+          const rot = rotationRef.current * speedFactor;
+          // Rotate ONLY the sphere mesh, NOT the group
+          // This prevents dragging issues where the group's rotation interferes with world-space movement
+          sphere.rotation.y = rot;
+          sphere.rotation.z = rot * 0.5;
+        };
+
+        // Aura & Glow if selected
+        if (isSelected) {
+          const aura = new THREE.Mesh(geometries.aura, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.2, wireframe: true }));
+          const glow = new THREE.Mesh(geometries.glow, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.05 }));
+          group.add(aura);
+          group.add(glow);
+        }
+      }
+
+      // 2. Name/Label (SpriteText) - Inside sphere
+      if (showNames) {
+        const fullName = node.name || 'Unknown';
+        const nameParts = fullName.trim().split(' ');
+        let displayName = fullName;
+        
+        if (nameParts.length > 1) {
+          const firstName = nameParts.slice(0, -1).join(' ');
+          const lastName = nameParts[nameParts.length - 1];
+          displayName = `${firstName}\n${lastName}`;
+        }
+
+        const sprite = new SpriteText(displayName);
+        sprite.color = '#ffffff'; 
+        sprite.textHeight = 4;
+        sprite.fontWeight = 'bold';
+        sprite.position.set(0, 0, 0); 
+        sprite.renderOrder = 999;
+        sprite.material.depthTest = false; 
+        group.add(sprite);
+      }
+
+      return group;
+    } catch (err) {
+      console.error('[FamilyTree3D] Error in nodeThreeObject:', err);
+      return new THREE.Group(); 
     }
-    group.add(sprite);
-    return group;
-  }, [selectedNode]);
+  }, [selectedNode, showNames, nodeTexture, geometries, rotationRef]);
 
   const linkThreeObject = useCallback((link: any) => {
     if (activePreset && link.type === 'parent') {
@@ -471,8 +711,17 @@ const FamilyTree3D: React.FC = () => {
     }
   }, [initialCameraPos]);
 
+  useEffect(() => {
+    const handleError = (e: ErrorEvent) => {
+      console.error('[FamilyTree3D] Global error caught:', e.message);
+      setRenderError('Runtime Error: ' + e.message);
+    };
+    window.addEventListener('error', handleError);
+    return () => window.removeEventListener('error', handleError);
+  }, []);
+
   const isLoading = dataLoading || isSimulationLoading;
-  const error = dataError || validationError;
+  const error = dataError || validationError || renderError;
 
   // Debug: Check for missing env vars
   const hasEnvVars = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -491,11 +740,11 @@ const FamilyTree3D: React.FC = () => {
   if (error) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100vh', background: '#0a0a0a', color: '#ef4444', textAlign: 'center' }}><div><h2>Error Loading Family Tree</h2><p>{error}</p></div></div>;
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', background: 'radial-gradient(ellipse at center, #1a3a52 0%, #0a0a0a 100%)' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', background: '#0a0a0a' }}>
       {isLoading && <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.7)', zIndex: 1000, color: '#fff', fontSize: '18px' }}><div style={{ textAlign: 'center' }}><div>Loading Family Tree...</div><div style={{ width: '40px', height: '40px', border: '4px solid rgba(255,255,255,0.3)', borderTop: '4px solid #fff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '10px auto' }} /></div></div>}
       
       <ForceGraph3DAny
-        graphData={graphData || { nodes: [], links: [] }}
+        graphData={filteredGraphData}
         nodeThreeObject={nodeThreeObject}
         linkThreeObject={linkThreeObject}
         linkPositionUpdate={linkPositionUpdate}
@@ -504,10 +753,10 @@ const FamilyTree3D: React.FC = () => {
             const s = typeof l.source === 'object' ? l.source.familyCluster : null;
             const t = typeof l.target === 'object' ? l.target.familyCluster : null;
             if (s === activePreset && t === activePreset) {
-              return l.type === 'marriage' ? 400 : 200; 
+              return l.type === 'marriage' ? 450 : 250; 
             }
           }
-          return l.type === 'marriage' ? 200 : 40;
+          return l.type === 'marriage' ? 250 : 120; // Increased distances for larger spheres
         }}
         linkStrength={(l: any) => {
           if (activePreset) {
@@ -525,12 +774,58 @@ const FamilyTree3D: React.FC = () => {
         onEngineStop={() => setIsSimulationLoading(false)}
         onSceneReady={useCallback((scene: THREE.Scene) => {
           const renderer = fgRef.current?.renderer();
-          if (renderer) { renderer.shadowMap.enabled = true; renderer.setClearColor(0x000000, 0); }
-          scene.fog = new THREE.Fog(0x0a0a0a, 250, 3000);
+          if (renderer) { 
+            renderer.shadowMap.enabled = true; 
+            renderer.setClearColor(0x0a0a0a, 1); 
+          }
+          
+          // Environment setup
+          scene.background = new THREE.Color(0x020205);
+          
+          // Load background star texture if available
+          textureLoader.load('/planet-textures/stars.jpg', (texture) => {
+            texture.mapping = THREE.EquirectangularReflectionMapping;
+            texture.colorSpace = THREE.SRGBColorSpace;
+            scene.background = texture;
+          });
+
+          scene.fog = new THREE.Fog(0x020205, 500, 10000);
+
+          // Add strong lights for 3D highlights
+          const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+          scene.add(ambientLight);
+
+          const mainLight = new THREE.PointLight(0xffffff, 3.5);
+          mainLight.position.set(1000, 1000, 1000);
+          scene.add(mainLight);
+
+          const fillLight = new THREE.PointLight(0x0066ff, 2.5);
+          fillLight.position.set(-1000, -1000, 1000);
+          scene.add(fillLight);
+
+          const backLight = new THREE.PointLight(0xff00ff, 1.5);
+          backLight.position.set(0, 0, -1000);
+          scene.add(backLight);
         }, [])}
-        onNodeClick={handleNodeClick}
+        onNodeClick={(node: FamilyNode) => {
+          // Toggle collapse if node has children
+          const hasChildren = graphData?.links.some(l => {
+            const sId = typeof l.source === 'object' ? (l.source as any).id : l.source;
+            return sId === node.id && l.type === 'parent';
+          });
+          
+          if (hasChildren) {
+            toggleNodeCollapse(node.id);
+          } else {
+            handleNodeClick(node); // Focus if no children to toggle
+          }
+        }}
+        onNodeRightClick={(node: FamilyNode) => {
+          handleNodeClick(node); // Right click to focus/select
+        }}
         linkColor={(l: any) => l.type === 'marriage' ? '#f59e0b' : '#60a5fa'}
         linkWidth={(l: any) => l.type === 'marriage' ? 3 : 1.5}
+        linkOpacity={0.4}
         linkCurvature={(l: any) => {
           if (activePreset) {
             const s = typeof l.source === 'object' ? l.source.familyCluster : null;
@@ -539,9 +834,9 @@ const FamilyTree3D: React.FC = () => {
           }
           return l.type === 'marriage' ? 0.3 : 0;
         }}
-        linkDirectionalArrowLength={(l: any) => l.type === 'parent' ? 8 : 0}
+        linkDirectionalArrowLength={(l: any) => (showArrows && l.type === 'parent') ? 8 : 0}
         linkDirectionalArrowColor={() => '#60a5fa'}
-        backgroundColor="rgba(0,0,0,0)"
+        backgroundColor="#0a0a0a"
         showNavInfo={true}
         onBackgroundClick={() => setSelectedNode(null)}
       />
@@ -566,7 +861,49 @@ const FamilyTree3D: React.FC = () => {
       {userProfile?.node_id && <BulkInviteModal isOpen={isBulkInviteOpen} onClose={() => setIsBulkInviteOpen(false)} allNodes={graphData?.nodes || []} allLinks={graphData?.links ? [...graphData.links] : []} userNodeId={userProfile.node_id} onSuccess={() => {}} />}
       {selectedNode && <EditNodeModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} targetNode={selectedNode} onSuccess={() => refetch()} existingNodes={graphData?.nodes || []} />}
 
-      <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 10 }}>
+      <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 10 }}>
+        <div style={{ display: 'flex', gap: '4px' }}>
+          <button onClick={() => setShowNames(!showNames)} style={topBtnStyle(showNames ? '#3b82f6' : '#444')}>
+            {showNames ? 'Labels: ON' : 'Labels: OFF'}
+          </button>
+          
+          <div style={{ position: 'relative' }} ref={textureRef}>
+            <button onClick={() => setIsTextureMenuOpen(!isTextureMenuOpen)} style={topBtnStyle('#3b82f6')}>Texture ▾</button>
+            {isTextureMenuOpen && (
+              <div style={presetMenuStyle}>
+                <div style={{ padding: '8px 15px', fontSize: '0.7rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Style</div>
+                <button onClick={() => { setNodeTexture('spheres'); setIsTextureMenuOpen(false); }} className="preset-item" style={{ color: nodeTexture === 'spheres' ? '#3b82f6' : '#fff' }}>Spheres</button>
+                <button onClick={() => { setNodeTexture('planets'); setIsTextureMenuOpen(false); }} className="preset-item" style={{ color: nodeTexture === 'planets' ? '#3b82f6' : '#fff' }}>Planets</button>
+                <button onClick={() => { setNodeTexture('none'); setIsTextureMenuOpen(false); }} className="preset-item" style={{ color: nodeTexture === 'none' ? '#3b82f6' : '#fff' }}>None</button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <button onClick={() => setShowArrows(!showArrows)} style={topBtnStyle(showArrows ? '#3b82f6' : '#444')}>
+          {showArrows ? 'Arrows: ON' : 'Arrows: OFF'}
+        </button>
+
+        <button 
+          onClick={() => {
+            if (collapsedNodes.size > 0) {
+              setCollapsedNodes(new Set());
+            } else {
+              // Collapse all nodes that have children
+              const allParents = new Set<string>();
+              graphData?.links.forEach(l => {
+                if (l.type === 'parent') {
+                  allParents.add(typeof l.source === 'object' ? (l.source as any).id : l.source);
+                }
+              });
+              setCollapsedNodes(allParents);
+            }
+          }} 
+          style={topBtnStyle('#f43f5e')}
+        >
+          {collapsedNodes.size > 0 ? 'Expand All' : 'Collapse All'}
+        </button>
+
         <button onClick={() => { setIsSimulationLoading(true); fgRef.current?.d3Force('charge')?.restart(); }} style={topBtnStyle('#3b82f6')}>Restart Simulation</button>
         
         <div style={{ position: 'relative' }} ref={presetsRef}>
@@ -639,8 +976,8 @@ const FamilyTree3D: React.FC = () => {
 };
 
 const panelStyle: React.CSSProperties = { position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'rgba(42, 42, 42, 0.9)', padding: '15px 25px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 100, boxShadow: '0 4px 15px rgba(0,0,0,0.5)', border: '1px solid #444' };
-const btnStyle = (bg: string, border = 'none') => ({ padding: '8px 16px', backgroundColor: bg, color: 'white', border: border === 'none' ? 'none' : `1px solid ${border}`, borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' as const });
-const topBtnStyle = (bg: string) => ({ padding: '10px 20px', backgroundColor: bg, color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' as const, width: '100%', textAlign: 'center' as const });
+const btnStyle = (bg: string, border = 'none') => ({ padding: '6px 12px', backgroundColor: bg, color: 'white', border: border === 'none' ? 'none' : `1px solid ${border}`, borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' as const, fontSize: '0.75rem' });
+const topBtnStyle = (bg: string) => ({ padding: '6px 12px', backgroundColor: bg, color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' as const, width: '100%', textAlign: 'center' as const, fontSize: '0.75rem' });
 const presetMenuStyle: React.CSSProperties = { position: 'absolute', top: '100%', right: 0, marginTop: '5px', backgroundColor: 'rgba(42, 42, 42, 0.95)', borderRadius: '8px', border: '1px solid #444', overflowX: 'hidden', overflowY: 'auto', maxHeight: '400px', minWidth: '180px', boxShadow: '0 4px 15px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', zIndex: 20 };
 const legendStyle: React.CSSProperties = { position: 'absolute', bottom: '20px', right: '20px', backgroundColor: 'rgba(0, 0, 0, 0.7)', padding: '12px', borderRadius: '8px', color: '#ccc', fontSize: '0.75rem', zIndex: 10, border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' };
 
