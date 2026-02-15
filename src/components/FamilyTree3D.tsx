@@ -176,7 +176,7 @@ const FamilyTree3D: React.FC = () => {
 
   // V3 Features: Toggles and Collapsed state
   const [showNames, setShowNames] = useState(true);
-  const [nodeTexture, setNodeTexture] = useState<'spheres' | 'planets' | 'none'>('planets');
+  const [nodeTexture, setNodeTexture] = useState<'spheres' | 'planets' | 'none'>('spheres');
   const [showArrows, setShowArrows] = useState(false);
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
 
