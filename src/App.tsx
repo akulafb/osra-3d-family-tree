@@ -1,13 +1,17 @@
 import { Routes, Route } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import InvitePage from './pages/InvitePage';
+import { FamilyChat } from './components/FamilyChat';
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/invite/:token" element={<InvitePage />} />
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/invite/:token" element={<InvitePage />} />
+      </Routes>
+      <FamilyChat />
+    </>
   );
 }
 
