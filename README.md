@@ -72,6 +72,9 @@ Each solution unlocked the next challenge, building from a simple graph visualiz
 - **Marriage Links**: Visual bridges connecting different family clusters
 - **Starship FPS Navigation**: Immersive mouse steering and WASD movement
 - **Dynamic Node Interaction**: Click-to-focus and Tab-based node cycling with a glowing aura
+- **AI Family Chat Bot**: Floating 🤖 assistant that answers relationship questions using Supabase data
+- **Planetary Textures**: Realistic 3D planet skins for nodes with continuous rotation and dynamic lighting
+- **Multi-Style Rendering**: Toggle between Planets, futuristic metallic Spheres, or simple Labels
 
 ### Navigation Controls
 - **E**: Toggle Steering Engine (Enable/Disable Mouse Look)
@@ -100,8 +103,15 @@ Each solution unlocked the next challenge, building from a simple graph visualiz
 - **React 18** + **TypeScript**: Type-safe component architecture
 - **react-force-graph-3d**: Three.js wrapper for 3D force-directed graphs
 - **Three.js/WebGL**: Hardware-accelerated 3D rendering
+- **Framer Motion**: Smooth UI animations for chat and landing page
+- **React Markdown**: Rendering structured AI responses
 - **React Router**: Client-side routing for invite links and pages
 - **Vite**: Fast development server and optimized builds
+
+### AI & LLM
+- **OpenRouter**: Cloud-based LLM access (Gemini 2.5 Flash)
+- **Ollama**: Local LLM support (Qwen 2.5 Coder / Mistral)
+- **Custom Reasoning Engine**: Person-centric context generation from graph data
 
 ### Backend & Database
 - **Supabase**: PostgreSQL database with real-time subscriptions
@@ -118,6 +128,7 @@ Each solution unlocked the next challenge, building from a simple graph visualiz
 src/
 ├── components/
 │   ├── FamilyTree3D.tsx          # Main 3D visualization component
+│   ├── FamilyChat.tsx            # AI Chatbot UI component
 │   ├── modals/                   # AddRelative, EditNode, BulkInvite modals
 │   └── landing/                  # Landing page sections
 │       ├── LandingPage.tsx       # Main landing orchestrator
@@ -130,10 +141,14 @@ src/
 │   └── AuthContext.tsx           # Authentication state management
 ├── hooks/
 │   ├── useFamilyData.ts          # Family tree data fetching logic
+│   ├── useFamilyChat.ts          # Chatbot logic and LLM orchestration
 │   └── useImageSequence.ts       # Frame preloading for landing
 ├── lib/
 │   ├── supabase.ts               # Supabase client configuration
 │   └── permissions.ts            # 1-degree permission helpers
+├── utils/
+│   ├── llmClient.ts              # OpenRouter/Ollama dual-mode client
+│   └── familyContext.ts          # Graph-to-profile context generator
 ├── pages/
 │   ├── HomePage.tsx              # Landing or tree (auth-gated)
 │   └── InvitePage.tsx            # Invite token claim page
@@ -266,87 +281,62 @@ Admins or existing family members can generate invite tokens for specific nodes.
 
 **Phase 1: Visualization**
 We needed **A) a 3D graph**, **B) family clusters that don't overlap**, and **C) clear relationship types**.  
-**A = react-force-graph-3d** so we could lay out nodes with physics and navigate in 3D.  
-**B = family_cluster + spatial separation** so each family sits in its own region and marriage links show as bridges.  
-**C = Color-coded links** (parent, sibling, marriage) so the structure is readable at a glance.
+- **A = react-force-graph-3d** so we could lay out nodes with physics and navigate in 3D.  
+- **B = family_cluster + spatial separation** so each family sits in its own region and marriage links show as bridges.  
+- **C = Color-coded links** (parent, sibling, marriage) so the structure is readable at a glance.
 
 **Phase 2: Auth and identity**
 We needed **D) sign-in** and **E) a way to tie users to specific nodes**.  
-**D = Supabase + Google OAuth** so family members can sign in without managing passwords.  
-**E = Node binding** so each user is "this person in the tree" and we know their 1-degree network.
+- **D = Supabase + Google OAuth** so family members can sign in without managing passwords.  
+- **E = Node binding** so each user is "this person in the tree" and we know their 1-degree network.
 
 **Phase 3: Invites and production hardening**
 We needed **F) controlled onboarding** and **G) no silent failures**.  
-**F = Invite tokens** so only people with a link can claim a node and get access.  
-**G = One secure RPC (`claim_invite_secure`)** so claiming does validation + user creation + mark claimed in one transaction — no "success" in the UI with nothing in the DB.
+- **F = Invite tokens** so only people with a link can claim a node and get access.  
+- **G = Secure Database Transactions** so claiming does validation + user creation + marking tokens as used in one go — ensuring the UI never says "success" if the data didn't save.
 
 **Phase 4 & 5: Growth, Security, and Navigation**
-We've completed the core pillars of the 3D bridge:
+We completed the core pillars of the 3D bridge:
 - **What**: Integrated full "Add Relative" and "Bulk Invite" systems with FPS-style "Starship" keyboard navigation.
-- **Why**: To allow the tree to grow securely from within, while making exploration feel like a high-fidelity 3D game rather than a static chart.
+- **Why**: To allow the tree to grow securely from within, while making exploration feel like a high-fidelity 3D game.
 - **How**: 
-  - Built **Atomic RPCs** in Supabase to ensure node and link creation never fail partially.
-  - Implemented a **"Master Rebuild"** of database RLS to harden the 1-degree security model against data mutations.
-  - Developed a **Frame-based Navigation Loop** with WASD thrust, Shift-boost, and an "Engine Toggle" (`E`) for precise, drift-free steering using mouse position.
-  - Added a **Glowing Aura** for Tab-based selection to keep track of your focus during flight.
+  - Built **Atomic Database Operations** to ensure node and link creation never fail partially.
+  - Implemented a **Hardened Security Model** to prevent unauthorized data changes.
+  - Developed a **Frame-based Navigation Loop** with WASD thrust, Shift-boost, and an "Engine Toggle" for precise steering.
 
 **The architecture decision**
-We use **raw `fetch()` to Supabase REST** for invite validation, claim, loading tree/profile data, and adding relatives. This bypasses the Supabase JS client's realtime websocket issues and ensures the app remains snappy and reliable.
+We use **direct data fetching** for core operations. This bypasses potential websocket bottlenecks and ensures the app remains snappy and reliable.
 
 **The flow**
-1. **Invite claim**: User hits `/invite/:token` → we validate via RPC → they sign in with Google → we call `claim_invite_secure` → DB creates user, marks invite claimed → redirect home.
-2. **Loading the tree**: Authenticated request with session token fetches nodes and links; RLS enforces that only allowed data is returned.
-3. **Permissions**: `is_within_1_degree()` and `is_admin()` in the DB decide who can read/update what; inserts require you to be bound and (for links) within 1-degree.
-4. **Adding Relatives**: Click a node → `AddRelativeModal` → call `create_relative_secure` RPC → DB creates node + link + sets cluster in one transaction → refetch graph.
+1. **Invite claim**: User validates a token → signs in with Google → DB securely creates the user record and marks the token as used in a single step.
+2. **Loading the tree**: Authenticated requests fetch nodes and links; the database ensures you only see what you're permitted to.
+3. **Adding Relatives**: Members add relatives directly from the 3D view, with the database handling node and link creation simultaneously.
 
 **Phase 6: Presets & Hierarchical Views**
 We needed **H) classic tree readability** and **I) clean visual paths**.
-**H = Family Presets (2D)** so users can toggle a cluster into a clean vertical hierarchy with parents at the top and children below. Non-family nodes are pushed to the background to maintain focus.
-**I = Orthogonal "Elbow" Connectors** so parent-child links in the 2D view follow clean right-angle paths instead of crossing lines, making generations easy to trace at a glance.
+- **H = Family Presets (2D)** so users can toggle a cluster into a clean vertical hierarchy with parents at the top and children below. 
+- **I = Orthogonal "Elbow" Connectors** so parent-child links follow clean right-angle paths instead of crossing lines, making generations easy to trace.
 
 **Key learnings**
-- 3D space can be leveraged for focus: By moving unrelated nodes to a distant Z-plane (`fz = -600`), the active family cluster "pops" into a 2D viewport without losing the context of the wider network.
-- Custom link rendering in `react-force-graph-3d` requires both `linkThreeObject` for creation and `linkPositionUpdate` for frame-by-frame alignment, especially when using non-straight geometries like elbows.
-- BFS is the right tool for hierarchical leveling: By identifying "roots" in a cluster and traversing down, we can assign reliable `fy` coordinates to represent generations.
-- Physics vs. Hierarchy: To prevent siblings from clumping, we use a "Shock-Spread" approach—pre-calculating wide horizontal offsets and drastically weakening link strength during the transition.
-
-**The architecture decision**
-We use **BFS (Breadth-First Search)** on the client-side to calculate generation levels whenever a family preset is selected. This allows the layout to be dynamic and cluster-specific without needing persistent hierarchical data in the database.
-
-**The flow**
-1. **Selection**: User opens "Presets" and clicks a family name.
-2. **Analysis**: We run BFS starting from that family's "roots" (nodes with no parents in that cluster) to assign levels (0, 1, 2...).
-3. **Layout**: We fix nodes in that cluster to `fz=0` and `fy = level * 250`, while pushing others to `fz=-600`.
-4. **Shock-Spread**: We manually offset siblings by `300` units horizontally to ensure the physics engine doesn't clump them together under their parents.
-5. **Rendering**: For the active cluster, parent-child links switch to custom orthogonal "elbow" connectors via `linkThreeObject`.
-
-**Why this works**
-It gives the user the "best of both worlds": an immersive, connected 3D galaxy for general exploration, and a clean, traditional family tree view for deep-diving into specific lineages.
-
-**Key learnings**
-- RLS can block inserts without returning an error — use a SECURITY DEFINER RPC when the app legitimately needs to create a user record on invite claim or create links between nodes.
-- Atomic operations are king: Never create a Node and then a Link separately from the frontend; use a database function (RPC) to handle it in one transaction to avoid partial data (orphans).
-- Lock helper functions with `SET search_path = public` so they can't be abused via schema injection.
-- Tighten INSERT policies: don't use `WITH CHECK (true)`; require bound users and 1-degree checks so the tree can't be polluted.
-- If the Supabase client hangs, critical paths can use raw `fetch()` to the same REST API with your auth token.
+- **3D Focus**: Moving unrelated nodes to a distant background plane allows the active family cluster to "pop" into a 2D view without losing the wider context.
+- **Custom Rendering**: Fine-grained control over link positioning is essential for non-straight geometries like elbow connectors.
+- **Dynamic Leveling**: Using smart traversal algorithms allows us to calculate generation levels on-the-fly without storing fixed coordinates.
 
 **Phase 7: The Landing Experience**
 We needed **J) a compelling entry point** and **K) smooth frame playback**.
-**J = Cinematic scroll sequence** so visitors travel through a galaxy of planets (individuals) and solar systems (families) before arriving at the hangar doors.
-**K = Motion.dev scroll sync** so 100 PNG frames play smoothly as the user scrolls, with smart preloading that starts below the fold to avoid the "loading..." flash.
+- **J = Cinematic scroll sequence** so visitors travel through a galaxy of planets and solar systems before arriving at the app.
+- **K = Motion.dev scroll sync** so frames play smoothly as the user scrolls, with smart preloading to avoid visual glitches.
 
-**The architecture decision**
-We use **Motion's `useScroll` and `useTransform`** to map scroll progress directly to frame indices. The sequence container is 400vh tall with a sticky inner viewport, giving users a long, satisfying scroll through space. Frames preload in phases—first 30 immediately, rest progressively—so playback is seamless once they reach the sequence.
+**Phase 8: AI Intelligence & Visual Fidelity**
+We completed the "Brain and Beauty" upgrade:
+- **The Brain**: Implemented an AI Chat Bot that understands family relationships.
+    - **Strategy**: Instead of sending raw data IDs, we pre-process the graph into human-readable "Person Profiles." This allows the AI to accurately trace complex maternal and paternal lineages.
+    - **Dual-Mode**: Users can toggle between Cloud and Local AI models.
+- **The Face**: Upgraded nodes to "Planets."
+    - **Visuals**: Added realistic textures, improved lighting, and a starfield background.
+    - **Bug Fix**: Isolated node rotation to the mesh level, ensuring smooth and accurate dragging interactions.
 
-**The flow**
-1. **Hero**: Gradient background with animated starfield, scroll indicator bouncing below.
-2. **Preload zone**: 20vh buffer where frames load in background, spinner visible.
-3. **Sequence**: Sticky full-viewport player showing frames 1-100 as user scrolls 400vh.
-4. **Metrics**: Animated counters spring up showing tree stats (123 individuals, 11 families).
-5. **Hangar CTA**: Post-sequence reveal with "You Have Arrived" message.
-6. **How It Works**: 4-step cards explaining the invite-only flow.
-
-**Key learnings**
-- Sticky positioning with scroll-linked transforms creates a "movie playback" effect without video files.
-- Family name overlays were attempted but removed—timing with scroll was unpredictable; clean sequence is better.
-- Progress indicators (Start → Hangar bar) give users spatial awareness during long scrolls.
+**High-Level Learnings**
+- **Context is King**: Pre-processing data into human-readable formats is more effective for AI accuracy than simply using larger models.
+- **Centralized Animation**: High-performance 3D requires a single centralized loop to maintain a smooth frame rate as the network grows.
+- **Living History**: Immersive navigation and AI assistance transform a static database into an explorable family legacy.
