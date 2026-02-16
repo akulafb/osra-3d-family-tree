@@ -131,7 +131,7 @@ const getDescendantIds = (nodeId: string, links: FamilyLink[]): string[] => {
   return descendants;
 };
 
-const FamilyTree3D: React.FC = () => {
+const FamilyTreeContent: React.FC = () => {
   const ForceGraph3DAny = ForceGraph3D as unknown as React.ComponentType<any>;
   const { graphData, isLoading: dataLoading, error: dataError, refetch } = useFamilyData();
   const { user, userProfile } = useAuth();
@@ -223,15 +223,16 @@ const FamilyTree3D: React.FC = () => {
       console.log('[FamilyTree3D] Filtered data:', { 
         originalNodes: graphData.nodes.length, 
         filteredNodes: filtered.nodes.length,
-        hiddenCount: hiddenNodes.size
+        hiddenCount: hiddenNodes.size,
+        activePreset
       });
       return filtered;
     } catch (err) {
       console.error('[FamilyTree3D] Error filtering graph data:', err);
-      setRenderError('Error filtering graph data: ' + (err instanceof Error ? err.message : String(err)));
+      // Removed setRenderError to avoid "update during render" warning
       return { nodes: [], links: [] };
     }
-  }, [graphData, collapsedNodes]);
+  }, [graphData, collapsedNodes, activePreset]);
 
   const uniqueClusters = React.useMemo(() => {
     if (!graphData?.nodes) return [];
@@ -276,67 +277,64 @@ const FamilyTree3D: React.FC = () => {
   // Focus Logic
   const handleNodeClick = useCallback((node: FamilyNode) => {
     if (!fgRef.current) return;
-    const camera = fgRef.current.camera();
-    const controls = fgRef.current.controls();
-    if (!camera || !controls) return;
-
+    
     const nodeData = node as any;
     setSelectedNode(node);
     
-    const nodePos = new THREE.Vector3(nodeData.x || 0, nodeData.y || 0, nodeData.z || 0);
+    // Ensure coordinates are valid before processing
+    const x = (typeof nodeData.x === 'number' && !isNaN(nodeData.x)) ? nodeData.x : 0;
+    const y = (typeof nodeData.y === 'number' && !isNaN(nodeData.y)) ? nodeData.y : 0;
+    const z = (typeof nodeData.z === 'number' && !isNaN(nodeData.z)) ? nodeData.z : 0;
+    
+    const nodePos = { x, y, z };
     const distance = 120;
     
-    const direction = new THREE.Vector3().subVectors(camera.position, nodePos).normalize();
-    const targetPos = new THREE.Vector3().addVectors(nodePos, direction.multiplyScalar(distance));
-
-    const duration = 800;
-    const startTime = Date.now();
-    const startPos = camera.position.clone();
-    const startTarget = controls.target.clone();
-
-    const animate = () => {
-      const progress = Math.min((Date.now() - startTime) / duration, 1);
-      const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-
-      camera.position.lerpVectors(startPos, targetPos, eased);
-      controls.target.lerpVectors(startTarget, nodePos, eased);
-      camera.lookAt(controls.target);
-      camera.updateProjectionMatrix();
-
-      if (progress < 1) requestAnimationFrame(animate);
+    const camera = fgRef.current.camera();
+    const currentPos = camera.position;
+    
+    // Calculate new camera position
+    let direction = new THREE.Vector3(currentPos.x - x, currentPos.y - y, currentPos.z - z);
+    if (isNaN(direction.x) || isNaN(direction.y) || isNaN(direction.z) || direction.lengthSq() < 0.0001) {
+      direction.set(0, 0, 1);
+    } else {
+      direction.normalize();
+    }
+    
+    const targetPos = {
+      x: x + direction.x * distance,
+      y: y + direction.y * distance,
+      z: z + direction.z * distance
     };
-    animate();
+
+    console.log('[FamilyTree3D] Camera move to:', targetPos, 'looking at:', nodePos);
+    
+    // Use the force-graph's built-in cameraPosition for smooth, safe animation
+    fgRef.current.cameraPosition(targetPos, nodePos, 800);
   }, []);
 
   const resetView = useCallback(() => {
     if (!fgRef.current || !initialCameraPos || !graphData) return;
 
     setActivePreset(null);
-    // Clear all fixed positions
+    // Clear all fixed positions and ensure no NaN coordinates
     graphData.nodes.forEach((node: any) => {
       node.fx = undefined;
       node.fy = undefined;
       node.fz = undefined;
+      if (isNaN(node.x) || isNaN(node.y) || isNaN(node.z)) {
+        node.x = 0;
+        node.y = 0;
+        node.z = 0;
+      }
     });
     fgRef.current.d3ReheatSimulation();
 
-    const camera = fgRef.current.camera();
-    const controls = fgRef.current.controls();
-    if (!camera || !controls) return;
-    const duration = 1000;
-    const startTime = Date.now();
-    const startPos = camera.position.clone();
-    const startTarget = controls.target.clone();
-    const animate = () => {
-      const progress = Math.min((Date.now() - startTime) / duration, 1);
-      const eased = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-      camera.position.lerpVectors(startPos, new THREE.Vector3(initialCameraPos.x, initialCameraPos.y, initialCameraPos.z), eased);
-      controls.target.lerpVectors(startTarget, new THREE.Vector3(0, 0, 0), eased);
-      camera.lookAt(controls.target);
-      camera.updateProjectionMatrix();
-      if (progress < 1) requestAnimationFrame(animate);
-    };
-    animate();
+    // Use built-in cameraPosition for reset
+    fgRef.current.cameraPosition(
+      { x: initialCameraPos.x, y: initialCameraPos.y, z: initialCameraPos.z },
+      { x: 0, y: 0, z: 0 },
+      1000
+    );
   }, [initialCameraPos, graphData]);
 
   // Continuous Flight Loop
@@ -558,6 +556,11 @@ const FamilyTree3D: React.FC = () => {
     const levels = calculateGenerationLevels(clusterName);
     const generationHeight = 250; 
     const horizontalSpread = 300; 
+    
+    console.log(`[FamilyTree3D] Applying preset: ${clusterName}`, { 
+      totalNodes: graphData.nodes.length,
+      clusterLevelCount: levels.size 
+    });
 
     // Group nodes by level to spread them out
     const nodesByLevel: Record<number, any[]> = {};
@@ -572,39 +575,64 @@ const FamilyTree3D: React.FC = () => {
     graphData.nodes.forEach((node: any) => {
       if (node.familyCluster === clusterName) {
         const level = levels.get(node.id) || 0;
-        const siblingsAtLevel = nodesByLevel[level];
+        const siblingsAtLevel = nodesByLevel[level] || [];
         const index = siblingsAtLevel.indexOf(node);
         const offset = (index - (siblingsAtLevel.length - 1) / 2) * horizontalSpread;
         
-        node.x = offset; 
-        node.fy = level * generationHeight;
+        // Safety check for NaN
+        const safeOffset = (typeof offset === 'number' && !isNaN(offset)) ? offset : 0;
+        const safeY = (typeof level === 'number' && !isNaN(level)) ? level * generationHeight : 0;
+
+        // Fix all coordinates for a stable 2D layout in preset mode
+        node.fx = safeOffset;
+        node.fy = safeY;
         node.fz = 0;
-        node.fx = undefined; 
+        
+        // Also update actual positions immediately for camera focus
+        node.x = safeOffset;
+        node.y = safeY;
+        node.z = 0;
       } else {
-        node.fz = -600; 
-        node.fx = undefined;
-        node.fy = undefined;
+        // Push non-cluster nodes back and fix them to prevent physics "explosions"
+        // Ensure we don't pick up NaN from previous state
+        const safeX = (typeof node.x === 'number' && !isNaN(node.x)) ? node.x : (Math.random() - 0.5) * 2000;
+        const safeY = (typeof node.y === 'number' && !isNaN(node.y)) ? node.y : (Math.random() - 0.5) * 2000;
+        
+        node.fx = safeX;
+        node.fy = safeY;
+        node.fz = -1000;
+        
+        node.x = safeX;
+        node.y = safeY;
+        node.z = -1000;
       }
     });
 
-    // Reheat simulation with high intensity
+    // Reheat simulation
     if (fgRef.current) {
-      fgRef.current.d3AlphaTarget(0.3); // Keep it "hot" longer
-      setTimeout(() => fgRef.current?.d3AlphaTarget(0), 2000);
       fgRef.current.d3ReheatSimulation();
     }
 
-    // Focus camera on the cluster
-    if (type === 'me' && userProfile?.node_id) {
-      focusNodeById(userProfile.node_id);
-    } else {
-      // Find a good representative for the cluster
-      const rep = (clusterName === 'Badran') 
-        ? graphData.nodes.find(n => n.name === 'Basel Badran')
-        : graphData.nodes.find(n => n.familyCluster === clusterName);
+    // Focus camera on the cluster after a small delay to let positions settle
+    setTimeout(() => {
+      if (!fgRef.current || !graphData) return;
       
-      if (rep) focusNodeById(rep.id);
-    }
+      if (type === 'me' && userProfile?.node_id) {
+        focusNodeById(userProfile.node_id);
+      } else {
+        // Find a good representative for the cluster
+        const rep = (clusterName === 'Badran') 
+          ? graphData.nodes.find(n => n.name === 'Basel Badran')
+          : graphData.nodes.find(n => n.familyCluster === clusterName);
+        
+        if (rep) {
+          console.log('[FamilyTree3D] Focusing preset representative:', rep.name);
+          focusNodeById(rep.id);
+        } else {
+          console.warn('[FamilyTree3D] No representative found for cluster:', clusterName);
+        }
+      }
+    }, 200);
   }, [userProfile, graphData, calculateGenerationLevels, resetView, focusNodeById]);
 
   // Node UI with visual upgrades
@@ -717,25 +745,34 @@ const FamilyTree3D: React.FC = () => {
       setRenderError('Runtime Error: ' + e.message);
     };
     window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
-  }, []);
+    
+    // Safety loop to catch NaN explosions
+    const checkNaN = setInterval(() => {
+      if (!graphData?.nodes) return;
+      let exploded = false;
+      for (const node of graphData.nodes as any) {
+        if (isNaN(node.x) || isNaN(node.y) || isNaN(node.z)) {
+          exploded = true;
+          node.x = node.x || 0;
+          node.y = node.y || 0;
+          node.z = node.z || 0;
+          node.fx = undefined; node.fy = undefined; node.fz = undefined;
+        }
+      }
+      if (exploded && fgRef.current) {
+        console.warn('[FamilyTree3D] Physics exploded! Resetting NaN nodes...');
+        fgRef.current.d3ReheatSimulation();
+      }
+    }, 2000);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      clearInterval(checkNaN);
+    };
+  }, [graphData]);
 
   const isLoading = dataLoading || isSimulationLoading;
   const error = dataError || validationError || renderError;
-
-  // Debug: Check for missing env vars
-  const hasEnvVars = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-  if (!hasEnvVars) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100vh', background: '#0a0a0a', color: '#f59e0b', textAlign: 'center', padding: '20px' }}>
-        <div>
-          <h2>⚠️ Configuration Missing</h2>
-          <p>Supabase environment variables are not set. Please add <strong>VITE_SUPABASE_URL</strong> and <strong>VITE_SUPABASE_ANON_KEY</strong> to your Vercel project settings.</p>
-        </div>
-      </div>
-    );
-  }
 
   if (error) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100vh', background: '#0a0a0a', color: '#ef4444', textAlign: 'center' }}><div><h2>Error Loading Family Tree</h2><p>{error}</p></div></div>;
 
@@ -769,7 +806,6 @@ const FamilyTree3D: React.FC = () => {
           return l.type === 'marriage' ? 0.3 : 0.8;
         }}
         ref={fgRef}
-        nodeRepulsion={activePreset ? 100000 : 8000}
         cooldownTicks={activePreset ? 600 : 200}
         onEngineStop={() => setIsSimulationLoading(false)}
         onSceneReady={useCallback((scene: THREE.Scene) => {
@@ -973,6 +1009,24 @@ const FamilyTree3D: React.FC = () => {
       </div>
     </div>
   );
+};
+
+const FamilyTree3D: React.FC = () => {
+  // Debug: Check for missing env vars FIRST to avoid hook mismatch in the main content
+  const hasEnvVars = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+  if (!hasEnvVars) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100vh', background: '#0a0a0a', color: '#f59e0b', textAlign: 'center', padding: '20px' }}>
+        <div>
+          <h2>⚠️ Configuration Missing</h2>
+          <p>Supabase environment variables are not set. Please add <strong>VITE_SUPABASE_URL</strong> and <strong>VITE_SUPABASE_ANON_KEY</strong> to your Vercel project settings.</p>
+        </div>
+      </div>
+    );
+  }
+
+  return <FamilyTreeContent />;
 };
 
 const panelStyle: React.CSSProperties = { position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'rgba(42, 42, 42, 0.9)', padding: '15px 25px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 100, boxShadow: '0 4px 15px rgba(0,0,0,0.5)', border: '1px solid #444' };
