@@ -7,7 +7,7 @@ interface HangarTransitionProps {
 
 export function HangarTransition({ onSignIn }: HangarTransitionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  
+
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start end', 'end start'],
@@ -15,7 +15,12 @@ export function HangarTransition({ onSignIn }: HangarTransitionProps) {
 
   // CTA reveals as user scrolls past the sequence
   const ctaOpacity = useTransform(scrollYProgress, [0.3, 0.5], [0, 1]);
-  const ctaY = useTransform(scrollYProgress, [0.3, 0.5], [50, 0]);
+  const ctaY = useTransform(scrollYProgress, [0.3, 0.5], [30, 0]);
+
+  // Hangar door effect - closing as we enter
+  const doorLeftX = useTransform(scrollYProgress, [0, 0.4], ['-100%', '0%']);
+  const doorRightX = useTransform(scrollYProgress, [0, 0.4], ['100%', '0%']);
+  const doorOpacity = useTransform(scrollYProgress, [0.2, 0.5], [0, 1]);
 
   return (
     <section
@@ -29,8 +34,84 @@ export function HangarTransition({ onSignIn }: HangarTransitionProps) {
         justifyContent: 'center',
         padding: '60px 20px',
         position: 'relative',
+        overflow: 'hidden',
       }}
     >
+      {/* Hangar door effect - sliding panels */}
+      <motion.div
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '50%',
+          height: '100%',
+          background: 'linear-gradient(90deg, #0a0a0a 0%, #111 100%)',
+          borderRight: '1px solid rgba(102,126,234,0.2)',
+          x: doorLeftX,
+          opacity: doorOpacity,
+          zIndex: 5,
+        }}
+      >
+        {/* Door detail lines */}
+        <div
+          style={{
+            position: 'absolute',
+            right: '20%',
+            top: '10%',
+            bottom: '10%',
+            width: '2px',
+            background: 'linear-gradient(180deg, transparent, rgba(102,126,234,0.3), transparent)',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            right: '40%',
+            top: '20%',
+            bottom: '20%',
+            width: '1px',
+            background: 'linear-gradient(180deg, transparent, rgba(102,126,234,0.2), transparent)',
+          }}
+        />
+      </motion.div>
+
+      <motion.div
+        style={{
+          position: 'absolute',
+          top: 0,
+          right: 0,
+          width: '50%',
+          height: '100%',
+          background: 'linear-gradient(270deg, #0a0a0a 0%, #111 100%)',
+          borderLeft: '1px solid rgba(102,126,234,0.2)',
+          x: doorRightX,
+          opacity: doorOpacity,
+          zIndex: 5,
+        }}
+      >
+        {/* Door detail lines */}
+        <div
+          style={{
+            position: 'absolute',
+            left: '20%',
+            top: '10%',
+            bottom: '10%',
+            width: '2px',
+            background: 'linear-gradient(180deg, transparent, rgba(102,126,234,0.3), transparent)',
+          }}
+        />
+        <div
+          style={{
+            position: 'absolute',
+            left: '40%',
+            top: '20%',
+            bottom: '20%',
+            width: '1px',
+            background: 'linear-gradient(180deg, transparent, rgba(102,126,234,0.2), transparent)',
+          }}
+        />
+      </motion.div>
+
       {/* Background glow */}
       <div
         style={{
@@ -40,6 +121,7 @@ export function HangarTransition({ onSignIn }: HangarTransitionProps) {
           borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(102,126,234,0.1) 0%, transparent 60%)',
           filter: 'blur(80px)',
+          zIndex: 1,
         }}
       />
 
@@ -61,10 +143,11 @@ export function HangarTransition({ onSignIn }: HangarTransitionProps) {
           viewport={{ once: true }}
           style={{
             fontSize: '1rem',
-            color: '#667eea',
+            color: '#8b9fff', // Brightened from #667eea
             letterSpacing: '0.3em',
             textTransform: 'uppercase',
             marginBottom: '1.5rem',
+            textShadow: '0 0 15px rgba(139, 159, 255, 0.5)',
           }}
         >
           ✦ You Have Arrived ✦
@@ -78,8 +161,9 @@ export function HangarTransition({ onSignIn }: HangarTransitionProps) {
           style={{
             fontSize: 'clamp(2rem, 5vw, 3rem)',
             fontWeight: 700,
-            color: '#fff',
+            color: '#ffffff',
             margin: '0 0 1rem 0',
+            textShadow: '0 0 30px rgba(255, 255, 255, 0.5)',
           }}
         >
           Ready to Explore Your Family Tree?
@@ -92,9 +176,10 @@ export function HangarTransition({ onSignIn }: HangarTransitionProps) {
           viewport={{ once: true }}
           style={{
             fontSize: '1.1rem',
-            color: 'rgba(255,255,255,0.7)',
+            color: '#ffffff', // Brightened from rgba(255,255,255,0.7)
             marginBottom: '2.5rem',
             lineHeight: 1.6,
+            textShadow: '0 0 20px rgba(255, 255, 255, 0.3)',
           }}
         >
           Join your family in a new dimension. Sign in with Google to access
@@ -113,12 +198,12 @@ export function HangarTransition({ onSignIn }: HangarTransitionProps) {
             padding: '18px 48px',
             fontSize: '1.2rem',
             fontWeight: 600,
-            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-            color: '#fff',
+            background: '#ffffff', // Switched to solid white to match hero
+            color: '#1a1a2e', // Dark text for contrast
             border: 'none',
             borderRadius: '50px',
             cursor: 'pointer',
-            boxShadow: '0 8px 30px rgba(102, 126, 234, 0.4)',
+            boxShadow: '0 8px 30px rgba(102, 126, 234, 0.5)',
           }}
         >
           Sign in with Google
@@ -132,7 +217,7 @@ export function HangarTransition({ onSignIn }: HangarTransitionProps) {
           style={{
             marginTop: '1.5rem',
             fontSize: '0.9rem',
-            color: 'rgba(255,255,255,0.4)',
+            color: 'rgba(255,255,255,0.6)', // Brightened from 0.4
           }}
         >
           Invite-only. Secure. Private.
