@@ -4,56 +4,7 @@
 import { FamilyNode, FamilyLink } from '../types/graph';
 export type { FamilyNode, FamilyLink };
 
-import { supabase } from './supabase';
-
 export type RelationshipType = 'self' | 'parent' | 'child' | 'spouse' | 'sibling' | 'unrelated';
-
-/**
- * Check if current user can edit a specific node
- * Rules:
- * - Admin can edit any node
- * - User can edit nodes within their 1-degree network (self, parents, children, siblings, spouse)
- */
-export async function canEditNode(
-  targetNodeId: string,
-  userId: string
-): Promise<boolean> {
-  try {
-    // First check if user is admin
-    const { data: isAdmin } = await supabase.rpc('is_admin');
-    if (isAdmin) return true;
-
-    // Get user's bound node
-    const { data: userData } = await supabase
-      .from('users')
-      .select('node_id')
-      .eq('id', userId)
-      .single();
-    
-    const userNodeId = (userData as any)?.node_id;
-    if (!userNodeId) return false;
-
-    // User can always edit their own node
-    if (targetNodeId === userNodeId) return true;
-
-    // Get all links
-    const { data: links } = await supabase.from('links').select('*');
-    if (!links) return false;
-
-    // Standardize links for isWithin1Degree
-    const familyLinks: FamilyLink[] = links.map((link: any) => ({
-      source: link.source_node_id,
-      target: link.target_node_id,
-      type: link.type as 'parent' | 'marriage',
-    }));
-
-    // Check if node is within 1-degree network
-    return isWithin1Degree(targetNodeId, userNodeId, familyLinks);
-  } catch (err) {
-    console.error('Error checking edit permission:', err);
-    return false;
-  }
-}
 
 /**
  * SYNCHRONOUS version: Check if current user can edit a specific node
@@ -103,32 +54,6 @@ function getSafeId(val: any): string | null {
   if (typeof val === 'string') return val;
   if (typeof val === 'object' && val.id) return val.id;
   return null;
-}
-
-/**
- * Get all nodes within 1-degree of a user's node
- */
-export async function get1DegreeNodes(userId: string): Promise<string[]> {
-  try {
-    const { data: userData } = await supabase.from('users').select('node_id').eq('id', userId).single();
-    const userNodeId = (userData as any)?.node_id;
-    if (!userNodeId) return [];
-
-    const { data: links } = await supabase.from('links').select('*');
-    if (!links) return [userNodeId];
-
-    // Standardize links
-    const familyLinks: FamilyLink[] = links.map((link: any) => ({
-      source: link.source_node_id,
-      target: link.target_node_id,
-      type: link.type as 'parent' | 'marriage',
-    }));
-
-    return get1DegreeNodesSync(userNodeId, [], familyLinks);
-  } catch (err) {
-    console.error('Error getting 1-degree nodes:', err);
-    return [];
-  }
 }
 
 /**
@@ -208,67 +133,6 @@ function getChildren(nodeId: string, links: FamilyLink[]): string[] {
 }
 
 /**
- * Get the relationship between user's node and target node
- */
-export async function getNodeRelationship(
-  userId: string,
-  targetNodeId: string
-): Promise<{ type: RelationshipType; label: string }> {
-  try {
-    const { data: userData } = await supabase.from('users').select('node_id').eq('id', userId).single();
-    const userNodeId = (userData as any)?.node_id;
-    if (!userNodeId) return { type: 'unrelated', label: 'Not bound' };
-    if (targetNodeId === userNodeId) return { type: 'self', label: 'You' };
-
-    const { data: links } = await supabase.from('links').select('*');
-    if (!links) return { type: 'unrelated', label: 'No links' };
-
-    // Standardize links
-    const familyLinks: FamilyLink[] = (links || []).map((link: any) => ({
-      source: link.source_node_id,
-      target: link.target_node_id,
-      type: link.type as 'parent' | 'marriage',
-    }));
-
-    const directLink = familyLinks.find(link => 
-      (link.source === userNodeId && link.target === targetNodeId) ||
-      (link.target === userNodeId && link.source === targetNodeId)
-    );
-
-    if (directLink) {
-      if (directLink.type === 'parent') {
-        return directLink.source === targetNodeId ? { type: 'parent', label: 'Parent' } : { type: 'child', label: 'Child' };
-      }
-      return { type: 'spouse', label: 'Spouse' };
-    }
-
-    const userParents = getParents(userNodeId, familyLinks);
-    const targetParents = getParents(targetNodeId, familyLinks);
-    if (userParents.some(p => targetParents.includes(p))) return { type: 'sibling', label: 'Sibling' };
-
-    // Parent's spouse
-    const isParentsSpouse = userParents.some(parentId => 
-      familyLinks.some(link => 
-        link.type === 'marriage' && 
-        ((link.source === parentId && link.target === targetNodeId) || (link.target === parentId && link.source === targetNodeId))
-      )
-    );
-    if (isParentsSpouse) return { type: 'parent', label: 'Parent' };
-
-    // Child's other parent
-    const userChildren = getChildren(userNodeId, familyLinks);
-    const isChildsOtherParent = userChildren.some(childId => 
-      familyLinks.some(link => link.type === 'parent' && link.target === childId && link.source === targetNodeId)
-    );
-    if (isChildsOtherParent) return { type: 'spouse', label: 'Spouse' };
-
-    return { type: 'unrelated', label: 'Not 1-degree' };
-  } catch (err) {
-    return { type: 'unrelated', label: 'Error' };
-  }
-}
-
-/**
  * Get all nodes within 1-degree of the user's bound node (sync version)
  */
 export function get1DegreeNodesSync(
@@ -335,7 +199,7 @@ export function canCreateLink(
   const exists = existingLinks.some((link: any) => {
     const s = getSafeId(link.source);
     const t = getSafeId(link.target);
-    return (s === sourceNodeId && t === targetNodeId) || (s === targetNodeId && t === sourceNodeId);
+    return (s === sourceNodeId && t === targetNodeId) || (s === targetNodeId && s === targetNodeId);
   });
   if (exists) return { allowed: false, reason: 'Exists' };
 
