@@ -75,6 +75,9 @@ Each solution unlocked the next challenge, building from a simple graph visualiz
 - **AI Family Chat Bot**: Floating 🤖 assistant that answers relationship questions using Supabase data
 - **Planetary Textures**: Realistic 3D planet skins for nodes with continuous rotation and dynamic lighting
 - **Multi-Style Rendering**: Toggle between Planets, futuristic metallic Spheres, or simple Labels
+- **True 3D Starfield**: Immersive backdrop with multi-layered parallax stars that move with the camera
+- **Celestial Body Mode**: Toggle links visibility to see family members as floating stars in deep space
+- **Clean UI**: Settings gear (⚙️) to hide/show controls for an unobstructed view
 
 ### Navigation Controls
 - **E**: Toggle Steering Engine (Enable/Disable Mouse Look)
@@ -335,6 +338,16 @@ We completed the "Brain and Beauty" upgrade:
 - **The Face**: Upgraded nodes to "Planets."
     - **Visuals**: Added realistic textures, improved lighting, and a starfield background.
     - **Bug Fix**: Isolated node rotation to the mesh level, ensuring smooth and accurate dragging interactions.
+
+**Phase 9: Immersive Starfield & UI Refinement**
+We completed the "Infinity and Beyond" upgrade:
+- **Infinity**: Implemented a true 3D Starfield backdrop with multi-layered parallax.
+    - **Visuals**: Added a distant background sphere with `stars.jpg` and a volumetric particle layer for near/mid parallax.
+    - **Optimization**: Switched to `toneMapped: false` for all star materials to maintain high intensity and "pop" against the deep space background.
+- **Beyond**: Added a "Celestial Body" mode and a clean UI system.
+    - **Features**: A new "Links: ON/OFF" toggle allows nodes to appear as floating stars without visible connection lines.
+    - **UI**: Added a settings gear (⚙️) to hide the top-right controls for a cinematic, unobstructed view of the tree.
+- **Bug Fix**: Resolved a "massive red sphere" overlap at the origin by boosting initial simulation repulsion and energy.
 
 **High-Level Learnings**
 - **Context is King**: Pre-processing data into human-readable formats is more effective for AI accuracy than simply using larger models.
