@@ -11,6 +11,7 @@ import AddRelativeModal from './modals/AddRelativeModal';
 import EditNodeModal from './modals/EditNodeModal';
 import BulkInviteModal from './modals/BulkInviteModal';
 import { canEdit, FamilyLink } from '../lib/permissions';
+import { createStarfield } from '../utils/starfield';
 
 // V3 Shared Assets
 const planetTextures = [
@@ -144,6 +145,7 @@ const FamilyTreeContent: React.FC = () => {
   }), []);
 
   const fgRef = useRef<any>();
+  const starfieldRef = useRef<THREE.Group | null>(null);
   const presetsRef = useRef<HTMLDivElement>(null);
 
   // Global rotation state for moire/rotation (performance boost!)
@@ -152,6 +154,13 @@ const FamilyTreeContent: React.FC = () => {
     let frameId: number;
     const animate = () => {
       rotationRef.current += 0.007; // Slowed down by 30%
+      
+      // Ambient starfield rotation
+      if (starfieldRef.current) {
+        starfieldRef.current.rotation.y += 0.0002;
+        starfieldRef.current.rotation.x += 0.0001;
+      }
+
       frameId = requestAnimationFrame(animate);
     };
     animate();
@@ -176,6 +185,8 @@ const FamilyTreeContent: React.FC = () => {
 
   // V3 Features: Toggles and Collapsed state
   const [showNames, setShowNames] = useState(true);
+  const [showLinks, setShowLinks] = useState(true);
+  const [showControls, setShowControls] = useState(true);
   const [nodeTexture, setNodeTexture] = useState<'spheres' | 'planets' | 'none'>('spheres');
   const [showArrows, setShowArrows] = useState(false);
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
@@ -186,11 +197,12 @@ const FamilyTreeContent: React.FC = () => {
       nodesCount: graphData?.nodes?.length,
       linksCount: graphData?.links?.length,
       showNames, 
+      showLinks,
       nodeTexture, 
       showArrows,
       collapsedCount: collapsedNodes.size 
     });
-  }, [graphData, showNames, nodeTexture, showArrows, collapsedNodes]);
+  }, [graphData, showNames, showLinks, nodeTexture, showArrows, collapsedNodes]);
 
   const toggleNodeCollapse = useCallback((nodeId: string) => {
     console.log('[FamilyTree3D] Toggling collapse for node:', nodeId);
@@ -771,6 +783,57 @@ const FamilyTreeContent: React.FC = () => {
     };
   }, [graphData]);
 
+  // V3 Starfield & Environment Initialization
+  useEffect(() => {
+    const initEnvironment = () => {
+      if (!fgRef.current) return;
+
+      const scene = fgRef.current.scene();
+      const camera = fgRef.current.camera();
+      const renderer = fgRef.current.renderer();
+
+      if (scene && !starfieldRef.current) {
+        console.log('[FamilyTree3D] Initializing 3D Starfield & Environment...');
+        
+        // Camera setup
+        if (camera) {
+          camera.far = 100000;
+          camera.updateProjectionMatrix();
+        }
+
+        // Renderer setup
+        if (renderer) {
+          renderer.shadowMap.enabled = true;
+          renderer.setClearColor(0x0a0a0a, 1);
+        }
+
+        // Scene environment
+        scene.background = null;
+        starfieldRef.current = createStarfield(scene);
+        scene.fog = new THREE.Fog(0x020205, 5000, 20000);
+
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+        scene.add(ambientLight);
+
+        const mainLight = new THREE.PointLight(0xffffff, 3.5);
+        mainLight.position.set(1000, 1000, 1000);
+        scene.add(mainLight);
+
+        const fillLight = new THREE.PointLight(0x0066ff, 2.5);
+        fillLight.position.set(-1000, -1000, 1000);
+        scene.add(fillLight);
+
+        const backLight = new THREE.PointLight(0xff00ff, 1.5);
+        backLight.position.set(0, 0, -1000);
+        scene.add(backLight);
+      }
+    };
+
+    const interval = setInterval(initEnvironment, 500);
+    return () => clearInterval(interval);
+  }, []);
+
   const isLoading = dataLoading || isSimulationLoading;
   const error = dataError || validationError || renderError;
 
@@ -808,41 +871,6 @@ const FamilyTreeContent: React.FC = () => {
         ref={fgRef}
         cooldownTicks={activePreset ? 600 : 200}
         onEngineStop={() => setIsSimulationLoading(false)}
-        onSceneReady={useCallback((scene: THREE.Scene) => {
-          const renderer = fgRef.current?.renderer();
-          if (renderer) { 
-            renderer.shadowMap.enabled = true; 
-            renderer.setClearColor(0x0a0a0a, 1); 
-          }
-          
-          // Environment setup
-          scene.background = new THREE.Color(0x020205);
-          
-          // Load background star texture if available
-          textureLoader.load('/planet-textures/stars.jpg', (texture) => {
-            texture.mapping = THREE.EquirectangularReflectionMapping;
-            texture.colorSpace = THREE.SRGBColorSpace;
-            scene.background = texture;
-          });
-
-          scene.fog = new THREE.Fog(0x020205, 500, 10000);
-
-          // Add strong lights for 3D highlights
-          const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-          scene.add(ambientLight);
-
-          const mainLight = new THREE.PointLight(0xffffff, 3.5);
-          mainLight.position.set(1000, 1000, 1000);
-          scene.add(mainLight);
-
-          const fillLight = new THREE.PointLight(0x0066ff, 2.5);
-          fillLight.position.set(-1000, -1000, 1000);
-          scene.add(fillLight);
-
-          const backLight = new THREE.PointLight(0xff00ff, 1.5);
-          backLight.position.set(0, 0, -1000);
-          scene.add(backLight);
-        }, [])}
         onNodeClick={(node: FamilyNode) => {
           // Toggle collapse if node has children
           const hasChildren = graphData?.links.some(l => {
@@ -861,7 +889,7 @@ const FamilyTreeContent: React.FC = () => {
         }}
         linkColor={(l: any) => l.type === 'marriage' ? '#f59e0b' : '#60a5fa'}
         linkWidth={(l: any) => l.type === 'marriage' ? 3 : 1.5}
-        linkOpacity={0.4}
+        linkOpacity={showLinks ? 0.4 : 0}
         linkCurvature={(l: any) => {
           if (activePreset) {
             const s = typeof l.source === 'object' ? l.source.familyCluster : null;
@@ -872,7 +900,6 @@ const FamilyTreeContent: React.FC = () => {
         }}
         linkDirectionalArrowLength={(l: any) => (showArrows && l.type === 'parent') ? 8 : 0}
         linkDirectionalArrowColor={() => '#60a5fa'}
-        backgroundColor="#0a0a0a"
         showNavInfo={true}
         onBackgroundClick={() => setSelectedNode(null)}
       />
@@ -897,81 +924,104 @@ const FamilyTreeContent: React.FC = () => {
       {userProfile?.node_id && <BulkInviteModal isOpen={isBulkInviteOpen} onClose={() => setIsBulkInviteOpen(false)} allNodes={graphData?.nodes || []} allLinks={graphData?.links ? [...graphData.links] : []} userNodeId={userProfile.node_id} onSuccess={() => {}} />}
       {selectedNode && <EditNodeModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} targetNode={selectedNode} onSuccess={() => refetch()} existingNodes={graphData?.nodes || []} />}
 
-      <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 10 }}>
-        <div style={{ display: 'flex', gap: '4px' }}>
-          <button onClick={() => setShowNames(!showNames)} style={topBtnStyle(showNames ? '#3b82f6' : '#444')}>
-            {showNames ? 'Labels: ON' : 'Labels: OFF'}
-          </button>
-          
-          <div style={{ position: 'relative' }} ref={textureRef}>
-            <button onClick={() => setIsTextureMenuOpen(!isTextureMenuOpen)} style={topBtnStyle('#3b82f6')}>Texture ▾</button>
-            {isTextureMenuOpen && (
-              <div style={presetMenuStyle}>
-                <div style={{ padding: '8px 15px', fontSize: '0.7rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Style</div>
-                <button onClick={() => { setNodeTexture('spheres'); setIsTextureMenuOpen(false); }} className="preset-item" style={{ color: nodeTexture === 'spheres' ? '#3b82f6' : '#fff' }}>Spheres</button>
-                <button onClick={() => { setNodeTexture('planets'); setIsTextureMenuOpen(false); }} className="preset-item" style={{ color: nodeTexture === 'planets' ? '#3b82f6' : '#fff' }}>Planets</button>
-                <button onClick={() => { setNodeTexture('none'); setIsTextureMenuOpen(false); }} className="preset-item" style={{ color: nodeTexture === 'none' ? '#3b82f6' : '#fff' }}>None</button>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <button onClick={() => setShowArrows(!showArrows)} style={topBtnStyle(showArrows ? '#3b82f6' : '#444')}>
-          {showArrows ? 'Arrows: ON' : 'Arrows: OFF'}
-        </button>
-
+      <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 10, alignItems: 'flex-end' }}>
         <button 
-          onClick={() => {
-            if (collapsedNodes.size > 0) {
-              setCollapsedNodes(new Set());
-            } else {
-              // Collapse all nodes that have children
-              const allParents = new Set<string>();
-              graphData?.links.forEach(l => {
-                if (l.type === 'parent') {
-                  allParents.add(typeof l.source === 'object' ? (l.source as any).id : l.source);
-                }
-              });
-              setCollapsedNodes(allParents);
-            }
-          }} 
-          style={topBtnStyle('#f43f5e')}
+          onClick={() => setShowControls(!showControls)} 
+          style={{
+            ...topBtnStyle(showControls ? '#3b82f6' : '#444'),
+            fontSize: '1.1rem',
+            padding: '4px 8px',
+            width: 'auto',
+          }}
+          title={showControls ? "Hide Controls" : "Show Controls"}
         >
-          {collapsedNodes.size > 0 ? 'Expand All' : 'Collapse All'}
+          ⚙️
         </button>
 
-        <button onClick={() => { setIsSimulationLoading(true); fgRef.current?.d3Force('charge')?.restart(); }} style={topBtnStyle('#3b82f6')}>Restart Simulation</button>
-        
-        <div style={{ position: 'relative' }} ref={presetsRef}>
-          <button onClick={() => setIsPresetsOpen(!isPresetsOpen)} style={topBtnStyle('#8b5cf6')}>Presets ▾</button>
-          {isPresetsOpen && (
-            <div style={presetMenuStyle}>
-              <div style={{ padding: '8px 15px', fontSize: '0.7rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Views</div>
-              <button onClick={() => applyPreset('me')} className="preset-item">Focus on Me</button>
-              <button onClick={() => applyPreset('overview')} className="preset-item">3D Global View (Reset)</button>
+        {showControls && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '180px' }}>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button onClick={() => setShowNames(!showNames)} style={topBtnStyle(showNames ? '#3b82f6' : '#444')}>
+                {showNames ? 'Labels: ON' : 'Labels: OFF'}
+              </button>
               
-              <div style={{ height: '1px', background: '#444', margin: '4px 0' }} />
-              <div style={{ padding: '8px 15px', fontSize: '0.7rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Family Presets (2D)</div>
-              
-              {uniqueClusters.map(cluster => (
-                <button 
-                  key={cluster} 
-                  onClick={() => applyPreset(cluster)} 
-                  className="preset-item"
-                  style={{ color: cluster === 'Badran' ? '#3b82f6' : 
-                                  cluster === 'Kutob' ? '#10b981' : 
-                                  cluster === 'Hajjaj' ? '#f59e0b' :
-                                  cluster === 'Zabalawi' ? '#ec4899' :
-                                  cluster === 'Malhis' ? '#8b5cf6' : '#fff' }}
-                >
-                  {cluster} Family
-                </button>
-              ))}
+              <div style={{ position: 'relative' }} ref={textureRef}>
+                <button onClick={() => setIsTextureMenuOpen(!isTextureMenuOpen)} style={topBtnStyle('#3b82f6')}>Texture ▾</button>
+                {isTextureMenuOpen && (
+                  <div style={presetMenuStyle}>
+                    <div style={{ padding: '8px 15px', fontSize: '0.7rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Style</div>
+                    <button onClick={() => { setNodeTexture('spheres'); setIsTextureMenuOpen(false); }} className="preset-item" style={{ color: nodeTexture === 'spheres' ? '#3b82f6' : '#fff' }}>Spheres</button>
+                    <button onClick={() => { setNodeTexture('planets'); setIsTextureMenuOpen(false); }} className="preset-item" style={{ color: nodeTexture === 'planets' ? '#3b82f6' : '#fff' }}>Planets</button>
+                    <button onClick={() => { setNodeTexture('none'); setIsTextureMenuOpen(false); }} className="preset-item" style={{ color: nodeTexture === 'none' ? '#3b82f6' : '#fff' }}>None</button>
+                  </div>
+                )}
+              </div>
             </div>
-          )}
-        </div>
 
-        <button onClick={resetView} style={topBtnStyle('#10b981')}>Reset View</button>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button onClick={() => setShowLinks(!showLinks)} style={topBtnStyle(showLinks ? '#3b82f6' : '#444')}>
+                {showLinks ? 'Links: ON' : 'Links: OFF'}
+              </button>
+
+              <button onClick={() => setShowArrows(!showArrows)} style={topBtnStyle(showArrows ? '#3b82f6' : '#444')}>
+                {showArrows ? 'Arrows: ON' : 'Arrows: OFF'}
+              </button>
+            </div>
+
+            <button 
+              onClick={() => {
+                if (collapsedNodes.size > 0) {
+                  setCollapsedNodes(new Set());
+                } else {
+                  // Collapse all nodes that have children
+                  const allParents = new Set<string>();
+                  graphData?.links.forEach(l => {
+                    if (l.type === 'parent') {
+                      allParents.add(typeof l.source === 'object' ? (l.source as any).id : l.source);
+                    }
+                  });
+                  setCollapsedNodes(allParents);
+                }
+              }} 
+              style={topBtnStyle('#f43f5e')}
+            >
+              {collapsedNodes.size > 0 ? 'Expand All' : 'Collapse All'}
+            </button>
+
+            <button onClick={() => { setIsSimulationLoading(true); fgRef.current?.d3Force('charge')?.restart(); }} style={topBtnStyle('#3b82f6')}>Restart Simulation</button>
+            
+            <div style={{ position: 'relative' }} ref={presetsRef}>
+              <button onClick={() => setIsPresetsOpen(!isPresetsOpen)} style={topBtnStyle('#8b5cf6')}>Presets ▾</button>
+              {isPresetsOpen && (
+                <div style={presetMenuStyle}>
+                  <div style={{ padding: '8px 15px', fontSize: '0.7rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Views</div>
+                  <button onClick={() => applyPreset('me')} className="preset-item">Focus on Me</button>
+                  <button onClick={() => applyPreset('overview')} className="preset-item">3D Global View (Reset)</button>
+                  
+                  <div style={{ height: '1px', background: '#444', margin: '4px 0' }} />
+                  <div style={{ padding: '8px 15px', fontSize: '0.7rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Family Presets (2D)</div>
+                  
+                  {uniqueClusters.map(cluster => (
+                    <button 
+                      key={cluster} 
+                      onClick={() => applyPreset(cluster)} 
+                      className="preset-item"
+                      style={{ color: cluster === 'Badran' ? '#3b82f6' : 
+                                      cluster === 'Kutob' ? '#10b981' : 
+                                      cluster === 'Hajjaj' ? '#f59e0b' :
+                                      cluster === 'Zabalawi' ? '#ec4899' :
+                                      cluster === 'Malhis' ? '#8b5cf6' : '#fff' }}
+                    >
+                      {cluster} Family
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button onClick={resetView} style={topBtnStyle('#10b981')}>Reset View</button>
+          </div>
+        )}
       </div>
       
       <div 
