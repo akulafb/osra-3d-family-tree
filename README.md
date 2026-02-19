@@ -6,6 +6,12 @@ An interactive 3D family tree visualization that transforms complex genealogical
 
 The goal is to create a collaborative family tree platform where multiple family clusters can coexist and interconnect through marriage links, while ensuring each user can only view and edit their immediate family network (1-degree relatives: self, parents, children, siblings, and spouse).
 
+## System Architecture
+
+![System Architecture](./docs/3DFT%20System%20Arch.svg)
+
+The system architecture diagram above illustrates the complete flow from the browser-based React frontend through authentication, data management, and backend services to the 3D visualization and AI chat components.
+
 ## Building Story
 
 This project was built progressively, with each step unlocking the next capability:
