@@ -569,51 +569,92 @@ const FamilyTreeContent: React.FC = () => {
     const generationHeight = 250; 
     const horizontalSpread = 300; 
     
-    console.log(`[FamilyTree3D] Applying preset: ${clusterName}`, { 
-      totalNodes: graphData.nodes.length,
-      clusterLevelCount: levels.size 
-    });
+    const nodesInCluster = graphData.nodes.filter(n => n.familyCluster === clusterName);
+    const clusterNodeIds = new Set(nodesInCluster.map(n => n.id));
 
-    // Group nodes by level to spread them out
-    const nodesByLevel: Record<number, any[]> = {};
-    graphData.nodes.forEach((node: any) => {
-      if (node.familyCluster === clusterName) {
-        const level = levels.get(node.id) || 0;
-        if (!nodesByLevel[level]) nodesByLevel[level] = [];
-        nodesByLevel[level].push(node);
+    // 1. Build adjacency list for children
+    const childrenMap = new Map<string, string[]>();
+    graphData.links.forEach(link => {
+      if (link.type === 'parent') {
+        const s = typeof link.source === 'object' && link.source !== null ? (link.source as any).id : link.source;
+        const t = typeof link.target === 'object' && link.target !== null ? (link.target as any).id : link.target;
+        if (clusterNodeIds.has(s) && clusterNodeIds.has(t)) {
+          const list = childrenMap.get(s) || [];
+          list.push(t);
+          childrenMap.set(s, list);
+        }
       }
     });
 
-    graphData.nodes.forEach((node: any) => {
-      if (node.familyCluster === clusterName) {
-        const level = levels.get(node.id) || 0;
-        const siblingsAtLevel = nodesByLevel[level] || [];
-        const index = siblingsAtLevel.indexOf(node);
-        const offset = (index - (siblingsAtLevel.length - 1) / 2) * horizontalSpread;
-        
-        // Safety check for NaN
-        const safeOffset = (typeof offset === 'number' && !isNaN(offset)) ? offset : 0;
-        const safeY = (typeof level === 'number' && !isNaN(level)) ? level * generationHeight : 0;
+    // 2. Calculate subtree widths (number of leaf nodes)
+    const subtreeWidths = new Map<string, number>();
+    const getSubtreeWidth = (id: string): number => {
+      const children = childrenMap.get(id) || [];
+      if (children.length === 0) {
+        subtreeWidths.set(id, 1);
+        return 1;
+      }
+      const width = children.reduce((sum, childId) => sum + getSubtreeWidth(childId), 0);
+      subtreeWidths.set(id, width);
+      return width;
+    };
 
-        // Fix all coordinates for a stable 2D layout in preset mode
-        node.fx = safeOffset;
-        node.fy = safeY;
-        node.fz = 0;
-        
-        // Also update actual positions immediately for camera focus
-        node.x = safeOffset;
-        node.y = safeY;
-        node.z = 0;
-      } else {
-        // Push non-cluster nodes back and fix them to prevent physics "explosions"
-        // Ensure we don't pick up NaN from previous state
+    // 3. Find roots (nodes with no parents in cluster)
+    const roots = nodesInCluster.filter(node => {
+      const hasParent = graphData.links.some(link => {
+        const t = typeof link.target === 'object' && link.target !== null ? (link.target as any).id : link.target;
+        const s = typeof link.source === 'object' && link.source !== null ? (link.source as any).id : link.source;
+        return t === node.id && link.type === 'parent' && clusterNodeIds.has(s);
+      });
+      return !hasParent;
+    });
+
+    // Calculate widths for all roots
+    let totalClusterWidth = 0;
+    roots.forEach(root => {
+      totalClusterWidth += getSubtreeWidth(root.id);
+    });
+
+    // 4. Recursive positioning
+    const positionNode = (id: string, leftX: number, width: number, level: number) => {
+      const node = graphData.nodes.find(n => n.id === id) as any;
+      if (!node) return;
+
+      const centerX = leftX + (width * horizontalSpread) / 2;
+      const centerY = level * generationHeight;
+
+      node.fx = centerX;
+      node.fy = centerY;
+      node.fz = 0;
+      node.x = centerX;
+      node.y = centerY;
+      node.z = 0;
+
+      const children = childrenMap.get(id) || [];
+      let currentLeft = leftX;
+      children.forEach(childId => {
+        const childWidth = subtreeWidths.get(childId) || 1;
+        positionNode(childId, currentLeft, childWidth, level + 1);
+        currentLeft += childWidth * horizontalSpread;
+      });
+    };
+
+    // Position roots
+    let currentRootLeft = -(totalClusterWidth * horizontalSpread) / 2;
+    roots.forEach(root => {
+      const rootWidth = subtreeWidths.get(root.id) || 1;
+      positionNode(root.id, currentRootLeft, rootWidth, levels.get(root.id) || 0);
+      currentRootLeft += rootWidth * horizontalSpread;
+    });
+
+    // Position non-cluster nodes
+    graphData.nodes.forEach((node: any) => {
+      if (node.familyCluster !== clusterName) {
         const safeX = (typeof node.x === 'number' && !isNaN(node.x)) ? node.x : (Math.random() - 0.5) * 2000;
         const safeY = (typeof node.y === 'number' && !isNaN(node.y)) ? node.y : (Math.random() - 0.5) * 2000;
-        
         node.fx = safeX;
         node.fy = safeY;
         node.fz = -1000;
-        
         node.x = safeX;
         node.y = safeY;
         node.z = -1000;
@@ -730,7 +771,17 @@ const FamilyTreeContent: React.FC = () => {
       const targetCluster = typeof link.target === 'object' ? link.target.familyCluster : null;
 
       if (sourceCluster === activePreset && targetCluster === activePreset) {
-        const midY = (start.y + end.y) / 2;
+        // Add a small deterministic offset based on the source ID to prevent perfect overlaps
+        const sourceId = typeof link.source === 'object' && link.source !== null ? (link.source as any).id : link.source;
+        let hash = 0;
+        const idStr = String(sourceId);
+        for (let i = 0; i < idStr.length; i++) {
+          hash = ((hash << 5) - hash) + idStr.charCodeAt(i);
+          hash |= 0;
+        }
+        const staggerOffset = (Math.abs(hash) % 20) - 10; // +/- 10px offset
+        
+        const midY = (start.y + end.y) / 2 + staggerOffset;
         const points = [
           new THREE.Vector3(start.x, start.y, start.z),
           new THREE.Vector3(start.x, midY, start.z),
