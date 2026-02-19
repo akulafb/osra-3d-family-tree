@@ -576,8 +576,8 @@ const FamilyTreeContent: React.FC = () => {
     const childrenMap = new Map<string, string[]>();
     graphData.links.forEach(link => {
       if (link.type === 'parent') {
-        const s = typeof link.source === 'object' ? link.source.id : link.source;
-        const t = typeof link.target === 'object' ? link.target.id : link.target;
+        const s = typeof link.source === 'object' && link.source !== null ? (link.source as any).id : link.source;
+        const t = typeof link.target === 'object' && link.target !== null ? (link.target as any).id : link.target;
         if (clusterNodeIds.has(s) && clusterNodeIds.has(t)) {
           const list = childrenMap.get(s) || [];
           list.push(t);
@@ -602,8 +602,8 @@ const FamilyTreeContent: React.FC = () => {
     // 3. Find roots (nodes with no parents in cluster)
     const roots = nodesInCluster.filter(node => {
       const hasParent = graphData.links.some(link => {
-        const t = typeof link.target === 'object' ? link.target.id : link.target;
-        const s = typeof link.source === 'object' ? link.source.id : link.source;
+        const t = typeof link.target === 'object' && link.target !== null ? (link.target as any).id : link.target;
+        const s = typeof link.source === 'object' && link.source !== null ? (link.source as any).id : link.source;
         return t === node.id && link.type === 'parent' && clusterNodeIds.has(s);
       });
       return !hasParent;
@@ -617,7 +617,7 @@ const FamilyTreeContent: React.FC = () => {
 
     // 4. Recursive positioning
     const positionNode = (id: string, leftX: number, width: number, level: number) => {
-      const node = graphData.nodes.find(n => n.id === id);
+      const node = graphData.nodes.find(n => n.id === id) as any;
       if (!node) return;
 
       const centerX = leftX + (width * horizontalSpread) / 2;
@@ -772,10 +772,11 @@ const FamilyTreeContent: React.FC = () => {
 
       if (sourceCluster === activePreset && targetCluster === activePreset) {
         // Add a small deterministic offset based on the source ID to prevent perfect overlaps
-        const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
+        const sourceId = typeof link.source === 'object' && link.source !== null ? (link.source as any).id : link.source;
         let hash = 0;
-        for (let i = 0; i < sourceId.length; i++) {
-          hash = ((hash << 5) - hash) + sourceId.charCodeAt(i);
+        const idStr = String(sourceId);
+        for (let i = 0; i < idStr.length; i++) {
+          hash = ((hash << 5) - hash) + idStr.charCodeAt(i);
           hash |= 0;
         }
         const staggerOffset = (Math.abs(hash) % 20) - 10; // +/- 10px offset
