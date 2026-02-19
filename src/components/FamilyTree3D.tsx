@@ -23,7 +23,13 @@ const planetTextures = [
   '/planet-textures/saturn.jpg',
   '/planet-textures/uranus.jpg',
   '/planet-textures/venus.jpg',
-  '/planet-textures/sun.jpg'
+  '/planet-textures/sun.jpg',
+  '/planet-textures/Moon Texture.jpg',
+  '/planet-textures/Ceres Fictional Texture.jpg',
+  '/planet-textures/Eris Fictional Texture.jpg',
+  '/planet-textures/Haumea Texture.jpg',
+  '/planet-textures/Makemake Texture.jpg',
+  '/planet-textures/Gemini Fictional.png'
 ];
 
 const textureLoader = new THREE.TextureLoader();
