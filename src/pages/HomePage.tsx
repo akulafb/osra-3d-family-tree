@@ -77,12 +77,13 @@ export default function HomePage() {
           onClick={signOut}
           style={{
             padding: '10px 20px',
-            background: 'rgba(255,255,255,0.9)',
+            background: '#ef4444',
+            color: '#ffffff',
             border: 'none',
             borderRadius: '8px',
             cursor: 'pointer',
             fontWeight: 'bold',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+            boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
           }}
         >
           Sign Out

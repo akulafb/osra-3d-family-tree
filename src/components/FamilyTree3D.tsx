@@ -11,7 +11,7 @@ import AddRelativeModal from './modals/AddRelativeModal';
 import EditNodeModal from './modals/EditNodeModal';
 import BulkInviteModal from './modals/BulkInviteModal';
 import { canEdit, FamilyLink } from '../lib/permissions';
-import { createStarfield } from '../utils/starfield';
+import { createStarfield, type NebulaData } from '../utils/starfield';
 
 // V3 Shared Assets
 const planetTextures = [
@@ -152,20 +152,43 @@ const FamilyTreeContent: React.FC = () => {
 
   const fgRef = useRef<any>();
   const starfieldRef = useRef<THREE.Group | null>(null);
+  const nebulaeRef = useRef<NebulaData[]>([]);
   const presetsRef = useRef<HTMLDivElement>(null);
 
   // Global rotation state for moire/rotation (performance boost!)
   const rotationRef = useRef(0);
+  const nebulaTimeRef = useRef(0);
+
   useEffect(() => {
     let frameId: number;
     const animate = () => {
       rotationRef.current += 0.007; // Slowed down by 30%
-      
+      nebulaTimeRef.current += 0.016; // ~60fps delta
+
       // Ambient starfield rotation
       if (starfieldRef.current) {
         starfieldRef.current.rotation.y += 0.0002;
         starfieldRef.current.rotation.x += 0.0001;
       }
+
+      // Animate nebulae - pulsing opacity and slow rotation
+      nebulaeRef.current.forEach((nebula) => {
+        // Pulsing opacity for all layers in the group
+        nebula.group.children.forEach((child, index) => {
+          const mesh = child as THREE.Mesh;
+          const material = mesh.material as THREE.MeshBasicMaterial;
+
+          // Pulsing opacity: 0.15 to 0.35 over ~15 seconds, staggered by layer
+          const pulseBase = 0.25 - index * 0.03;
+          const pulseAmp = 0.08;
+          const pulseSpeed = 0.0006;
+          const pulse = Math.sin(nebulaTimeRef.current * pulseSpeed + nebula.pulsePhase + index * 0.5);
+          material.opacity = Math.max(0.05, pulseBase + pulse * pulseAmp);
+        });
+
+        // Very slow rotation of the entire nebula group
+        nebula.group.rotation.z += nebula.rotationSpeed * 0.01;
+      });
 
       frameId = requestAnimationFrame(animate);
     };
@@ -185,14 +208,14 @@ const FamilyTreeContent: React.FC = () => {
   const [isPresetsOpen, setIsPresetsOpen] = useState(false);
   const [isTextureMenuOpen, setIsTextureMenuOpen] = useState(false);
   const textureRef = useRef<HTMLDivElement>(null);
-  const [showLegend, setShowLegend] = useState(true);
+  const [showLegend, setShowLegend] = useState(false);
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [renderError, setRenderError] = useState<string | null>(null);
 
   // V3 Features: Toggles and Collapsed state
   const [showNames, setShowNames] = useState(true);
   const [showLinks, setShowLinks] = useState(true);
-  const [showControls, setShowControls] = useState(true);
+  const [showControls, setShowControls] = useState(false);
   const [nodeTexture, setNodeTexture] = useState<'spheres' | 'planets' | 'none'>('spheres');
   const [showArrows, setShowArrows] = useState(false);
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
@@ -866,7 +889,9 @@ const FamilyTreeContent: React.FC = () => {
 
         // Scene environment
         scene.background = null;
-        starfieldRef.current = createStarfield(scene);
+        const starfieldResult = createStarfield(scene);
+        starfieldRef.current = starfieldResult.group;
+        nebulaeRef.current = starfieldResult.nebulae;
         scene.fog = new THREE.Fog(0x020205, 5000, 20000);
 
         // Lights
@@ -982,17 +1007,12 @@ const FamilyTreeContent: React.FC = () => {
       {selectedNode && <EditNodeModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} targetNode={selectedNode} onSuccess={() => refetch()} existingNodes={graphData?.nodes || []} />}
 
       <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 10, alignItems: 'flex-end' }}>
-        <button 
-          onClick={() => setShowControls(!showControls)} 
-          style={{
-            ...topBtnStyle(showControls ? '#3b82f6' : '#444'),
-            fontSize: '1.1rem',
-            padding: '4px 8px',
-            width: 'auto',
-          }}
-          title={showControls ? "Hide Controls" : "Show Controls"}
+        <button
+          onClick={() => setShowControls(!showControls)}
+          style={topBtnStyle(showControls ? '#3b82f6' : '#444')}
+          title={showControls ? "Hide Settings" : "Show Settings"}
         >
-          ⚙️
+          {showControls ? '⚙️ Settings' : '⚙️ Settings'}
         </button>
 
         {showControls && (
@@ -1045,8 +1065,6 @@ const FamilyTreeContent: React.FC = () => {
               {collapsedNodes.size > 0 ? 'Expand All' : 'Collapse All'}
             </button>
 
-            <button onClick={() => { setIsSimulationLoading(true); fgRef.current?.d3Force('charge')?.restart(); }} style={topBtnStyle('#3b82f6')}>Restart Simulation</button>
-            
             <div style={{ position: 'relative' }} ref={presetsRef}>
               <button onClick={() => setIsPresetsOpen(!isPresetsOpen)} style={topBtnStyle('#8b5cf6')}>Presets ▾</button>
               {isPresetsOpen && (
@@ -1137,8 +1155,8 @@ const FamilyTree3D: React.FC = () => {
 };
 
 const panelStyle: React.CSSProperties = { position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'rgba(42, 42, 42, 0.9)', padding: '15px 25px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 100, boxShadow: '0 4px 15px rgba(0,0,0,0.5)', border: '1px solid #444' };
-const btnStyle = (bg: string, border = 'none') => ({ padding: '6px 12px', backgroundColor: bg, color: 'white', border: border === 'none' ? 'none' : `1px solid ${border}`, borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' as const, fontSize: '0.75rem' });
-const topBtnStyle = (bg: string) => ({ padding: '6px 12px', backgroundColor: bg, color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' as const, width: '100%', textAlign: 'center' as const, fontSize: '0.75rem' });
+const btnStyle = (bg: string, border = 'none') => ({ padding: '6px 12px', backgroundColor: bg, color: 'white', border: border === 'none' ? 'none' : `1px solid ${border}`, borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' as const, fontSize: '0.75rem', minHeight: '32px', boxSizing: 'border-box' as const });
+const topBtnStyle = (bg: string) => ({ padding: '6px 12px', backgroundColor: bg, color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' as const, width: '100%', textAlign: 'center' as const, fontSize: '0.75rem', minHeight: '32px', boxSizing: 'border-box' as const });
 const presetMenuStyle: React.CSSProperties = { position: 'absolute', top: '100%', right: 0, marginTop: '5px', backgroundColor: 'rgba(42, 42, 42, 0.95)', borderRadius: '8px', border: '1px solid #444', overflowX: 'hidden', overflowY: 'auto', maxHeight: '400px', minWidth: '180px', boxShadow: '0 4px 15px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', zIndex: 20 };
 const legendStyle: React.CSSProperties = { position: 'absolute', bottom: '20px', right: '20px', backgroundColor: 'rgba(0, 0, 0, 0.7)', padding: '12px', borderRadius: '8px', color: '#ccc', fontSize: '0.75rem', zIndex: 10, border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' };
 

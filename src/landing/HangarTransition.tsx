@@ -8,6 +8,12 @@ interface HangarTransitionProps {
 export function HangarTransition({ onSignIn }: HangarTransitionProps) {
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const handleSignInClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onSignIn();
+  };
+
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start end', 'end start'],
@@ -122,6 +128,7 @@ export function HangarTransition({ onSignIn }: HangarTransitionProps) {
           background: 'radial-gradient(circle, rgba(102,126,234,0.1) 0%, transparent 60%)',
           filter: 'blur(80px)',
           zIndex: 1,
+          pointerEvents: 'none',
         }}
       />
 
@@ -193,17 +200,19 @@ export function HangarTransition({ onSignIn }: HangarTransitionProps) {
           viewport={{ once: true }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={onSignIn}
+          onClick={handleSignInClick}
           style={{
             padding: '18px 48px',
             fontSize: '1.2rem',
             fontWeight: 600,
-            background: '#ffffff', // Switched to solid white to match hero
-            color: '#1a1a2e', // Dark text for contrast
+            background: '#ffffff',
+            color: '#1a1a2e',
             border: 'none',
             borderRadius: '50px',
             cursor: 'pointer',
             boxShadow: '0 8px 30px rgba(102, 126, 234, 0.5)',
+            position: 'relative',
+            zIndex: 10,
           }}
         >
           Sign in with Google
