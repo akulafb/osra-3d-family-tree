@@ -155,6 +155,32 @@ const FamilyTreeContent: React.FC = () => {
   const nebulaeRef = useRef<NebulaData[]>([]);
   const presetsRef = useRef<HTMLDivElement>(null);
   const hasIntroPlayed = useRef(false);
+  const [isAmbienceOn, setIsAmbienceOn] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Background Music Controller
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio('/audio/Cosmic Ambience Sound Effect.mp3');
+      audioRef.current.loop = true;
+      audioRef.current.volume = 0.25; // 25% volume as requested
+    }
+
+    if (isAmbienceOn) {
+      audioRef.current.play().catch(err => {
+        console.warn('[Ambience] Playback failed (likely needs user interaction first):', err);
+        setIsAmbienceOn(false);
+      });
+    } else {
+      audioRef.current.pause();
+    }
+
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
+    };
+  }, [isAmbienceOn]);
 
   // Global rotation state for moire/rotation (performance boost!)
   const rotationRef = useRef(0);
@@ -1025,7 +1051,15 @@ const FamilyTreeContent: React.FC = () => {
           style={topBtnStyle(showControls ? '#3b82f6' : '#444')}
           title={showControls ? "Hide Settings" : "Show Settings"}
         >
-          {showControls ? '⚙️ Settings' : '⚙️ Settings'}
+          {showControls ? 'Settings ⚙️' : 'Settings ⚙️'}
+        </button>
+
+        <button
+          onClick={() => setIsAmbienceOn(!isAmbienceOn)}
+          style={topBtnStyle(isAmbienceOn ? '#10b981' : '#444')}
+          title={isAmbienceOn ? "Turn Ambience OFF" : "Turn Ambience ON"}
+        >
+          {isAmbienceOn ? 'Ambiance 🔊' : 'Ambiance 🔇'}
         </button>
 
         {showControls && (
