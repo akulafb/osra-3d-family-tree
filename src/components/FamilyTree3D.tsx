@@ -155,7 +155,7 @@ const FamilyTreeContent: React.FC = () => {
   const nebulaeRef = useRef<NebulaData[]>([]);
   const presetsRef = useRef<HTMLDivElement>(null);
   const hasIntroPlayed = useRef(false);
-  const [isAmbienceOn, setIsAmbienceOn] = useState(true); // Default to ON as requested
+  const [isAmbienceOn, setIsAmbienceOn] = useState(false); // Start OFF to preserve the surprise
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Background Music Controller
@@ -854,9 +854,11 @@ const FamilyTreeContent: React.FC = () => {
     if (fgRef.current && !initialCameraPos) {
       const camera = fgRef.current.camera();
       if (camera) {
-        // START EVEN FARTHER OUT FOR A MORE DRAMATIC INTRO
+        // START EVEN FARTHER OUT FOR A MORE DRAMATIC INTRO (30,000 units)
         camera.position.set(0, 0, 30000); 
-        setInitialCameraPos({ x: 0, y: 0, z: 30000 });
+        // FIX: Set the reset position to the final cinematic zoom distance (650)
+        // instead of the deep space starting position.
+        setInitialCameraPos({ x: 0, y: 0, z: 650 });
       }
     }
   }, [initialCameraPos]);
@@ -869,6 +871,9 @@ const FamilyTreeContent: React.FC = () => {
       
       // Give the background a moment to settle
       setTimeout(() => {
+        // START MUSIC exactly when zoom starts
+        setIsAmbienceOn(true);
+
         // Target: Center of tree at a distance that fills ~75% of screen
         // Duration: 4.5 seconds for a majestic feel
         fgRef.current.cameraPosition(
