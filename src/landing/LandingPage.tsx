@@ -81,6 +81,7 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
               inset: 0,
               background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 50%, #16213e 100%)',
               zIndex: -1,
+              pointerEvents: 'none',
             }}
           />
 
@@ -99,22 +100,35 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
               backgroundSize: '350px 200px',
               opacity: 0.4,
               zIndex: -1,
+              pointerEvents: 'none',
             }}
           />
 
           {/* Content */}
-          <div style={{ textAlign: 'center', padding: '0 20px', maxWidth: '700px' }}>
+          <div style={{ textAlign: 'center', padding: '0 20px', maxWidth: '700px', position: 'relative', zIndex: 10 }}>
             {/* Logo/Mark */}
-            <div
-              style={{
-                fontSize: '0.9rem',
-                color: '#667eea',
-                letterSpacing: '0.3em',
-                textTransform: 'uppercase',
-                marginBottom: '2rem',
-              }}
-            >
-              3D Family Tree
+            <div style={{ marginBottom: '2rem' }}>
+              <span
+                style={{
+                  fontSize: '2.5rem',
+                  color: '#667eea',
+                  fontFamily: "'Brush Script MT', 'Segoe Script', 'Dancing Script', cursive",
+                  fontStyle: 'italic',
+                  marginRight: '12px',
+                }}
+              >
+                Osra
+              </span>
+              <span
+                style={{
+                  fontSize: '0.9rem',
+                  color: '#667eea',
+                  letterSpacing: '0.3em',
+                  textTransform: 'uppercase',
+                }}
+              >
+                3D Family Tree
+              </span>
             </div>
 
             {/* Main heading */}
@@ -147,9 +161,7 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
             </p>
 
             {/* CTA Button */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <button
               onClick={onSignIn}
               style={{
                 padding: '16px 40px',
@@ -164,7 +176,7 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
               }}
             >
               Sign in with Google
-            </motion.button>
+            </button>
           </div>
 
           {/* Scroll hint */}
@@ -257,7 +269,7 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
         }}
       >
         <p style={{ color: '#ffffff', fontSize: '0.9rem', opacity: 0.8 }}>
-          3D Family Tree © {new Date().getFullYear()} — Invite Only
+          Osra 3D Family Tree © {new Date().getFullYear()} — Invite Only
         </p>
         <p
           style={{

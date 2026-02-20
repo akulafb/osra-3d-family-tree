@@ -5,6 +5,12 @@ interface HeroSectionProps {
 }
 
 export function HeroSection({ onSignIn }: HeroSectionProps) {
+  const handleSignInClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onSignIn();
+  };
+
   return (
     <section
       style={{
@@ -35,6 +41,7 @@ export function HeroSection({ onSignIn }: HeroSectionProps) {
           backgroundRepeat: 'repeat',
           backgroundSize: '350px 200px',
           opacity: 0.3,
+          pointerEvents: 'none',
         }}
       />
 
@@ -47,6 +54,7 @@ export function HeroSection({ onSignIn }: HeroSectionProps) {
           borderRadius: '50%',
           background: 'radial-gradient(circle, rgba(102,126,234,0.15) 0%, rgba(118,75,162,0.1) 50%, transparent 70%)',
           filter: 'blur(60px)',
+          pointerEvents: 'none',
         }}
         animate={{
           scale: [1, 1.2, 1],
@@ -63,7 +71,7 @@ export function HeroSection({ onSignIn }: HeroSectionProps) {
       <div
         style={{
           position: 'relative',
-          zIndex: 10,
+          zIndex: 100,
           textAlign: 'center',
           padding: '0 20px',
         }}
@@ -73,15 +81,29 @@ export function HeroSection({ onSignIn }: HeroSectionProps) {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2 }}
-          style={{
-            fontSize: '1rem',
-            color: '#667eea',
-            letterSpacing: '0.3em',
-            textTransform: 'uppercase',
-            marginBottom: '2rem',
-          }}
+          style={{ marginBottom: '2rem' }}
         >
-          ✦ 3D Family Tree ✦
+          <span
+            style={{
+              fontSize: '2.5rem',
+              color: '#667eea',
+              fontFamily: "'Brush Script MT', 'Segoe Script', 'Dancing Script', cursive",
+              fontStyle: 'italic',
+              marginRight: '12px',
+            }}
+          >
+            Osra
+          </span>
+          <span
+            style={{
+              fontSize: '1rem',
+              color: '#667eea',
+              letterSpacing: '0.3em',
+              textTransform: 'uppercase',
+            }}
+          >
+            ✦ 3D Family Tree ✦
+          </span>
         </motion.div>
 
         {/* Main heading */}
@@ -127,7 +149,7 @@ export function HeroSection({ onSignIn }: HeroSectionProps) {
           transition={{ duration: 0.8, delay: 0.8 }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={onSignIn}
+          onClick={handleSignInClick}
           style={{
             padding: '16px 40px',
             fontSize: '1.1rem',
@@ -138,7 +160,6 @@ export function HeroSection({ onSignIn }: HeroSectionProps) {
             borderRadius: '50px',
             cursor: 'pointer',
             boxShadow: '0 4px 20px rgba(102, 126, 234, 0.4)',
-            transition: 'box-shadow 0.3s ease',
           }}
         >
           Sign in with Google
