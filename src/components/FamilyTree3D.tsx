@@ -11,7 +11,7 @@ import AddRelativeModal from './modals/AddRelativeModal';
 import EditNodeModal from './modals/EditNodeModal';
 import BulkInviteModal from './modals/BulkInviteModal';
 import { canEdit, FamilyLink } from '../lib/permissions';
-import { createStarfield } from '../utils/starfield';
+import { createStarfield, type NebulaData } from '../utils/starfield';
 
 // V3 Shared Assets
 const planetTextures = [
@@ -152,20 +152,33 @@ const FamilyTreeContent: React.FC = () => {
 
   const fgRef = useRef<any>();
   const starfieldRef = useRef<THREE.Group | null>(null);
+  const nebulaeRef = useRef<NebulaData[]>([]);
   const presetsRef = useRef<HTMLDivElement>(null);
 
   // Global rotation state for moire/rotation (performance boost!)
   const rotationRef = useRef(0);
+
   useEffect(() => {
     let frameId: number;
     const animate = () => {
       rotationRef.current += 0.007; // Slowed down by 30%
-      
+
       // Ambient starfield rotation
       if (starfieldRef.current) {
         starfieldRef.current.rotation.y += 0.0002;
         starfieldRef.current.rotation.x += 0.0001;
       }
+
+      // Organic nebula animation - each cloud layer rotates independently
+      const time = Date.now() * 0.0001;
+      nebulaeRef.current.forEach((nebula) => {
+        nebula.clouds.forEach((cloud, i) => {
+          // Slow independent rotation for organic feel
+          cloud.rotation.z += 0.0002 * (i % 2 === 0 ? 1 : -1);
+          cloud.rotation.x += Math.sin(time + i) * 0.0001;
+          cloud.rotation.y += Math.cos(time + i * 0.5) * 0.0001;
+        });
+      });
 
       frameId = requestAnimationFrame(animate);
     };
@@ -866,7 +879,9 @@ const FamilyTreeContent: React.FC = () => {
 
         // Scene environment
         scene.background = null;
-        starfieldRef.current = createStarfield(scene);
+        const starfieldResult = createStarfield(scene);
+        starfieldRef.current = starfieldResult.group;
+        nebulaeRef.current = starfieldResult.nebulae;
         scene.fog = new THREE.Fog(0x020205, 5000, 20000);
 
         // Lights

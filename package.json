@@ -20,6 +20,7 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.13.0",
     "three": "^0.182.0",
+    "three-nebula": "^10.0.3",
     "three-spritetext": "^1.10.0"
   },
   "devDependencies": {
