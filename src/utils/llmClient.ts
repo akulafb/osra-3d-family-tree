@@ -28,7 +28,7 @@ async function callOpenRouter(messages: Message[]): Promise<string> {
       headers: {
         'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
         'HTTP-Referer': window.location.origin,
-        'X-Title': '3D Family Tree Chat',
+        'X-Title': 'Osra - 3D Family Tree',
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
