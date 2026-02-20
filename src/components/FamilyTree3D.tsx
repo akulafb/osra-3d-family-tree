@@ -154,6 +154,7 @@ const FamilyTreeContent: React.FC = () => {
   const starfieldRef = useRef<THREE.Group | null>(null);
   const nebulaeRef = useRef<NebulaData[]>([]);
   const presetsRef = useRef<HTMLDivElement>(null);
+  const hasIntroPlayed = useRef(false);
 
   // Global rotation state for moire/rotation (performance boost!)
   const rotationRef = useRef(0);
@@ -817,9 +818,32 @@ const FamilyTreeContent: React.FC = () => {
   useEffect(() => {
     if (fgRef.current && !initialCameraPos) {
       const camera = fgRef.current.camera();
-      if (camera) setInitialCameraPos({ x: camera.position.x, y: camera.position.y, z: camera.position.z });
+      if (camera) {
+        // START EVEN FARTHER OUT FOR A MORE DRAMATIC INTRO
+        camera.position.set(0, 0, 30000); 
+        setInitialCameraPos({ x: 0, y: 0, z: 30000 });
+      }
     }
   }, [initialCameraPos]);
+
+  // CINEMATIC INTRO ZOOM: Starts fast, slows down exponentially
+  useEffect(() => {
+    if (!dataLoading && !isSimulationLoading && fgRef.current && !hasIntroPlayed.current && graphData?.nodes?.length) {
+      console.log('[FamilyTree3D] Triggering Cinematic Intro Zoom...');
+      hasIntroPlayed.current = true;
+      
+      // Give the background a moment to settle
+      setTimeout(() => {
+        // Target: Center of tree at a distance that fills ~75% of screen
+        // Duration: 4.5 seconds for a majestic feel
+        fgRef.current.cameraPosition(
+          { x: 0, y: 0, z: 650 }, // Final "Cinematic" position
+          { x: 0, y: 0, z: 0 },   // Look at center
+          4500                   // Duration in ms
+        );
+      }, 500);
+    }
+  }, [dataLoading, isSimulationLoading, graphData]);
 
   useEffect(() => {
     const handleError = (e: ErrorEvent) => {
