@@ -155,7 +155,7 @@ const FamilyTreeContent: React.FC = () => {
   const nebulaeRef = useRef<NebulaData[]>([]);
   const presetsRef = useRef<HTMLDivElement>(null);
   const hasIntroPlayed = useRef(false);
-  const [isAmbienceOn, setIsAmbienceOn] = useState(false);
+  const [isAmbienceOn, setIsAmbienceOn] = useState(true); // Default to ON as requested
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Background Music Controller
@@ -163,14 +163,22 @@ const FamilyTreeContent: React.FC = () => {
     if (!audioRef.current) {
       audioRef.current = new Audio('/audio/Cosmic Ambience Sound Effect.mp3');
       audioRef.current.loop = true;
-      audioRef.current.volume = 0.25; // 25% volume as requested
+      audioRef.current.volume = 0.25; 
     }
 
+    const playAudio = () => {
+      if (isAmbienceOn && audioRef.current) {
+        audioRef.current.play().catch(err => {
+          // Most browsers block autoplay until first user interaction
+          console.warn('[Ambience] Autoplay blocked - will play on first click:', err);
+        });
+      }
+    };
+
     if (isAmbienceOn) {
-      audioRef.current.play().catch(err => {
-        console.warn('[Ambience] Playback failed (likely needs user interaction first):', err);
-        setIsAmbienceOn(false);
-      });
+      playAudio();
+      // Add global click listener to catch users who haven't interacted yet
+      window.addEventListener('click', playAudio, { once: true });
     } else {
       audioRef.current.pause();
     }
@@ -179,6 +187,7 @@ const FamilyTreeContent: React.FC = () => {
       if (audioRef.current) {
         audioRef.current.pause();
       }
+      window.removeEventListener('click', playAudio);
     };
   }, [isAmbienceOn]);
 
