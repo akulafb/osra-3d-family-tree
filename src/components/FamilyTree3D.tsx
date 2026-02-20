@@ -157,19 +157,11 @@ const FamilyTreeContent: React.FC = () => {
 
   // Global rotation state for moire/rotation (performance boost!)
   const rotationRef = useRef(0);
-<<<<<<< HEAD
-=======
-  const nebulaTimeRef = useRef(0);
->>>>>>> origin/main
 
   useEffect(() => {
     let frameId: number;
     const animate = () => {
       rotationRef.current += 0.007; // Slowed down by 30%
-<<<<<<< HEAD
-=======
-      nebulaTimeRef.current += 0.016; // ~60fps delta
->>>>>>> origin/main
 
       // Ambient starfield rotation
       if (starfieldRef.current) {
@@ -177,7 +169,6 @@ const FamilyTreeContent: React.FC = () => {
         starfieldRef.current.rotation.x += 0.0001;
       }
 
-<<<<<<< HEAD
       // Organic nebula animation - each cloud layer rotates independently
       const time = Date.now() * 0.0001;
       nebulaeRef.current.forEach((nebula) => {
@@ -187,25 +178,6 @@ const FamilyTreeContent: React.FC = () => {
           cloud.rotation.x += Math.sin(time + i) * 0.0001;
           cloud.rotation.y += Math.cos(time + i * 0.5) * 0.0001;
         });
-=======
-      // Animate nebulae - pulsing opacity and slow rotation
-      nebulaeRef.current.forEach((nebula) => {
-        // Pulsing opacity for all layers in the group
-        nebula.group.children.forEach((child, index) => {
-          const mesh = child as THREE.Mesh;
-          const material = mesh.material as THREE.MeshBasicMaterial;
-
-          // Pulsing opacity: 0.15 to 0.35 over ~15 seconds, staggered by layer
-          const pulseBase = 0.25 - index * 0.03;
-          const pulseAmp = 0.08;
-          const pulseSpeed = 0.0006;
-          const pulse = Math.sin(nebulaTimeRef.current * pulseSpeed + nebula.pulsePhase + index * 0.5);
-          material.opacity = Math.max(0.05, pulseBase + pulse * pulseAmp);
-        });
-
-        // Very slow rotation of the entire nebula group
-        nebula.group.rotation.z += nebula.rotationSpeed * 0.01;
->>>>>>> origin/main
       });
 
       frameId = requestAnimationFrame(animate);
