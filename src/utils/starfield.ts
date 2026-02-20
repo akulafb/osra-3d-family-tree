@@ -257,24 +257,25 @@ export function createStarfield(scene: THREE.Scene): StarfieldResult {
   const starfieldGroup = new THREE.Group();
   const textureLoader = new THREE.TextureLoader();
 
-  // 1. Distant Background Sphere
-  const skyGeo = new THREE.SphereGeometry(10000, 64, 64);
-  const skyMat = new THREE.MeshBasicMaterial({
-    side: THREE.BackSide,
-    toneMapped: false,
-    color: new THREE.Color(0x00050a),
-  });
-  const skySphere = new THREE.Mesh(skyGeo, skyMat);
-  starfieldGroup.add(skySphere);
-
-  textureLoader.load('/planet-textures/stars.jpg', (texture) => {
+  // 1. High-Resolution 8K Background & Environment
+  textureLoader.load('/planet-textures/8K Stars Texture.jpg', (texture) => {
     texture.colorSpace = THREE.SRGBColorSpace;
-    skyMat.map = texture;
-    skyMat.color.set(0xffffff);
-    skyMat.needsUpdate = true;
+    texture.mapping = THREE.EquirectangularReflectionMapping; 
+    texture.anisotropy = 16;
+    texture.minFilter = THREE.LinearMipmapLinearFilter;
+    
+    // Set as scene background - this ensures it's perfectly crisp and always visible
+    scene.background = texture;
+    
+    // Set as environment map for planet reflections
+    scene.environment = texture;
+    
+    console.log('[Starfield] 8K Stars Texture loaded and set as background/environment');
+  }, undefined, (err) => {
+    console.error('Error loading 8K stars texture:', err);
   });
 
-  // 2. Stars
+  // 2. Stars (Foreground Points for Parallax)
   const starCount = 5000;
   const positions = new Float32Array(starCount * 3);
   const colors = new Float32Array(starCount * 3);

@@ -878,7 +878,6 @@ const FamilyTreeContent: React.FC = () => {
         }
 
         // Scene environment
-        scene.background = null;
         const starfieldResult = createStarfield(scene);
         starfieldRef.current = starfieldResult.group;
         nebulaeRef.current = starfieldResult.nebulae;
