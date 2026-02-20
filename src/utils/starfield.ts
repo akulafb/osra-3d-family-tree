@@ -92,7 +92,6 @@ function createNebulaTexture(
 
   const centerX = size / 2;
   const centerY = size / 2;
-  const maxDist = Math.sqrt(centerX * centerX + centerY * centerY);
 
   // Generate noise texture with radial falloff
   for (let y = 0; y < size; y++) {
@@ -187,7 +186,6 @@ function createVolumetricNebula(
     const texture = createNebulaTexture(innerColor, midColor, outerColor);
 
     // Slightly vary colors per layer for depth
-    const hueShift = (i / layers) * 0.05;
     const innerHSL = { h: 0, s: 0, l: 0 };
     innerColor.getHSL(innerHSL);
 
