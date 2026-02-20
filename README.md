@@ -81,7 +81,10 @@ Each solution unlocked the next challenge, building from a simple graph visualiz
 - **AI Family Chat Bot**: Floating 🤖 assistant that answers relationship questions using Supabase data
 - **Planetary Textures**: Realistic 3D planet skins for nodes with continuous rotation and dynamic lighting
 - **Multi-Style Rendering**: Toggle between Planets, futuristic metallic Spheres, or simple Labels
-- **True 3D Starfield**: Immersive backdrop with multi-layered parallax stars that move with the camera
+- **True 3D Starfield**: Immersive 8K backdrop with multi-layered parallax stars and galactic dust core
+- **Procedural Nebulae**: High-detail, volumetric gaseous clouds (Trifid and Helix styles) with organic motion
+- **Cinematic Intro Zoom**: Dramatic 30,000-unit "fly-in" from deep space upon app entry
+- **Ambient Cosmic Music**: Immersive background audio synced with the cinematic entry (default ON)
 - **Celestial Body Mode**: Toggle links visibility to see family members as floating stars in deep space
 - **Clean UI**: Settings gear (⚙️) to hide/show controls for an unobstructed view
 
@@ -354,6 +357,18 @@ We completed the "Infinity and Beyond" upgrade:
     - **Features**: A new "Links: ON/OFF" toggle allows nodes to appear as floating stars without visible connection lines.
     - **UI**: Added a settings gear (⚙️) to hide the top-right controls for a cinematic, unobstructed view of the tree.
 - **Bug Fix**: Resolved a "massive red sphere" overlap at the origin by boosting initial simulation repulsion and energy.
+
+**Phase 10: The Immersive Deep Space Experience**
+We completed the "Cosmic Cinematic" upgrade:
+- **Nebulae**: Added procedural, multi-colored gaseous nebulae.
+    - **Tech**: Used Fractal Brownian Motion (FBM) with 7-octave Perlin noise for high-fidelity gas textures.
+    - **Art**: Implemented distinct "Trifid" (pink/blue) and "Helix" (teal/orange) styles with organic independent layer rotation.
+- **8K Visuals**: Upgraded the environment to an 8K Starfield background.
+    - **Detail**: Exposed the galactic dust core and enabled high-quality environment reflections on all family planets.
+- **Cinematics**: Built a synchronized Intro experience.
+    - **Motion**: Camera now performs a dramatic 30,000-unit "fly-in" from deep space with exponential deceleration.
+    - **Sound**: Integrated "Cosmic Ambience" audio that swells in perfectly as the zoom starts (on by default).
+- **Hardening**: Fixed camera reset logic to preserve the immersive focus distance after the intro ends.
 
 **High-Level Learnings**
 - **Context is King**: Pre-processing data into human-readable formats is more effective for AI accuracy than simply using larger models.
