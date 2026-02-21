@@ -1007,7 +1007,10 @@ const FamilyTreeContent: React.FC = () => {
         cooldownTicks={activePreset ? 600 : 200}
         onEngineStop={() => setIsSimulationLoading(false)}
         onNodeClick={(node: FamilyNode) => {
-          // Toggle collapse if node has children
+          handleNodeClick(node); // Single click to focus and surface options modal
+        }}
+        onNodeDoubleClick={(node: FamilyNode) => {
+          // Double click to toggle collapse if node has children
           const hasChildren = graphData?.links.some(l => {
             const sId = typeof l.source === 'object' ? (l.source as any).id : l.source;
             return sId === node.id && l.type === 'parent';
@@ -1015,8 +1018,6 @@ const FamilyTreeContent: React.FC = () => {
           
           if (hasChildren) {
             toggleNodeCollapse(node.id);
-          } else {
-            handleNodeClick(node); // Focus if no children to toggle
           }
         }}
         onNodeRightClick={(node: FamilyNode) => {
