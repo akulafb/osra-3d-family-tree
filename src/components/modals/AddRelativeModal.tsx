@@ -130,7 +130,7 @@ export default function AddRelativeModal({
               <option value="child">Add as Child</option>
               <option value="parent">Add as Parent</option>
               <option value="spouse">Add as Spouse</option>
-              {/* <option value="sibling">Add as Sibling</option> */}
+              <option value="sibling">Add as Sibling</option>
             </select>
           </div>
 
