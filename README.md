@@ -72,13 +72,15 @@ Each solution unlocked the next challenge, building from a simple graph visualiz
 
 ## Features
 
+### Family Chatbot
+- **Floating assistant (🤖)** in the 3D view for relationship questions. Uses person-centric context from your tree (human-readable profiles, not raw IDs). Toggle **cloud** (OpenRouter) or **local** (Ollama) LLM.
+
 ### Core Functionality
 - **3D Force-Directed Graph**: Physics-based layout using react-force-graph-3d
 - **Multi-Cluster Architecture**: Multiple family clusters spatially separated in 3D space
 - **Marriage Links**: Visual bridges connecting different family clusters
 - **Starship FPS Navigation**: Immersive mouse steering and WASD movement
 - **Dynamic Node Interaction**: Click-to-focus and Tab-based node cycling with a glowing aura
-- **AI Family Chat Bot**: Floating 🤖 assistant that answers relationship questions using Supabase data
 - **Planetary Textures**: Realistic 3D planet skins for nodes with continuous rotation and dynamic lighting
 - **Multi-Style Rendering**: Toggle between Planets, futuristic metallic Spheres, or simple Labels
 - **True 3D Starfield**: Immersive 8K backdrop with multi-layered parallax stars and galactic dust core
