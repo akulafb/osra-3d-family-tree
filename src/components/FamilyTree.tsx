@@ -1,17 +1,39 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import FamilyTree3D from './FamilyTree3D';
 import { FamilyTree2D } from './FamilyTree2D';
 import { useViewMode } from '../hooks/useViewMode';
 import { useFamilyData } from '../hooks/useFamilyData';
-import { FamilyNode } from '../types/graph';
+import { FamilyNode, FamilyLink } from '../types/graph';
+import { useAuth } from '../contexts/AuthContext';
+import { canEdit } from '../lib/permissions';
+import AddRelativeModal from './modals/AddRelativeModal';
+import EditNodeModal from './modals/EditNodeModal';
+import BulkInviteModal from './modals/BulkInviteModal';
 
 export const FamilyTree: React.FC = () => {
+  const { user, userProfile } = useAuth();
   const { mode, switchMode, isHydrated } = useViewMode();
   const { graphData, isLoading, error, refetch } = useFamilyData();
 
   const [selectedNode, setSelectedNode] = useState<FamilyNode | null>(null);
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
   const [activePreset, setActivePreset] = useState<string | null>(null);
+  
+  // Modal states
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isBulkInviteOpen, setIsBulkInviteOpen] = useState(false);
+  const [canEditSelected, setCanEditSelected] = useState(false);
+
+  // Check permissions when node is selected
+  useEffect(() => {
+    if (selectedNode && user && graphData?.links && userProfile?.node_id) {
+      const result = canEdit(selectedNode.id, userProfile.node_id, userProfile.role === 'admin', graphData.links as FamilyLink[]);
+      setCanEditSelected(result);
+    } else {
+      setCanEditSelected(false);
+    }
+  }, [selectedNode, user, userProfile, graphData]);
 
   // Get unique family clusters
   const uniqueClusters = useMemo(() => {
@@ -43,6 +65,10 @@ export const FamilyTree: React.FC = () => {
     });
   }, []);
 
+  const handleSetCollapsedNodes = useCallback((nodes: Set<string>) => {
+    setCollapsedNodes(nodes);
+  }, []);
+
   const handleModeChange = useCallback((newMode: '3D' | '2D') => {
     switchMode(newMode);
   }, [switchMode]);
@@ -63,7 +89,7 @@ export const FamilyTree: React.FC = () => {
         color: '#fff',
       }}>
         <div style={{ textAlign: 'center' }}>
-          <div>Loading Family Tree...</div>
+          <div>Loading <span style={{ fontFamily: 'cursive', fontWeight: 'bold' }}>Osra</span> Family Tree...</div>
           <div style={{
             width: '40px',
             height: '40px',
@@ -92,7 +118,7 @@ export const FamilyTree: React.FC = () => {
         padding: '20px',
       }}>
         <div>
-          <h2>Error Loading Family Tree</h2>
+          <h2>Error Loading <span style={{ fontFamily: 'cursive', fontWeight: 'bold' }}>Osra</span> Family Tree</h2>
           <p>{error}</p>
           <button
             onClick={() => refetch()}
@@ -156,7 +182,7 @@ export const FamilyTree: React.FC = () => {
           zIndex: 100,
           boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
           border: '1px solid rgba(255,255,255,0.1)',
-          maxWidth: '300px',
+          minWidth: '280px',
           textAlign: 'center',
         }}>
           <div style={{
@@ -173,26 +199,83 @@ export const FamilyTree: React.FC = () => {
               color: '#888',
               textTransform: 'uppercase',
               letterSpacing: '1px',
+              marginBottom: '12px',
             }}>
               {selectedNode.familyCluster} Family
             </div>
           )}
-          <button
-            onClick={() => setSelectedNode(null)}
-            style={{
-              marginTop: '12px',
-              padding: '6px 14px',
-              backgroundColor: 'transparent',
-              color: '#888',
-              border: '1px solid #444',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '0.75rem',
-            }}
-          >
-            Close
-          </button>
+
+          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            {canEditSelected && (
+              <>
+                <button 
+                  onClick={() => setIsEditModalOpen(true)} 
+                  style={{ padding: '6px 14px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
+                >
+                  Edit
+                </button>
+                <button 
+                  onClick={() => setIsAddModalOpen(true)} 
+                  style={{ padding: '6px 14px', backgroundColor: '#667eea', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
+                >
+                  + Add
+                </button>
+                {selectedNode.id === userProfile?.node_id && (
+                  <button 
+                    onClick={() => setIsBulkInviteOpen(true)} 
+                    style={{ padding: '6px 14px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
+                  >
+                    Invite
+                  </button>
+                )}
+              </>
+            )}
+            <button
+              onClick={() => setSelectedNode(null)}
+              style={{
+                padding: '6px 14px',
+                backgroundColor: 'transparent',
+                color: '#888',
+                border: '1px solid #444',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+              }}
+            >
+              Close
+            </button>
+          </div>
         </div>
+      )}
+
+      {/* Modals */}
+      {selectedNode && (
+        <>
+          <AddRelativeModal 
+            isOpen={isAddModalOpen} 
+            onClose={() => setIsAddModalOpen(false)} 
+            targetNode={selectedNode} 
+            onSuccess={() => {}} 
+            existingNodes={graphData?.nodes || []} 
+          />
+          <EditNodeModal 
+            isOpen={isEditModalOpen} 
+            onClose={() => setIsEditModalOpen(false)} 
+            targetNode={selectedNode} 
+            onSuccess={() => {}} 
+            existingNodes={graphData?.nodes || []} 
+          />
+        </>
+      )}
+      {userProfile?.node_id && (
+        <BulkInviteModal 
+          isOpen={isBulkInviteOpen} 
+          onClose={() => setIsBulkInviteOpen(false)} 
+          allNodes={graphData?.nodes || []} 
+          allLinks={graphData?.links ? [...graphData.links] : []} 
+          userNodeId={userProfile.node_id} 
+          onSuccess={() => {}} 
+        />
       )}
 
       {/* Main View Content */}
@@ -208,7 +291,11 @@ export const FamilyTree: React.FC = () => {
             onBackgroundClick={handleBackgroundClick}
             collapsedNodes={collapsedNodes}
             onToggleCollapse={handleToggleCollapse}
+            onSetCollapsedNodes={handleSetCollapsedNodes}
             onModeChange={handleModeChange}
+            isAddModalOpen={isAddModalOpen}
+            isEditModalOpen={isEditModalOpen}
+            isBulkInviteOpen={isBulkInviteOpen}
           />
         ) : (
           <FamilyTree2D
@@ -220,6 +307,7 @@ export const FamilyTree: React.FC = () => {
             onBackgroundClick={handleBackgroundClick}
             collapsedNodes={collapsedNodes}
             onToggleCollapse={handleToggleCollapse}
+            onSetCollapsedNodes={handleSetCollapsedNodes}
             onModeChange={handleModeChange}
             uniqueClusters={uniqueClusters}
             onPresetSelect={handlePresetSelect}

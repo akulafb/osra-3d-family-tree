@@ -6,10 +6,7 @@ import SpriteText from 'three-spritetext';
 import * as THREE from 'three';
 import { FamilyGraph, FamilyNode } from '../types/graph';
 import { useAuth } from '../contexts/AuthContext';
-import AddRelativeModal from './modals/AddRelativeModal';
-import EditNodeModal from './modals/EditNodeModal';
-import BulkInviteModal from './modals/BulkInviteModal';
-import { canEdit, FamilyLink } from '../lib/permissions';
+import { FamilyLink } from '../lib/permissions';
 import { createStarfield, type NebulaData } from '../utils/starfield';
 
 // V3 Shared Assets
@@ -109,6 +106,14 @@ const getClusterColor = (cluster: string | undefined | null) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
+const getNodeId = (nodeOrId: any): string => {
+  if (!nodeOrId) return '';
+  if (typeof nodeOrId === 'object') {
+    return nodeOrId.id || '';
+  }
+  return String(nodeOrId);
+};
+
 const getDescendantIds = (nodeId: string, links: FamilyLink[]): string[] => {
   const descendants: string[] = [];
   const queue = [nodeId];
@@ -121,10 +126,10 @@ const getDescendantIds = (nodeId: string, links: FamilyLink[]): string[] => {
 
     const children = links
       .filter(l => {
-        const sourceId = typeof l.source === 'object' ? (l.source as any).id : l.source;
+        const sourceId = getNodeId(l.source);
         return sourceId === currentId && l.type === 'parent';
       })
-      .map(l => typeof l.target === 'object' ? (l.target as any).id : l.target);
+      .map(l => getNodeId(l.target));
 
     descendants.push(...children);
     queue.push(...children);
@@ -140,7 +145,11 @@ interface FamilyTree3DProps {
   onBackgroundClick?: () => void;
   collapsedNodes?: Set<string>;
   onToggleCollapse?: (nodeId: string) => void;
+  onSetCollapsedNodes?: (nodes: Set<string>) => void;
   onModeChange?: (mode: '3D' | '2D') => void;
+  isAddModalOpen?: boolean;
+  isEditModalOpen?: boolean;
+  isBulkInviteOpen?: boolean;
 }
 
 export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
@@ -150,10 +159,14 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   onBackgroundClick,
   collapsedNodes: externalCollapsedNodes,
   onToggleCollapse: externalToggleCollapse,
+  onSetCollapsedNodes: externalSetCollapsedNodes,
   onModeChange,
+  isAddModalOpen = false,
+  isEditModalOpen = false,
+  isBulkInviteOpen = false,
 }) => {
   const ForceGraph3DAny = ForceGraph3D as unknown as React.ComponentType<any>;
-  const { user, userProfile } = useAuth();
+  const { userProfile } = useAuth();
 
   const geometries = useMemo(() => ({
     sphere: new THREE.SphereGeometry(10, 16, 16),
@@ -170,10 +183,6 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   // Internal state for modals
   const [initialCameraPos, setInitialCameraPos] = useState<{ x: number; y: number; z: number } | null>(null);
   const [isSimulationLoading, setIsSimulationLoading] = useState(true);
-  const [canEditSelected, setCanEditSelected] = useState(false);
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isBulkInviteOpen, setIsBulkInviteOpen] = useState(false);
   const [activePreset, setActivePreset] = useState<string | null>(null);
 
   // V3 Features: Toggles
@@ -182,7 +191,6 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   const [showControls, setShowControls] = useState(false);
   const [nodeTexture, setNodeTexture] = useState<'spheres' | 'planets' | 'none'>('spheres');
   const [showArrows, setShowArrows] = useState(false);
-  const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
   const [isPresetsOpen, setIsPresetsOpen] = useState(false);
   const presetsRef = useRef<HTMLDivElement>(null);
   const textureRef = useRef<HTMLDivElement>(null);
@@ -235,15 +243,9 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   }, [graphData]);
 
   // Use external collapsed nodes if provided
-  const effectiveCollapsedNodes = externalCollapsedNodes || collapsedNodes;
-  const effectiveToggleCollapse = externalToggleCollapse || ((nodeId: string) => {
-    setCollapsedNodes(prev => {
-      const next = new Set(prev);
-      if (next.has(nodeId)) next.delete(nodeId);
-      else next.add(nodeId);
-      return next;
-    });
-  });
+  const effectiveCollapsedNodes = externalCollapsedNodes || new Set();
+  const effectiveSetCollapsedNodes = externalSetCollapsedNodes || (() => {});
+  const effectiveToggleCollapse = externalToggleCollapse || (() => {});
 
   const filteredGraphData = useMemo(() => {
     try {
@@ -258,8 +260,8 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       const filtered = {
         nodes: graphData.nodes.filter(n => !hiddenNodes.has(n.id)),
         links: (graphData.links as any[]).filter(l => {
-          const sourceId = typeof l.source === 'object' ? l.source.id : l.source;
-          const targetId = typeof l.target === 'object' ? l.target.id : l.target;
+          const sourceId = getNodeId(l.source);
+          const targetId = getNodeId(l.target);
           return !hiddenNodes.has(sourceId) && !hiddenNodes.has(targetId);
         })
       };
@@ -268,17 +270,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       console.error('[FamilyTree3D] Error filtering graph data:', err);
       return { nodes: [], links: [] };
     }
-  }, [graphData, effectiveCollapsedNodes, activePreset]);
-
-  // Check permissions
-  useEffect(() => {
-    if (selectedNode && user && graphData?.links && userProfile?.node_id) {
-      const result = canEdit(selectedNode.id, userProfile.node_id, userProfile.role === 'admin', graphData.links as FamilyLink[]);
-      setCanEditSelected(result);
-    } else {
-      setCanEditSelected(false);
-    }
-  }, [selectedNode, user, userProfile, graphData]);
+  }, [graphData, effectiveCollapsedNodes]);
 
   // Focus Logic
   const handleNodeClick = useCallback((node: FamilyNode) => {
@@ -867,7 +859,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       {isSimulationLoading && graphData && (
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.7)', zIndex: 1000, color: '#fff', fontSize: '18px', pointerEvents: 'none' }}>
           <div style={{ textAlign: 'center' }}>
-            <div>Loading 3D Family Tree...</div>
+            <div>Loading <span style={{ fontFamily: 'cursive', fontWeight: 'bold' }}>Osra</span> 3D Family Tree...</div>
             <div style={{ width: '40px', height: '40px', border: '4px solid rgba(255,255,255,0.3)', borderTop: '4px solid #fff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '10px auto' }} />
           </div>
         </div>
@@ -884,12 +876,18 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
         cooldownTicks={activePreset ? 600 : 200}
         onEngineStop={() => setIsSimulationLoading(false)}
         onNodeClick={handleNodeClick}
-        onNodeDoubleClick={(node: FamilyNode) => {
+        onNodeDoubleClick={(node: any) => {
+          const nodeId = getNodeId(node);
+          if (!nodeId) return;
+          
           const hasChildren = graphData?.links.some(l => {
-            const sId = typeof l.source === 'object' ? (l.source as any).id : l.source;
-            return sId === node.id && l.type === 'parent';
+            const sId = getNodeId(l.source);
+            return sId === nodeId && l.type === 'parent';
           });
-          if (hasChildren) effectiveToggleCollapse(node.id);
+          
+          if (hasChildren) {
+            effectiveToggleCollapse(nodeId);
+          }
         }}
         onBackgroundClick={onBackgroundClick}
         linkColor={(l: any) => l.type === 'marriage' ? '#f59e0b' : '#60a5fa'}
@@ -900,32 +898,6 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
         linkDirectionalArrowColor={() => '#60a5fa'}
         showNavInfo={false}
       />
-
-      {/* Selection Panel */}
-      {selectedNode && (
-        <div style={panelStyle}>
-          <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'white' }}>{selectedNode.name}</div>
-          <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-            {canEditSelected && (
-              <>
-                <button onClick={() => setIsEditModalOpen(true)} style={btnStyle('#f59e0b')}>Edit</button>
-                <button onClick={() => setIsAddModalOpen(true)} style={btnStyle('#667eea')}>+ Add</button>
-                {selectedNode.id === userProfile?.node_id && <button onClick={() => setIsBulkInviteOpen(true)} style={btnStyle('#10b981')}>Invite</button>}
-              </>
-            )}
-            <button onClick={() => onNodeSelect(selectedNode)} style={btnStyle('transparent', '#444')}>Close</button>
-          </div>
-        </div>
-      )}
-
-      {/* Modals */}
-      {selectedNode && (
-        <>
-          <AddRelativeModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} targetNode={selectedNode} onSuccess={() => {}} existingNodes={graphData?.nodes || []} />
-          <EditNodeModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} targetNode={selectedNode} onSuccess={() => {}} existingNodes={graphData?.nodes || []} />
-        </>
-      )}
-      {userProfile?.node_id && <BulkInviteModal isOpen={isBulkInviteOpen} onClose={() => setIsBulkInviteOpen(false)} allNodes={graphData?.nodes || []} allLinks={graphData?.links ? [...graphData.links] : []} userNodeId={userProfile.node_id} onSuccess={() => {}} />}
 
       {/* Settings Controls - Top Right */}
       <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 10, alignItems: 'flex-end' }}>
@@ -1024,16 +996,16 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
             <button
               onClick={() => {
                 if (effectiveCollapsedNodes.size > 0) {
-                  setCollapsedNodes(new Set());
+                  effectiveSetCollapsedNodes(new Set());
                 } else {
                   const parents = new Set<string>();
                   graphData?.links.forEach(l => {
                     if (l.type === 'parent') {
-                      const sId = typeof l.source === 'object' ? (l.source as any).id : l.source;
+                      const sId = getNodeId(l.source);
                       parents.add(sId);
                     }
                   });
-                  setCollapsedNodes(parents);
+                  effectiveSetCollapsedNodes(parents);
                 }
               }}
               style={{ padding: '6px 12px', backgroundColor: '#f43f5e', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
@@ -1150,31 +1122,3 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
 // Default export for backward compatibility
 export default FamilyTree3DContent;
 
-const panelStyle: React.CSSProperties = { 
-  position: 'absolute', 
-  bottom: '40px', 
-  left: '50%', 
-  transform: 'translateX(-50%)', 
-  backgroundColor: 'rgba(42, 42, 42, 0.9)', 
-  padding: '15px 25px', 
-  borderRadius: '12px', 
-  display: 'flex', 
-  flexDirection: 'column', 
-  alignItems: 'center', 
-  zIndex: 100, 
-  boxShadow: '0 4px 15px rgba(0,0,0,0.5)', 
-  border: '1px solid #444' 
-};
-
-const btnStyle = (bg: string, border = 'none') => ({ 
-  padding: '6px 12px', 
-  backgroundColor: bg, 
-  color: 'white', 
-  border: border === 'none' ? 'none' : `1px solid ${border}`, 
-  borderRadius: '4px', 
-  cursor: 'pointer', 
-  fontWeight: 'bold' as const, 
-  fontSize: '0.75rem', 
-  minHeight: '32px', 
-  boxSizing: 'border-box' as const 
-});
