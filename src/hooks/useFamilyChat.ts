@@ -1,15 +1,23 @@
 // src/hooks/useFamilyChat.ts
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { Message, callLLM } from '../utils/llmClient';
 import { formatFamilyData } from '../utils/familyContext';
 import { useFamilyData } from './useFamilyData';
+import { useAuth } from '../contexts/AuthContext';
 
 export function useFamilyChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { graphData } = useFamilyData();
+  const { userProfile } = useAuth();
+
+  const currentUserName = useMemo(() => {
+    if (!userProfile?.node_id || !graphData?.nodes) return null;
+    const node = graphData.nodes.find(n => n.id === userProfile.node_id);
+    return node?.name || null;
+  }, [userProfile, graphData]);
 
   const sendMessage = useCallback(async (userQuery: string) => {
     if (!userQuery.trim()) return;
@@ -27,9 +35,16 @@ export function useFamilyChat() {
         ? formatFamilyData(graphData.nodes, graphData.links)
         : 'Family data is currently unavailable.';
 
+      const userIdentityContext = currentUserName 
+        ? `The user currently signed in and speaking to you is **${currentUserName}**. When they use first-person pronouns like "I", "me", "my", or "mine", they are referring to **${currentUserName}**.`
+        : `The user's specific identity in the family tree is currently unknown, but they are likely a family member.`;
+
       const systemPrompt: Message = {
         role: 'system',
         content: `You are an expert Family Tree Analyst. Use the provided family data to answer questions with 100% accuracy.
+
+USER IDENTITY:
+${userIdentityContext}
 
 REASONING PROTOCOL:
 1. DATA SCOPE: Use the "FAMILY PROFILES" provided. Each profile lists parents, siblings, spouses, and children.
@@ -49,10 +64,9 @@ REASONING PROTOCOL:
    - **Bold** names of family members.
    - Use bulleted lists for groups of relatives.
    - Use headers (e.g., ### Maternal Side) to separate different lineages if applicable.
-   - Be as concise as possible, but thorough. Accuracy is paramount.
+   - BE EXTREMELY CONCISE. Answering the question directly is the priority. Do not include introductory filler or closing pleasantries unless necessary for clarity.
    - If asked to count, list the names first, then provide the total.
    - IMPORTANT: Never show your reasoning process. Only output the final answer. No step-by-step workthrough.
-   - Keep the tone helpful and friendly.
 7. NAME AMBIGUITY: Distinguish between people with the same name using their family cluster or specific relatives.
 8. INTERPRETATION: "Fahd" refers to "Fahd Badran".
 9. CLARIFICATION: In case of ambiguity, ask the user to provide more information (e.g. "which Nada are you referring to: Okasha or Badran")
@@ -73,7 +87,7 @@ ${familyContext}`
     } finally {
       setIsLoading(false);
     }
-  }, [graphData, messages]);
+  }, [graphData, messages, currentUserName]);
 
   const clearChat = useCallback(() => {
     setMessages([]);

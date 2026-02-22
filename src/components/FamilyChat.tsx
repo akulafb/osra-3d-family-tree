@@ -147,7 +147,7 @@ export const FamilyChat: React.FC = () => {
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder="Ask about your family..."
+                placeholder="Who are my maternal cousins?"
                 style={{
                   flex: 1,
                   backgroundColor: '#1a1a1a',
