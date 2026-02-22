@@ -4,8 +4,7 @@ import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react'
 import ForceGraph3D from 'react-force-graph-3d';
 import SpriteText from 'three-spritetext';
 import * as THREE from 'three';
-import { FamilyNode } from '../types/graph';
-import { useFamilyData } from '../hooks/useFamilyData';
+import { FamilyGraph, FamilyNode } from '../types/graph';
 import { useAuth } from '../contexts/AuthContext';
 import AddRelativeModal from './modals/AddRelativeModal';
 import EditNodeModal from './modals/EditNodeModal';
@@ -36,7 +35,6 @@ const textureLoader = new THREE.TextureLoader();
 const planetMaterialCache = new Map<string, THREE.MeshPhysicalMaterial>();
 
 const getPlanetMaterial = (nodeId: string) => {
-  // Use node ID to deterministically assign a planet texture
   let hash = 0;
   for (let i = 0; i < nodeId.length; i++) {
     hash = nodeId.charCodeAt(i) + ((hash << 5) - hash);
@@ -61,7 +59,6 @@ const getPlanetMaterial = (nodeId: string) => {
   return planetMaterialCache.get(texturePath)!;
 };
 
-// Material cache for cluster colors (Metallic Spheres)
 const materialCache = new Map<string, THREE.MeshPhysicalMaterial>();
 const getMaterial = (color: string) => {
   if (!materialCache.has(color)) {
@@ -82,29 +79,28 @@ const getMaterial = (color: string) => {
 };
 
 const familyColors: Record<string, string> = {
-  'Badran': '#0066ff',   // Deep Blue
-  'Kutob': '#00ff88',    // Vibrant Green
-  'Hajjaj': '#ffaa00',   // Bright Orange
-  'Zabalawi': '#ff00aa', // Hot Pink
-  'Malhis': '#aa00ff',   // Electric Purple
-  'Shawa': '#ff3333',    // Crimson
-  'Dajani': '#33ffff',   // Cyan
-  'Masri': '#ffff33',    // Yellow
-  'Tamimi': '#00ff00',   // Lime
-  'Husaini': '#ff0000',  // Red
-  'Nabulsi': '#ff6600',  // Orange-Red
-  'Ghazali': '#00ccff',  // Sky Blue
-  'Rifai': '#cc00ff',    // Violet
-  'Qudsi': '#66ff00',    // Bright Lime
-  'Jaabari': '#ff0066',  // Rose
-  'Khalidi': '#00ffcc',  // Aquamarine
+  'Badran': '#0066ff',
+  'Kutob': '#00ff88',
+  'Hajjaj': '#ffaa00',
+  'Zabalawi': '#ff00aa',
+  'Malhis': '#aa00ff',
+  'Shawa': '#ff3333',
+  'Dajani': '#33ffff',
+  'Masri': '#ffff33',
+  'Tamimi': '#00ff00',
+  'Husaini': '#ff0000',
+  'Nabulsi': '#ff6600',
+  'Ghazali': '#00ccff',
+  'Rifai': '#cc00ff',
+  'Qudsi': '#66ff00',
+  'Jaabari': '#ff0066',
+  'Khalidi': '#00ffcc',
 };
 
 const getClusterColor = (cluster: string | undefined | null) => {
   if (!cluster) return '#ffffff';
   if (familyColors[cluster]) return familyColors[cluster];
   
-  // Deterministic fallback for unknown clusters
   const colors = Object.values(familyColors);
   let hash = 0;
   for (let i = 0; i < cluster.length; i++) {
@@ -113,7 +109,6 @@ const getClusterColor = (cluster: string | undefined | null) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-// Helper for descendant tracking
 const getDescendantIds = (nodeId: string, links: FamilyLink[]): string[] => {
   const descendants: string[] = [];
   const queue = [nodeId];
@@ -124,7 +119,6 @@ const getDescendantIds = (nodeId: string, links: FamilyLink[]): string[] => {
     if (visited.has(currentId)) continue;
     visited.add(currentId);
 
-    // Only follow parent -> child links (excluding marriage)
     const children = links
       .filter(l => {
         const sourceId = typeof l.source === 'object' ? (l.source as any).id : l.source;
@@ -138,143 +132,125 @@ const getDescendantIds = (nodeId: string, links: FamilyLink[]): string[] => {
   return descendants;
 };
 
-const FamilyTreeContent: React.FC = () => {
+// Props interface for the refactored component
+interface FamilyTree3DProps {
+  graphData: FamilyGraph;
+  selectedNode: FamilyNode | null;
+  onNodeSelect: (node: FamilyNode) => void;
+  onBackgroundClick?: () => void;
+  collapsedNodes?: Set<string>;
+  onToggleCollapse?: (nodeId: string) => void;
+  onModeChange?: (mode: '3D' | '2D') => void;
+}
+
+export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
+  graphData,
+  selectedNode,
+  onNodeSelect,
+  onBackgroundClick,
+  collapsedNodes: externalCollapsedNodes,
+  onToggleCollapse: externalToggleCollapse,
+  onModeChange,
+}) => {
   const ForceGraph3DAny = ForceGraph3D as unknown as React.ComponentType<any>;
-  const { graphData, isLoading: dataLoading, error: dataError, refetch } = useFamilyData();
   const { user, userProfile } = useAuth();
 
-  // V3 Geometries (memoized to prevent recreation)
   const geometries = useMemo(() => ({
-    sphere: new THREE.SphereGeometry(10, 16, 16), // Reduced detail for performance
-    aura: new THREE.SphereGeometry(18, 12, 12),   // Reduced detail
-    glow: new THREE.SphereGeometry(22, 12, 12)    // Reduced detail
+    sphere: new THREE.SphereGeometry(10, 16, 16),
+    aura: new THREE.SphereGeometry(18, 12, 12),
+    glow: new THREE.SphereGeometry(22, 12, 12)
   }), []);
 
   const fgRef = useRef<any>();
   const starfieldRef = useRef<THREE.Group | null>(null);
   const nebulaeRef = useRef<NebulaData[]>([]);
-  const presetsRef = useRef<HTMLDivElement>(null);
   const hasIntroPlayed = useRef(false);
-  const [isAmbienceOn, setIsAmbienceOn] = useState(false); // Start OFF to preserve the surprise
-  const audioRef = useRef<HTMLAudioElement | null>(null);
-
-  // Background Music Controller
-  useEffect(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio('/audio/Cosmic Ambience Sound Effect.mp3');
-      audioRef.current.loop = true;
-      audioRef.current.volume = 0.25; 
-    }
-
-    const playAudio = () => {
-      if (isAmbienceOn && audioRef.current) {
-        audioRef.current.play().catch(err => {
-          // Most browsers block autoplay until first user interaction
-          console.warn('[Ambience] Autoplay blocked - will play on first click:', err);
-        });
-      }
-    };
-
-    if (isAmbienceOn) {
-      playAudio();
-      // Add global click listener to catch users who haven't interacted yet
-      window.addEventListener('click', playAudio, { once: true });
-    } else {
-      audioRef.current.pause();
-    }
-
-    return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
-      window.removeEventListener('click', playAudio);
-    };
-  }, [isAmbienceOn]);
-
-  // Global rotation state for moire/rotation (performance boost!)
   const rotationRef = useRef(0);
 
-  useEffect(() => {
-    let frameId: number;
-    const animate = () => {
-      rotationRef.current += 0.007; // Slowed down by 30%
-
-      // Ambient starfield rotation
-      if (starfieldRef.current) {
-        starfieldRef.current.rotation.y += 0.0002;
-        starfieldRef.current.rotation.x += 0.0001;
-      }
-
-      // Organic nebula animation - each cloud layer rotates independently
-      const time = Date.now() * 0.0001;
-      nebulaeRef.current.forEach((nebula) => {
-        nebula.clouds.forEach((cloud, i) => {
-          // Slow independent rotation for organic feel
-          cloud.rotation.z += 0.0002 * (i % 2 === 0 ? 1 : -1);
-          cloud.rotation.x += Math.sin(time + i) * 0.0001;
-          cloud.rotation.y += Math.cos(time + i * 0.5) * 0.0001;
-        });
-      });
-
-      frameId = requestAnimationFrame(animate);
-    };
-    animate();
-    return () => cancelAnimationFrame(frameId);
-  }, []);
-
+  // Internal state for modals
   const [initialCameraPos, setInitialCameraPos] = useState<{ x: number; y: number; z: number } | null>(null);
   const [isSimulationLoading, setIsSimulationLoading] = useState(true);
-  const [validationError, setValidationError] = useState<string | null>(null);
-
-  const [selectedNode, setSelectedNode] = useState<FamilyNode | null>(null);
   const [canEditSelected, setCanEditSelected] = useState(false);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isBulkInviteOpen, setIsBulkInviteOpen] = useState(false);
-  const [isPresetsOpen, setIsPresetsOpen] = useState(false);
-  const [isTextureMenuOpen, setIsTextureMenuOpen] = useState(false);
-  const textureRef = useRef<HTMLDivElement>(null);
-  const [showLegend, setShowLegend] = useState(false);
   const [activePreset, setActivePreset] = useState<string | null>(null);
-  const [renderError, setRenderError] = useState<string | null>(null);
 
-  // V3 Features: Toggles and Collapsed state
+  // V3 Features: Toggles
   const [showNames, setShowNames] = useState(true);
   const [showLinks, setShowLinks] = useState(true);
   const [showControls, setShowControls] = useState(false);
   const [nodeTexture, setNodeTexture] = useState<'spheres' | 'planets' | 'none'>('spheres');
   const [showArrows, setShowArrows] = useState(false);
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
+  const [isPresetsOpen, setIsPresetsOpen] = useState(false);
+  const presetsRef = useRef<HTMLDivElement>(null);
+  const textureRef = useRef<HTMLDivElement>(null);
+  const [isTextureMenuOpen, setIsTextureMenuOpen] = useState(false);
+  const [isAmbienceOn, setIsAmbienceOn] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [showNavControls, setShowNavControls] = useState(false);
 
+  // Navigation state for WASD/Mouse Steering
+  const [isSteeringActive, setIsSteeringActive] = useState(false);
+  const keysPressed = useRef<Record<string, boolean>>({});
+  const mousePos = useRef({ x: 0, y: 0 });
+  const isMouseInWindow = useRef(true);
+
+  // Audio controller
   useEffect(() => {
-    console.log('[FamilyTree3D] Component state:', { 
-      hasData: !!graphData, 
-      nodesCount: graphData?.nodes?.length,
-      linksCount: graphData?.links?.length,
-      showNames, 
-      showLinks,
-      nodeTexture, 
-      showArrows,
-      collapsedCount: collapsedNodes.size 
-    });
-  }, [graphData, showNames, showLinks, nodeTexture, showArrows, collapsedNodes]);
+    if (!audioRef.current) {
+      audioRef.current = new Audio('/audio/Cosmic Ambience Sound Effect.mp3');
+      audioRef.current.loop = true;
+      audioRef.current.volume = 0.25;
+    }
 
-  const toggleNodeCollapse = useCallback((nodeId: string) => {
-    console.log('[FamilyTree3D] Toggling collapse for node:', nodeId);
+    const playAudio = () => {
+      if (isAmbienceOn && audioRef.current) {
+        audioRef.current.play().catch(err => {
+          console.warn('[Ambience] Autoplay blocked:', err);
+        });
+      }
+    };
+
+    if (isAmbienceOn) {
+      playAudio();
+      window.addEventListener('click', playAudio, { once: true });
+    } else {
+      audioRef.current?.pause();
+    }
+
+    return () => {
+      audioRef.current?.pause();
+      window.removeEventListener('click', playAudio);
+    };
+  }, [isAmbienceOn]);
+
+  // Get unique clusters for presets
+  const uniqueClusters = React.useMemo(() => {
+    if (!graphData?.nodes) return [];
+    const clusters = new Set<string>();
+    graphData.nodes.forEach(n => { if (n.familyCluster) clusters.add(n.familyCluster); });
+    return Array.from(clusters).sort();
+  }, [graphData]);
+
+  // Use external collapsed nodes if provided
+  const effectiveCollapsedNodes = externalCollapsedNodes || collapsedNodes;
+  const effectiveToggleCollapse = externalToggleCollapse || ((nodeId: string) => {
     setCollapsedNodes(prev => {
       const next = new Set(prev);
       if (next.has(nodeId)) next.delete(nodeId);
       else next.add(nodeId);
       return next;
     });
-  }, []);
+  });
 
   const filteredGraphData = useMemo(() => {
     try {
       if (!graphData) return { nodes: [], links: [] };
 
       const hiddenNodes = new Set<string>();
-      collapsedNodes.forEach(id => {
+      effectiveCollapsedNodes.forEach(id => {
         const descendants = getDescendantIds(id, graphData.links as FamilyLink[]);
         descendants.forEach(dId => hiddenNodes.add(dId));
       });
@@ -287,39 +263,12 @@ const FamilyTreeContent: React.FC = () => {
           return !hiddenNodes.has(sourceId) && !hiddenNodes.has(targetId);
         })
       };
-      console.log('[FamilyTree3D] Filtered data:', { 
-        originalNodes: graphData.nodes.length, 
-        filteredNodes: filtered.nodes.length,
-        hiddenCount: hiddenNodes.size,
-        activePreset
-      });
       return filtered;
     } catch (err) {
       console.error('[FamilyTree3D] Error filtering graph data:', err);
-      // Removed setRenderError to avoid "update during render" warning
       return { nodes: [], links: [] };
     }
-  }, [graphData, collapsedNodes, activePreset]);
-
-  const uniqueClusters = React.useMemo(() => {
-    if (!graphData?.nodes) return [];
-    const clusters = new Set<string>();
-    graphData.nodes.forEach(n => {
-      if (n.familyCluster) clusters.add(n.familyCluster);
-    });
-    return Array.from(clusters).sort();
-  }, [graphData]);
-
-  useEffect(() => {
-    console.log('[FamilyTree3D] Component mounted. Loading state:', { dataLoading, isSimulationLoading });
-    console.log('[FamilyTree3D] Graph data presence:', !!graphData, 'Nodes:', graphData?.nodes?.length, 'Links:', graphData?.links?.length);
-  }, [dataLoading, isSimulationLoading, graphData]);
-
-  // Keyboard and Mouse state
-  const [isSteeringActive, setIsSteeringActive] = useState(false); // Engine starts OFF
-  const keysPressed = useRef<Record<string, boolean>>({});
-  const mousePos = useRef({ x: 0, y: 0 });
-  const isMouseInWindow = useRef(true);
+  }, [graphData, effectiveCollapsedNodes, activePreset]);
 
   // Check permissions
   useEffect(() => {
@@ -331,24 +280,13 @@ const FamilyTreeContent: React.FC = () => {
     }
   }, [selectedNode, user, userProfile, graphData]);
 
-  // Data Validation
-  useEffect(() => {
-    if (!graphData) return;
-    if (!graphData.nodes || graphData.nodes.length === 0) {
-      setValidationError('No family members found in data');
-    } else {
-      setValidationError(null);
-    }
-  }, [graphData]);
-
   // Focus Logic
   const handleNodeClick = useCallback((node: FamilyNode) => {
     if (!fgRef.current) return;
     
     const nodeData = node as any;
-    setSelectedNode(node);
+    onNodeSelect(node);
     
-    // Ensure coordinates are valid before processing
     const x = (typeof nodeData.x === 'number' && !isNaN(nodeData.x)) ? nodeData.x : 0;
     const y = (typeof nodeData.y === 'number' && !isNaN(nodeData.y)) ? nodeData.y : 0;
     const z = (typeof nodeData.z === 'number' && !isNaN(nodeData.z)) ? nodeData.z : 0;
@@ -359,7 +297,6 @@ const FamilyTreeContent: React.FC = () => {
     const camera = fgRef.current.camera();
     const currentPos = camera.position;
     
-    // Calculate new camera position
     let direction = new THREE.Vector3(currentPos.x - x, currentPos.y - y, currentPos.z - z);
     if (isNaN(direction.x) || isNaN(direction.y) || isNaN(direction.z) || direction.lengthSq() < 0.0001) {
       direction.set(0, 0, 1);
@@ -373,38 +310,255 @@ const FamilyTreeContent: React.FC = () => {
       z: z + direction.z * distance
     };
 
-    console.log('[FamilyTree3D] Camera move to:', targetPos, 'looking at:', nodePos);
-    
-    // Use the force-graph's built-in cameraPosition for smooth, safe animation
     fgRef.current.cameraPosition(targetPos, nodePos, 800);
-  }, []);
+  }, [onNodeSelect]);
 
+  // Reset View functionality
   const resetView = useCallback(() => {
     if (!fgRef.current || !initialCameraPos || !graphData) return;
-
-    setActivePreset(null);
-    // Clear all fixed positions and ensure no NaN coordinates
+    
+    // Clear all fixed positions
     graphData.nodes.forEach((node: any) => {
       node.fx = undefined;
       node.fy = undefined;
       node.fz = undefined;
-      if (isNaN(node.x) || isNaN(node.y) || isNaN(node.z)) {
-        node.x = 0;
-        node.y = 0;
-        node.z = 0;
-      }
     });
     fgRef.current.d3ReheatSimulation();
 
-    // Use built-in cameraPosition for reset
-    fgRef.current.cameraPosition(
-      { x: initialCameraPos.x, y: initialCameraPos.y, z: initialCameraPos.z },
-      { x: 0, y: 0, z: 0 },
-      1000
-    );
-  }, [initialCameraPos, graphData]);
+    const camera = fgRef.current.camera();
+    const controls = fgRef.current.controls();
+    if (!camera || !controls) return;
+    
+    setActivePreset(null);
+    onBackgroundClick?.();
 
-  // Continuous Flight Loop
+    const duration = 1500;
+    const startTime = Date.now();
+    const startPos = camera.position.clone();
+    const startTarget = controls.target.clone();
+
+    const animate = () => {
+      const progress = Math.min((Date.now() - startTime) / duration, 1);
+      const eased = progress < 0.5 
+        ? 2 * progress * progress 
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+      camera.position.lerpVectors(
+        startPos, 
+        new THREE.Vector3(initialCameraPos.x, initialCameraPos.y, initialCameraPos.z), 
+        eased
+      );
+      
+      controls.target.lerpVectors(
+        startTarget, 
+        new THREE.Vector3(0, 0, 0), 
+        eased
+      );
+      
+      camera.lookAt(controls.target);
+      camera.updateProjectionMatrix();
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    animate();
+  }, [initialCameraPos, graphData, onBackgroundClick]);
+
+  // Preset Focus Logic
+  const focusNodeById = useCallback((nodeId: string) => {
+    const node = graphData?.nodes?.find(n => n.id === nodeId);
+    if (node) handleNodeClick(node);
+  }, [graphData, handleNodeClick]);
+
+  const calculateGenerationLevels = useCallback((clusterName: string) => {
+    if (!graphData) return new Map<string, number>();
+
+    const nodesInCluster = graphData.nodes.filter(n => n.familyCluster === clusterName);
+    const clusterNodeIds = new Set(nodesInCluster.map(n => n.id));
+    
+    const getSafeId = (val: any) => {
+      if (!val) return null;
+      if (typeof val === 'string') return val;
+      if (typeof val === 'object' && val.id) return val.id;
+      return null;
+    };
+
+    const roots = nodesInCluster.filter(node => {
+      const hasParentInCluster = graphData.links.some(link => {
+        const s = getSafeId(link.source);
+        const t = getSafeId(link.target);
+        return t === node.id && link.type === 'parent' && clusterNodeIds.has(s || '');
+      });
+      return !hasParentInCluster;
+    });
+
+    const levels = new Map<string, number>();
+    const queue: { id: string; level: number }[] = [];
+
+    roots.forEach(r => {
+      levels.set(r.id, 0);
+      queue.push({ id: r.id, level: 0 });
+    });
+
+    let head = 0;
+    while (head < queue.length) {
+      const { id, level } = queue[head++];
+
+      graphData.links.forEach(link => {
+        const s = getSafeId(link.source);
+        const t = getSafeId(link.target);
+
+        if (s === id && t && clusterNodeIds.has(t)) {
+          if (!levels.has(t)) {
+            const nextLevel = link.type === 'parent' ? level + 1 : level;
+            levels.set(t, nextLevel);
+            queue.push({ id: t, level: nextLevel });
+          }
+        } else if (t === id && s && clusterNodeIds.has(s)) {
+          if (!levels.has(s)) {
+            const nextLevel = link.type === 'marriage' ? level : level - 1;
+            if (link.type === 'marriage') {
+              levels.set(s, nextLevel);
+              queue.push({ id: s, level: nextLevel });
+            }
+          }
+        }
+      });
+    }
+    
+    nodesInCluster.forEach(n => {
+      if (!levels.has(n.id)) levels.set(n.id, 0);
+    });
+
+    return levels;
+  }, [graphData]);
+
+  const applyPreset = useCallback((clusterName: string | null | 'me') => {
+    setIsPresetsOpen(false);
+    if (!fgRef.current || !graphData) return;
+
+    if (!clusterName) {
+      resetView();
+      return;
+    }
+
+    if (clusterName === 'me') {
+      if (userProfile?.node_id) {
+        focusNodeById(userProfile.node_id);
+      }
+      return;
+    }
+
+    setActivePreset(clusterName);
+    const levels = calculateGenerationLevels(clusterName);
+    const generationHeight = 250; // Increased for better vertical clarity
+    const horizontalSpread = 220; // Increased slightly from 180 for better legibility
+
+    const nodesInCluster = graphData.nodes.filter(n => n.familyCluster === clusterName);
+    const clusterNodeIds = new Set(nodesInCluster.map(n => n.id));
+
+    // 1. Build adjacency list for children in this cluster
+    const childrenMap = new Map<string, string[]>();
+    graphData.links.forEach(link => {
+      if (link.type === 'parent') {
+        const s = typeof link.source === 'object' ? (link.source as any).id : link.source;
+        const t = typeof link.target === 'object' ? (link.target as any).id : link.target;
+        if (clusterNodeIds.has(s) && clusterNodeIds.has(t)) {
+          const list = childrenMap.get(s) || [];
+          list.push(t);
+          childrenMap.set(s, list);
+        }
+      }
+    });
+
+    // 2. Calculate subtree widths (number of leaf nodes in the subtree)
+    const subtreeWidths = new Map<string, number>();
+    const getSubtreeWidth = (id: string): number => {
+      const children = childrenMap.get(id) || [];
+      if (children.length === 0) {
+        subtreeWidths.set(id, 1);
+        return 1;
+      }
+      const width = children.reduce((sum, childId) => sum + getSubtreeWidth(childId), 0);
+      subtreeWidths.set(id, width);
+      return width;
+    };
+
+    // 3. Find roots (nodes with no parents in the cluster)
+    const roots = nodesInCluster.filter(node => {
+      const hasParentInCluster = graphData.links.some(link => {
+        const t = typeof link.target === 'object' ? (link.target as any).id : link.target;
+        const s = typeof link.source === 'object' ? (link.source as any).id : link.source;
+        return t === node.id && link.type === 'parent' && clusterNodeIds.has(s);
+      });
+      return !hasParentInCluster;
+    });
+
+    // Calculate total width for the entire cluster
+    let totalClusterWidth = 0;
+    roots.forEach(root => {
+      totalClusterWidth += getSubtreeWidth(root.id);
+    });
+
+    // 4. Recursive positioning: children are centered under their parent's territory
+    const positionNode = (id: string, leftX: number, width: number, level: number) => {
+      const node = graphData.nodes.find(n => n.id === id);
+      if (!node) return;
+
+      const centerX = leftX + (width * horizontalSpread) / 2;
+      const centerY = level * generationHeight;
+
+      (node as any).fx = centerX;
+      (node as any).fy = centerY;
+      (node as any).fz = 0;
+      (node as any).x = centerX;
+      (node as any).y = centerY;
+      (node as any).z = 0;
+
+      const children = childrenMap.get(id) || [];
+      let currentLeft = leftX;
+      children.forEach(childId => {
+        const childWidth = subtreeWidths.get(childId) || 1;
+        positionNode(childId, currentLeft, childWidth, level + 1);
+        currentLeft += childWidth * horizontalSpread;
+      });
+    };
+
+    // Position roots evenly
+    let currentRootLeft = -(totalClusterWidth * horizontalSpread) / 2;
+    roots.forEach(root => {
+      const rootWidth = subtreeWidths.get(root.id) || 1;
+      positionNode(root.id, currentRootLeft, rootWidth, levels.get(root.id) || 0);
+      currentRootLeft += rootWidth * horizontalSpread;
+    });
+
+    // Push non-cluster nodes back
+    graphData.nodes.forEach((node: any) => {
+      if (node.familyCluster !== clusterName) {
+        const safeX = (typeof node.x === 'number' && !isNaN(node.x)) ? node.x : (Math.random() - 0.5) * 2000;
+        const safeY = (typeof node.y === 'number' && !isNaN(node.y)) ? node.y : (Math.random() - 0.5) * 2000;
+        node.fx = safeX;
+        node.fy = safeY;
+        node.fz = -600;
+        node.x = safeX;
+        node.y = safeY;
+        node.z = -600;
+      }
+    });
+
+    fgRef.current.d3ReheatSimulation();
+
+    // Find a good representative for the cluster
+    const rep = (clusterName === 'Badran') 
+      ? graphData.nodes.find(n => n.name === 'Basel Badran')
+      : graphData.nodes.find(n => n.familyCluster === clusterName);
+    
+    if (rep) focusNodeById(rep.id);
+  }, [graphData, calculateGenerationLevels, resetView, focusNodeById, userProfile]);
+
+  // Navigation Flight Loop (WASD + Mouse Steering)
   useEffect(() => {
     let frameId: number;
     const baseSpeed = 1.2;
@@ -413,14 +567,16 @@ const FamilyTreeContent: React.FC = () => {
     const deadzone = 0.15;
 
     const update = () => {
-      if (fgRef.current && !isAddModalOpen && !isEditModalOpen && !isBulkInviteOpen && 
-          document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+      if (fgRef.current && 
+          !isAddModalOpen && !isEditModalOpen && !isBulkInviteOpen && 
+          document.activeElement?.tagName !== 'INPUT' && 
+          document.activeElement?.tagName !== 'TEXTAREA') {
         
         const camera = fgRef.current.camera();
         const controls = fgRef.current.controls();
         
         if (camera && controls) {
-          // 1. Steering (Only if active and mouse in window)
+          // 1. Steering (Mouse Look)
           if (isSteeringActive && isMouseInWindow.current) {
             const dx = mousePos.current.x;
             const dy = mousePos.current.y;
@@ -443,7 +599,7 @@ const FamilyTreeContent: React.FC = () => {
             }
           }
 
-          // 2. Thrust/Strafe
+          // 2. Thrust/Strafe (WASD)
           const moveSpeed = keysPressed.current['shift'] ? baseSpeed * boostMultiplier : baseSpeed;
           const forward = new THREE.Vector3();
           camera.getWorldDirection(forward);
@@ -461,21 +617,27 @@ const FamilyTreeContent: React.FC = () => {
             controls.target.add(moveVec);
           }
           
+          controls.update();
           camera.updateProjectionMatrix();
         }
       }
       frameId = requestAnimationFrame(update);
     };
+
     frameId = requestAnimationFrame(update);
     return () => cancelAnimationFrame(frameId);
   }, [isAddModalOpen, isEditModalOpen, isBulkInviteOpen, isSteeringActive]);
 
-  // Event Listeners
+  // Event Listeners for Navigation
   useEffect(() => {
     const onDown = (e: KeyboardEvent) => {
       const key = e.key.toLowerCase();
       keysPressed.current[key] = true;
-      if (isAddModalOpen || isEditModalOpen || isBulkInviteOpen || document.activeElement?.tagName === 'INPUT') return;
+      
+      // Prevent navigation shortcuts when typing
+      if (isAddModalOpen || isEditModalOpen || isBulkInviteOpen || 
+          document.activeElement?.tagName === 'INPUT' || 
+          document.activeElement?.tagName === 'TEXTAREA') return;
       
       if (key === 'e') {
         setIsSteeringActive(prev => !prev);
@@ -483,22 +645,35 @@ const FamilyTreeContent: React.FC = () => {
         e.preventDefault();
         if (graphData?.nodes?.length) {
           const idx = selectedNode ? graphData.nodes.findIndex(n => n.id === selectedNode.id) : -1;
-          const next = e.shiftKey ? (idx <= 0 ? graphData.nodes.length - 1 : idx - 1) : (idx + 1) % graphData.nodes.length;
-          setSelectedNode(graphData.nodes[next]);
+          const next = e.shiftKey 
+            ? (idx <= 0 ? graphData.nodes.length - 1 : idx - 1) 
+            : (idx + 1) % graphData.nodes.length;
+          handleNodeClick(graphData.nodes[next]);
         }
       } else if (key === 'enter' || key === ' ') {
-        if (selectedNode) { e.preventDefault(); handleNodeClick(selectedNode); }
+        if (selectedNode) {
+          e.preventDefault();
+          handleNodeClick(selectedNode);
+        }
       } else if (key === 'escape') {
-        if (selectedNode) { e.preventDefault(); setSelectedNode(null); }
+        if (selectedNode) {
+          e.preventDefault();
+          onBackgroundClick?.();
+        }
       }
     };
-    const onUp = (e: KeyboardEvent) => { keysPressed.current[e.key.toLowerCase()] = false; };
+
+    const onUp = (e: KeyboardEvent) => {
+      keysPressed.current[e.key.toLowerCase()] = false;
+    };
+
     const onMove = (e: MouseEvent) => {
       mousePos.current = {
         x: (e.clientX / window.innerWidth) * 2 - 1,
         y: -((e.clientY / window.innerHeight) * 2 - 1)
       };
     };
+
     const onOut = () => { isMouseInWindow.current = false; };
     const onIn = () => { isMouseInWindow.current = true; };
 
@@ -508,265 +683,34 @@ const FamilyTreeContent: React.FC = () => {
     window.addEventListener('mouseleave', onOut);
     window.addEventListener('mouseenter', onIn);
     
-    const onClickOutside = (e: MouseEvent) => {
-      if (presetsRef.current && !presetsRef.current.contains(e.target as Node)) {
-        setIsPresetsOpen(false);
-      }
-      if (textureRef.current && !textureRef.current.contains(e.target as Node)) {
-        setIsTextureMenuOpen(false);
-      }
-    };
-    window.addEventListener('mousedown', onClickOutside);
-    
     return () => {
       window.removeEventListener('keydown', onDown);
       window.removeEventListener('keyup', onUp);
       window.removeEventListener('mousemove', onMove);
       window.removeEventListener('mouseleave', onOut);
       window.removeEventListener('mouseenter', onIn);
-      window.removeEventListener('mousedown', onClickOutside);
     };
   }, [graphData, selectedNode, handleNodeClick, isAddModalOpen, isEditModalOpen, isBulkInviteOpen]);
 
-  // Preset Focus Logic
-  const focusNodeById = useCallback((nodeId: string) => {
-    const node = graphData?.nodes?.find(n => n.id === nodeId);
-    if (node) handleNodeClick(node);
-  }, [graphData, handleNodeClick]);
-
-  const calculateGenerationLevels = useCallback((clusterName: string) => {
-    if (!graphData) return new Map<string, number>();
-
-    const nodesInCluster = graphData.nodes.filter(n => n.familyCluster === clusterName);
-    const clusterNodeIds = new Set(nodesInCluster.map(n => n.id));
-    
-    const getSafeId = (val: any) => {
-      if (!val) return null;
-      if (typeof val === 'string') return val;
-      if (typeof val === 'object' && val.id) return val.id;
-      return null;
-    };
-
-    // 1. Find roots in this cluster (nodes with no parents in this cluster)
-    const roots = nodesInCluster.filter(node => {
-      const hasParentInCluster = graphData.links.some(link => {
-        const s = getSafeId(link.source);
-        const t = getSafeId(link.target);
-        return t === node.id && link.type === 'parent' && clusterNodeIds.has(s || '');
-      });
-      return !hasParentInCluster;
-    });
-
-    const levels = new Map<string, number>();
-    const queue: { id: string; level: number }[] = [];
-
-    roots.forEach(r => {
-      levels.set(r.id, 0);
-      queue.push({ id: r.id, level: 0 });
-    });
-
-    // BFS to assign levels
-    let head = 0;
-    while (head < queue.length) {
-      const { id, level } = queue[head++];
-
-      graphData.links.forEach(link => {
-        const s = getSafeId(link.source);
-        const t = getSafeId(link.target);
-
-        if (s === id && t && clusterNodeIds.has(t)) {
-          if (!levels.has(t)) {
-            const nextLevel = link.type === 'parent' ? level + 1 : level;
-            levels.set(t, nextLevel);
-            queue.push({ id: t, level: nextLevel });
-          }
-        } else if (t === id && s && clusterNodeIds.has(s)) {
-          if (!levels.has(s)) {
-            // If we're at a node and find its spouse or parent
-            const nextLevel = link.type === 'marriage' ? level : level - 1;
-            // Only go "up" if it's a parent, but we started from roots so we mostly go down
-            if (link.type === 'marriage') {
-              levels.set(s, nextLevel);
-              queue.push({ id: s, level: nextLevel });
-            }
-          }
-        }
-      });
-    }
-    
-    // Assign 0 to any orphans
-    nodesInCluster.forEach(n => {
-      if (!levels.has(n.id)) levels.set(n.id, 0);
-    });
-
-    return levels;
-  }, [graphData]);
-
-  const applyPreset = useCallback((type: string) => {
-    setIsPresetsOpen(false);
-    if (!fgRef.current || !graphData) return;
-
-    if (type === 'overview') {
-      resetView();
-      return;
-    }
-
-    let clusterName = type;
-    if (type === 'me') {
-      const userNode = graphData.nodes.find(n => n.id === userProfile?.node_id);
-      clusterName = userNode?.familyCluster || '';
-    }
-
-    if (!clusterName) return;
-
-    setActivePreset(clusterName);
-    const levels = calculateGenerationLevels(clusterName);
-    const generationHeight = 250; 
-    const horizontalSpread = 300; 
-    
-    const nodesInCluster = graphData.nodes.filter(n => n.familyCluster === clusterName);
-    const clusterNodeIds = new Set(nodesInCluster.map(n => n.id));
-
-    // 1. Build adjacency list for children
-    const childrenMap = new Map<string, string[]>();
-    graphData.links.forEach(link => {
-      if (link.type === 'parent') {
-        const s = typeof link.source === 'object' && link.source !== null ? (link.source as any).id : link.source;
-        const t = typeof link.target === 'object' && link.target !== null ? (link.target as any).id : link.target;
-        if (clusterNodeIds.has(s) && clusterNodeIds.has(t)) {
-          const list = childrenMap.get(s) || [];
-          list.push(t);
-          childrenMap.set(s, list);
-        }
-      }
-    });
-
-    // 2. Calculate subtree widths (number of leaf nodes)
-    const subtreeWidths = new Map<string, number>();
-    const getSubtreeWidth = (id: string): number => {
-      const children = childrenMap.get(id) || [];
-      if (children.length === 0) {
-        subtreeWidths.set(id, 1);
-        return 1;
-      }
-      const width = children.reduce((sum, childId) => sum + getSubtreeWidth(childId), 0);
-      subtreeWidths.set(id, width);
-      return width;
-    };
-
-    // 3. Find roots (nodes with no parents in cluster)
-    const roots = nodesInCluster.filter(node => {
-      const hasParent = graphData.links.some(link => {
-        const t = typeof link.target === 'object' && link.target !== null ? (link.target as any).id : link.target;
-        const s = typeof link.source === 'object' && link.source !== null ? (link.source as any).id : link.source;
-        return t === node.id && link.type === 'parent' && clusterNodeIds.has(s);
-      });
-      return !hasParent;
-    });
-
-    // Calculate widths for all roots
-    let totalClusterWidth = 0;
-    roots.forEach(root => {
-      totalClusterWidth += getSubtreeWidth(root.id);
-    });
-
-    // 4. Recursive positioning
-    const positionNode = (id: string, leftX: number, width: number, level: number) => {
-      const node = graphData.nodes.find(n => n.id === id) as any;
-      if (!node) return;
-
-      const centerX = leftX + (width * horizontalSpread) / 2;
-      const centerY = level * generationHeight;
-
-      node.fx = centerX;
-      node.fy = centerY;
-      node.fz = 0;
-      node.x = centerX;
-      node.y = centerY;
-      node.z = 0;
-
-      const children = childrenMap.get(id) || [];
-      let currentLeft = leftX;
-      children.forEach(childId => {
-        const childWidth = subtreeWidths.get(childId) || 1;
-        positionNode(childId, currentLeft, childWidth, level + 1);
-        currentLeft += childWidth * horizontalSpread;
-      });
-    };
-
-    // Position roots
-    let currentRootLeft = -(totalClusterWidth * horizontalSpread) / 2;
-    roots.forEach(root => {
-      const rootWidth = subtreeWidths.get(root.id) || 1;
-      positionNode(root.id, currentRootLeft, rootWidth, levels.get(root.id) || 0);
-      currentRootLeft += rootWidth * horizontalSpread;
-    });
-
-    // Position non-cluster nodes
-    graphData.nodes.forEach((node: any) => {
-      if (node.familyCluster !== clusterName) {
-        const safeX = (typeof node.x === 'number' && !isNaN(node.x)) ? node.x : (Math.random() - 0.5) * 2000;
-        const safeY = (typeof node.y === 'number' && !isNaN(node.y)) ? node.y : (Math.random() - 0.5) * 2000;
-        node.fx = safeX;
-        node.fy = safeY;
-        node.fz = -1000;
-        node.x = safeX;
-        node.y = safeY;
-        node.z = -1000;
-      }
-    });
-
-    // Reheat simulation
-    if (fgRef.current) {
-      fgRef.current.d3ReheatSimulation();
-    }
-
-    // Focus camera on the cluster after a small delay to let positions settle
-    setTimeout(() => {
-      if (!fgRef.current || !graphData) return;
-      
-      if (type === 'me' && userProfile?.node_id) {
-        focusNodeById(userProfile.node_id);
-      } else {
-        // Find a good representative for the cluster
-        const rep = (clusterName === 'Badran') 
-          ? graphData.nodes.find(n => n.name === 'Basel Badran')
-          : graphData.nodes.find(n => n.familyCluster === clusterName);
-        
-        if (rep) {
-          console.log('[FamilyTree3D] Focusing preset representative:', rep.name);
-          focusNodeById(rep.id);
-        } else {
-          console.warn('[FamilyTree3D] No representative found for cluster:', clusterName);
-        }
-      }
-    }, 200);
-  }, [userProfile, graphData, calculateGenerationLevels, resetView, focusNodeById]);
-
-  // Node UI with visual upgrades
+  // Node UI
   const nodeThreeObject = useCallback((node: FamilyNode) => {
     try {
       const isSelected = selectedNode?.id === node.id;
       const color = getClusterColor(node.familyCluster);
       const group = new THREE.Group();
 
-      // 1. Core Sphere / Planet
       if (nodeTexture !== 'none') {
         const material = nodeTexture === 'planets' ? getPlanetMaterial(node.id) : getMaterial(color);
         const sphere = new THREE.Mesh(geometries.sphere, material);
         group.add(sphere);
 
-        // Performance-friendly animation - attach to mesh to ensure it's called during render
         const speedFactor = 0.5 + Math.random() * 0.5;
         sphere.onBeforeRender = () => {
           const rot = rotationRef.current * speedFactor;
-          // Rotate ONLY the sphere mesh, NOT the group
-          // This prevents dragging issues where the group's rotation interferes with world-space movement
           sphere.rotation.y = rot;
           sphere.rotation.z = rot * 0.5;
         };
 
-        // Aura & Glow if selected
         if (isSelected) {
           const aura = new THREE.Mesh(geometries.aura, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.2, wireframe: true }));
           const glow = new THREE.Mesh(geometries.glow, new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.05 }));
@@ -775,7 +719,6 @@ const FamilyTreeContent: React.FC = () => {
         }
       }
 
-      // 2. Name/Label (SpriteText) - Inside sphere
       if (showNames) {
         const fullName = node.name || 'Unknown';
         const nameParts = fullName.trim().split(' ');
@@ -788,19 +731,19 @@ const FamilyTreeContent: React.FC = () => {
         }
 
         const sprite = new SpriteText(displayName);
-        sprite.color = '#ffffff'; 
+        sprite.color = '#ffffff';
         sprite.textHeight = 4;
         sprite.fontWeight = 'bold';
-        sprite.position.set(0, 0, 0); 
+        sprite.position.set(0, 0, 0);
         sprite.renderOrder = 999;
-        sprite.material.depthTest = false; 
+        sprite.material.depthTest = false;
         group.add(sprite);
       }
 
       return group;
     } catch (err) {
       console.error('[FamilyTree3D] Error in nodeThreeObject:', err);
-      return new THREE.Group(); 
+      return new THREE.Group();
     }
   }, [selectedNode, showNames, nodeTexture, geometries, rotationRef]);
 
@@ -809,7 +752,6 @@ const FamilyTreeContent: React.FC = () => {
       const sourceCluster = typeof link.source === 'object' ? link.source.familyCluster : null;
       const targetCluster = typeof link.target === 'object' ? link.target.familyCluster : null;
       
-      // Only apply elbows to links within the active family cluster
       if (sourceCluster === activePreset && targetCluster === activePreset) {
         const geometry = new THREE.BufferGeometry();
         const material = new THREE.LineBasicMaterial({ color: '#60a5fa' });
@@ -826,7 +768,6 @@ const FamilyTreeContent: React.FC = () => {
       const targetCluster = typeof link.target === 'object' ? link.target.familyCluster : null;
 
       if (sourceCluster === activePreset && targetCluster === activePreset) {
-        // Add a small deterministic offset based on the source ID to prevent perfect overlaps
         const sourceId = typeof link.source === 'object' && link.source !== null ? (link.source as any).id : link.source;
         let hash = 0;
         const idStr = String(sourceId);
@@ -834,7 +775,7 @@ const FamilyTreeContent: React.FC = () => {
           hash = ((hash << 5) - hash) + idStr.charCodeAt(i);
           hash |= 0;
         }
-        const staggerOffset = (Math.abs(hash) % 20) - 10; // +/- 10px offset
+        const staggerOffset = (Math.abs(hash) % 20) - 10;
         
         const midY = (start.y + end.y) / 2 + staggerOffset;
         const points = [
@@ -854,70 +795,27 @@ const FamilyTreeContent: React.FC = () => {
     if (fgRef.current && !initialCameraPos) {
       const camera = fgRef.current.camera();
       if (camera) {
-        // START EVEN FARTHER OUT FOR A MORE DRAMATIC INTRO (30,000 units)
-        camera.position.set(0, 0, 30000); 
-        // FIX: Set the reset position to the final cinematic zoom distance (650)
-        // instead of the deep space starting position.
+        camera.position.set(0, 0, 30000);
         setInitialCameraPos({ x: 0, y: 0, z: 650 });
       }
     }
   }, [initialCameraPos]);
 
-  // CINEMATIC INTRO ZOOM: Starts fast, slows down exponentially
   useEffect(() => {
-    if (!dataLoading && !isSimulationLoading && fgRef.current && !hasIntroPlayed.current && graphData?.nodes?.length) {
-      console.log('[FamilyTree3D] Triggering Cinematic Intro Zoom...');
+    if (!isSimulationLoading && fgRef.current && !hasIntroPlayed.current && graphData?.nodes?.length) {
       hasIntroPlayed.current = true;
-      
-      // Give the background a moment to settle
-      setTimeout(() => {
-        // START MUSIC exactly when zoom starts
-        setIsAmbienceOn(true);
 
-        // Target: Center of tree at a distance that fills ~75% of screen
-        // Duration: 4.5 seconds for a majestic feel
+      setTimeout(() => {
+        // Start cinematic intro zoom
         fgRef.current.cameraPosition(
-          { x: 0, y: 0, z: 650 }, // Final "Cinematic" position
-          { x: 0, y: 0, z: 0 },   // Look at center
-          4500                   // Duration in ms
+          { x: 0, y: 0, z: 650 },
+          { x: 0, y: 0, z: 0 },
+          4500
         );
       }, 500);
     }
-  }, [dataLoading, isSimulationLoading, graphData]);
+  }, [isSimulationLoading, graphData]);
 
-  useEffect(() => {
-    const handleError = (e: ErrorEvent) => {
-      console.error('[FamilyTree3D] Global error caught:', e.message);
-      setRenderError('Runtime Error: ' + e.message);
-    };
-    window.addEventListener('error', handleError);
-    
-    // Safety loop to catch NaN explosions
-    const checkNaN = setInterval(() => {
-      if (!graphData?.nodes) return;
-      let exploded = false;
-      for (const node of graphData.nodes as any) {
-        if (isNaN(node.x) || isNaN(node.y) || isNaN(node.z)) {
-          exploded = true;
-          node.x = node.x || 0;
-          node.y = node.y || 0;
-          node.z = node.z || 0;
-          node.fx = undefined; node.fy = undefined; node.fz = undefined;
-        }
-      }
-      if (exploded && fgRef.current) {
-        console.warn('[FamilyTree3D] Physics exploded! Resetting NaN nodes...');
-        fgRef.current.d3ReheatSimulation();
-      }
-    }, 2000);
-
-    return () => {
-      window.removeEventListener('error', handleError);
-      clearInterval(checkNaN);
-    };
-  }, [graphData]);
-
-  // V3 Starfield & Environment Initialization
   useEffect(() => {
     const initEnvironment = () => {
       if (!fgRef.current) return;
@@ -927,27 +825,21 @@ const FamilyTreeContent: React.FC = () => {
       const renderer = fgRef.current.renderer();
 
       if (scene && !starfieldRef.current) {
-        console.log('[FamilyTree3D] Initializing 3D Starfield & Environment...');
-        
-        // Camera setup
         if (camera) {
           camera.far = 100000;
           camera.updateProjectionMatrix();
         }
 
-        // Renderer setup
         if (renderer) {
           renderer.shadowMap.enabled = true;
           renderer.setClearColor(0x0a0a0a, 1);
         }
 
-        // Scene environment
         const starfieldResult = createStarfield(scene);
         starfieldRef.current = starfieldResult.group;
         nebulaeRef.current = starfieldResult.nebulae;
         scene.fog = new THREE.Fog(0x020205, 5000, 20000);
 
-        // Lights
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
         scene.add(ambientLight);
 
@@ -969,257 +861,320 @@ const FamilyTreeContent: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  const isLoading = dataLoading || isSimulationLoading;
-  const error = dataError || validationError || renderError;
-
-  if (error) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100vh', background: '#0a0a0a', color: '#ef4444', textAlign: 'center' }}><div><h2>Error Loading Family Tree</h2><p>{error}</p></div></div>;
-
+  // Render
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', background: '#0a0a0a' }}>
-      {isLoading && <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.7)', zIndex: 1000, color: '#fff', fontSize: '18px' }}><div style={{ textAlign: 'center' }}><div>Loading Family Tree...</div><div style={{ width: '40px', height: '40px', border: '4px solid rgba(255,255,255,0.3)', borderTop: '4px solid #fff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '10px auto' }} /></div></div>}
+      {isSimulationLoading && graphData && (
+        <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.7)', zIndex: 1000, color: '#fff', fontSize: '18px', pointerEvents: 'none' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div>Loading 3D Family Tree...</div>
+            <div style={{ width: '40px', height: '40px', border: '4px solid rgba(255,255,255,0.3)', borderTop: '4px solid #fff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '10px auto' }} />
+          </div>
+        </div>
+      )}
       
       <ForceGraph3DAny
         graphData={filteredGraphData}
         nodeThreeObject={nodeThreeObject}
         linkThreeObject={linkThreeObject}
         linkPositionUpdate={linkPositionUpdate}
-        linkDistance={(l: any) => {
-          if (activePreset) {
-            const s = typeof l.source === 'object' ? l.source.familyCluster : null;
-            const t = typeof l.target === 'object' ? l.target.familyCluster : null;
-            if (s === activePreset && t === activePreset) {
-              return l.type === 'marriage' ? 450 : 250; 
-            }
-          }
-          return l.type === 'marriage' ? 250 : 120; // Increased distances for larger spheres
-        }}
-        linkStrength={(l: any) => {
-          if (activePreset) {
-            const s = typeof l.source === 'object' ? l.source.familyCluster : null;
-            const t = typeof l.target === 'object' ? l.target.familyCluster : null;
-            if (s === activePreset && t === activePreset) {
-              return 0.1; 
-            }
-          }
-          return l.type === 'marriage' ? 0.3 : 0.8;
-        }}
+        linkDistance={(l: any) => activePreset ? (l.type === 'marriage' ? 450 : 250) : (l.type === 'marriage' ? 250 : 120)}
+        linkStrength={(l: any) => activePreset ? 0.1 : (l.type === 'marriage' ? 0.3 : 0.8)}
         ref={fgRef}
         cooldownTicks={activePreset ? 600 : 200}
         onEngineStop={() => setIsSimulationLoading(false)}
-        onNodeClick={(node: FamilyNode) => {
-          handleNodeClick(node); // Single click to focus and surface options modal
-        }}
+        onNodeClick={handleNodeClick}
         onNodeDoubleClick={(node: FamilyNode) => {
-          // Double click to toggle collapse if node has children
           const hasChildren = graphData?.links.some(l => {
             const sId = typeof l.source === 'object' ? (l.source as any).id : l.source;
             return sId === node.id && l.type === 'parent';
           });
-          
-          if (hasChildren) {
-            toggleNodeCollapse(node.id);
-          }
+          if (hasChildren) effectiveToggleCollapse(node.id);
         }}
-        onNodeRightClick={(node: FamilyNode) => {
-          handleNodeClick(node); // Right click to focus/select
-        }}
+        onBackgroundClick={onBackgroundClick}
         linkColor={(l: any) => l.type === 'marriage' ? '#f59e0b' : '#60a5fa'}
         linkWidth={(l: any) => l.type === 'marriage' ? 3 : 1.5}
         linkOpacity={showLinks ? 0.4 : 0}
-        linkCurvature={(l: any) => {
-          if (activePreset) {
-            const s = typeof l.source === 'object' ? l.source.familyCluster : null;
-            const t = typeof l.target === 'object' ? l.target.familyCluster : null;
-            if (s === activePreset && t === activePreset) return 0;
-          }
-          return l.type === 'marriage' ? 0.3 : 0;
-        }}
+        linkCurvature={(l: any) => activePreset ? 0 : (l.type === 'marriage' ? 0.3 : 0)}
         linkDirectionalArrowLength={(l: any) => (showArrows && l.type === 'parent') ? 8 : 0}
         linkDirectionalArrowColor={() => '#60a5fa'}
-        showNavInfo={true}
-        onBackgroundClick={() => setSelectedNode(null)}
+        showNavInfo={false}
       />
 
+      {/* Selection Panel */}
       {selectedNode && (
         <div style={panelStyle}>
           <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: 'white' }}>{selectedNode.name}</div>
           <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
             {canEditSelected && (
               <>
-                <button onClick={() => setIsEditModalOpen(true)} style={btnStyle('#f59e0b')}>✎ Edit</button>
-                <button onClick={() => setIsAddModalOpen(true)} style={btnStyle('#667eea')}>+ Add Relative</button>
-                {selectedNode.id === userProfile?.node_id && <button onClick={() => setIsBulkInviteOpen(true)} style={btnStyle('#10b981')}>Invite Family</button>}
+                <button onClick={() => setIsEditModalOpen(true)} style={btnStyle('#f59e0b')}>Edit</button>
+                <button onClick={() => setIsAddModalOpen(true)} style={btnStyle('#667eea')}>+ Add</button>
+                {selectedNode.id === userProfile?.node_id && <button onClick={() => setIsBulkInviteOpen(true)} style={btnStyle('#10b981')}>Invite</button>}
               </>
             )}
-            <button onClick={() => setSelectedNode(null)} style={btnStyle('transparent', '#444')}>Close</button>
+            <button onClick={() => onNodeSelect(selectedNode)} style={btnStyle('transparent', '#444')}>Close</button>
           </div>
         </div>
       )}
 
-      {selectedNode && <AddRelativeModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} targetNode={selectedNode} onSuccess={() => { refetch(); setSelectedNode(null); }} existingNodes={graphData?.nodes || []} />}
+      {/* Modals */}
+      {selectedNode && (
+        <>
+          <AddRelativeModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} targetNode={selectedNode} onSuccess={() => {}} existingNodes={graphData?.nodes || []} />
+          <EditNodeModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} targetNode={selectedNode} onSuccess={() => {}} existingNodes={graphData?.nodes || []} />
+        </>
+      )}
       {userProfile?.node_id && <BulkInviteModal isOpen={isBulkInviteOpen} onClose={() => setIsBulkInviteOpen(false)} allNodes={graphData?.nodes || []} allLinks={graphData?.links ? [...graphData.links] : []} userNodeId={userProfile.node_id} onSuccess={() => {}} />}
-      {selectedNode && <EditNodeModal isOpen={isEditModalOpen} onClose={() => setIsEditModalOpen(false)} targetNode={selectedNode} onSuccess={() => refetch()} existingNodes={graphData?.nodes || []} />}
 
+      {/* Settings Controls - Top Right */}
       <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 10, alignItems: 'flex-end' }}>
+        {/* Settings Toggle - First */}
         <button
           onClick={() => setShowControls(!showControls)}
-          style={topBtnStyle(showControls ? '#3b82f6' : '#444')}
-          title={showControls ? "Hide Settings" : "Show Settings"}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#444',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: 600,
+            fontSize: '0.8rem',
+          }}
         >
-          {showControls ? 'Settings ⚙️' : 'Settings ⚙️'}
+          Settings ⚙️
         </button>
 
+        {/* Ambiance Toggle - Below Settings */}
         <button
           onClick={() => setIsAmbienceOn(!isAmbienceOn)}
-          style={topBtnStyle(isAmbienceOn ? '#10b981' : '#444')}
-          title={isAmbienceOn ? "Turn Ambience OFF" : "Turn Ambience ON"}
+          style={{
+            padding: '8px 16px',
+            backgroundColor: isAmbienceOn ? '#10b981' : '#444',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: 600,
+            fontSize: '0.8rem',
+          }}
         >
           {isAmbienceOn ? 'Ambiance 🔊' : 'Ambiance 🔇'}
         </button>
 
         {showControls && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '180px' }}>
-            <div style={{ display: 'flex', gap: '4px' }}>
-              <button onClick={() => setShowNames(!showNames)} style={topBtnStyle(showNames ? '#3b82f6' : '#444')}>
-                {showNames ? 'Labels: ON' : 'Labels: OFF'}
-              </button>
-              
-              <div style={{ position: 'relative' }} ref={textureRef}>
-                <button onClick={() => setIsTextureMenuOpen(!isTextureMenuOpen)} style={topBtnStyle('#3b82f6')}>Texture ▾</button>
-                {isTextureMenuOpen && (
-                  <div style={presetMenuStyle}>
-                    <div style={{ padding: '8px 15px', fontSize: '0.7rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Style</div>
-                    <button onClick={() => { setNodeTexture('spheres'); setIsTextureMenuOpen(false); }} className="preset-item" style={{ color: nodeTexture === 'spheres' ? '#3b82f6' : '#fff' }}>Spheres</button>
-                    <button onClick={() => { setNodeTexture('planets'); setIsTextureMenuOpen(false); }} className="preset-item" style={{ color: nodeTexture === 'planets' ? '#3b82f6' : '#fff' }}>Planets</button>
-                    <button onClick={() => { setNodeTexture('none'); setIsTextureMenuOpen(false); }} className="preset-item" style={{ color: nodeTexture === 'none' ? '#3b82f6' : '#fff' }}>None</button>
-                  </div>
-                )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '180px', backgroundColor: 'rgba(30, 30, 40, 0.95)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            {/* 3D/2D Toggle */}
+            {onModeChange && (
+              <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
+                <button
+                  onClick={() => onModeChange('3D')}
+                  style={{ 
+                    flex: 1,
+                    padding: '6px 12px', 
+                    backgroundColor: '#3b82f6', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '4px', 
+                    cursor: 'pointer', 
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  🌌 3D
+                </button>
+                <button
+                  onClick={() => onModeChange('2D')}
+                  style={{ 
+                    flex: 1,
+                    padding: '6px 12px', 
+                    backgroundColor: '#444', 
+                    color: 'white', 
+                    border: 'none', 
+                    borderRadius: '4px', 
+                    cursor: 'pointer', 
+                    fontSize: '0.75rem' 
+                  }}
+                >
+                  🌳 2D
+                </button>
               </div>
-            </div>
+            )}
 
-            <div style={{ display: 'flex', gap: '4px' }}>
-              <button onClick={() => setShowLinks(!showLinks)} style={topBtnStyle(showLinks ? '#3b82f6' : '#444')}>
-                {showLinks ? 'Links: ON' : 'Links: OFF'}
-              </button>
-
-              <button onClick={() => setShowArrows(!showArrows)} style={topBtnStyle(showArrows ? '#3b82f6' : '#444')}>
-                {showArrows ? 'Arrows: ON' : 'Arrows: OFF'}
-              </button>
-            </div>
-
-            <button 
-              onClick={() => {
-                if (collapsedNodes.size > 0) {
-                  setCollapsedNodes(new Set());
-                } else {
-                  // Collapse all nodes that have children
-                  const allParents = new Set<string>();
-                  graphData?.links.forEach(l => {
-                    if (l.type === 'parent') {
-                      allParents.add(typeof l.source === 'object' ? (l.source as any).id : l.source);
-                    }
-                  });
-                  setCollapsedNodes(allParents);
-                }
-              }} 
-              style={topBtnStyle('#f43f5e')}
+            {/* Reset View */}
+            <button
+              onClick={resetView}
+              style={{ padding: '6px 12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
             >
-              {collapsedNodes.size > 0 ? 'Expand All' : 'Collapse All'}
+              Reset View
             </button>
 
-            <div style={{ position: 'relative' }} ref={presetsRef}>
-              <button onClick={() => setIsPresetsOpen(!isPresetsOpen)} style={topBtnStyle('#8b5cf6')}>Presets ▾</button>
+            <button onClick={() => setShowNames(!showNames)} style={{ padding: '6px 12px', backgroundColor: showNames ? '#3b82f6' : '#444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
+              {showNames ? 'Labels: ON' : 'Labels: OFF'}
+            </button>
+            <button onClick={() => setShowLinks(!showLinks)} style={{ padding: '6px 12px', backgroundColor: showLinks ? '#3b82f6' : '#444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
+              {showLinks ? 'Links: ON' : 'Links: OFF'}
+            </button>
+            <button onClick={() => setShowArrows(!showArrows)} style={{ padding: '6px 12px', backgroundColor: showArrows ? '#3b82f6' : '#444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
+              {showArrows ? 'Arrows: ON' : 'Arrows: OFF'}
+            </button>
+
+            {/* Expand/Collapse All */}
+            <button
+              onClick={() => {
+                if (effectiveCollapsedNodes.size > 0) {
+                  setCollapsedNodes(new Set());
+                } else {
+                  const parents = new Set<string>();
+                  graphData?.links.forEach(l => {
+                    if (l.type === 'parent') {
+                      const sId = typeof l.source === 'object' ? (l.source as any).id : l.source;
+                      parents.add(sId);
+                    }
+                  });
+                  setCollapsedNodes(parents);
+                }
+              }}
+              style={{ padding: '6px 12px', backgroundColor: '#f43f5e', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
+            >
+              {effectiveCollapsedNodes.size > 0 ? 'Expand All' : 'Collapse All'}
+            </button>
+
+            <div ref={textureRef}>
+              <button onClick={() => setIsTextureMenuOpen(!isTextureMenuOpen)} style={{ padding: '6px 12px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', width: '100%' }}>
+                Texture: {nodeTexture}
+              </button>
+              {isTextureMenuOpen && (
+                <div style={{ marginTop: '4px', backgroundColor: 'rgba(42, 42, 42, 0.95)', borderRadius: '4px', overflow: 'hidden' }}>
+                  <button onClick={() => { setNodeTexture('spheres'); setIsTextureMenuOpen(false); }} style={{ padding: '8px', color: nodeTexture === 'spheres' ? '#3b82f6' : '#fff', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', fontSize: '0.75rem' }}>Spheres</button>
+                  <button onClick={() => { setNodeTexture('planets'); setIsTextureMenuOpen(false); }} style={{ padding: '8px', color: nodeTexture === 'planets' ? '#3b82f6' : '#fff', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', fontSize: '0.75rem' }}>Planets</button>
+                  <button onClick={() => { setNodeTexture('none'); setIsTextureMenuOpen(false); }} style={{ padding: '8px', color: nodeTexture === 'none' ? '#3b82f6' : '#fff', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', fontSize: '0.75rem' }}>None</button>
+                </div>
+              )}
+            </div>
+
+            {/* Family Presets */}
+            <div ref={presetsRef}>
+              <button onClick={() => setIsPresetsOpen(!isPresetsOpen)} style={{ padding: '6px 12px', backgroundColor: '#8b5cf6', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', width: '100%' }}>
+                Family Presets ▾
+              </button>
               {isPresetsOpen && (
-                <div style={presetMenuStyle}>
-                  <div style={{ padding: '8px 15px', fontSize: '0.7rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Views</div>
-                  <button onClick={() => applyPreset('me')} className="preset-item">Focus on Me</button>
-                  <button onClick={() => applyPreset('overview')} className="preset-item">3D Global View (Reset)</button>
+                <div style={{ marginTop: '4px', backgroundColor: 'rgba(42, 42, 42, 0.95)', borderRadius: '4px', overflow: 'hidden', maxHeight: '250px', overflowY: 'auto' }}>
+                  <button onClick={() => applyPreset(null)} style={{ padding: '8px', color: !activePreset ? '#3b82f6' : '#fff', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', fontSize: '0.75rem' }}>3D Global View</button>
                   
-                  <div style={{ height: '1px', background: '#444', margin: '4px 0' }} />
-                  <div style={{ padding: '8px 15px', fontSize: '0.7rem', color: '#888', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Family Presets (2D)</div>
-                  
-                  {uniqueClusters.map(cluster => (
+                  {userProfile?.node_id && (
                     <button 
-                      key={cluster} 
-                      onClick={() => applyPreset(cluster)} 
-                      className="preset-item"
-                      style={{ color: cluster === 'Badran' ? '#3b82f6' : 
-                                      cluster === 'Kutob' ? '#10b981' : 
-                                      cluster === 'Hajjaj' ? '#f59e0b' :
-                                      cluster === 'Zabalawi' ? '#ec4899' :
-                                      cluster === 'Malhis' ? '#8b5cf6' : '#fff' }}
+                      onClick={() => applyPreset('me')} 
+                      style={{ padding: '8px', color: '#10b981', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', fontSize: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}
                     >
-                      {cluster} Family
+                      Focus on Me 📍
+                    </button>
+                  )}
+
+                  <div style={{ padding: '8px 8px 4px', fontSize: '0.6rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>Families</div>
+                  {uniqueClusters.map(cluster => (
+                    <button key={cluster} onClick={() => applyPreset(cluster)} style={{ padding: '8px', color: activePreset === cluster ? '#3b82f6' : '#fff', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', fontSize: '0.75rem' }}>
+                      {cluster}
                     </button>
                   ))}
                 </div>
               )}
             </div>
-
-            <button onClick={resetView} style={topBtnStyle('#10b981')}>Reset View</button>
           </div>
         )}
       </div>
-      
-      <div 
-        onClick={() => setShowLegend(!showLegend)}
-        style={{ 
-          ...legendStyle, 
-          cursor: 'pointer', 
-          pointerEvents: 'auto',
-          transition: 'all 0.3s ease',
-          userSelect: 'none'
-        }}
-      >
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center', 
-          marginBottom: showLegend ? '8px' : '0',
-          gap: '10px'
-        }}>
-          <strong style={{ fontSize: '0.8rem', color: '#fff' }}>NAV CONTROLS</strong>
-          <span>{showLegend ? '👁️' : '👁️‍🗨️'}</span>
-        </div>
 
-        {showLegend && (
-          <>
-            <div style={{ marginBottom: '4px', color: isSteeringActive ? '#10b981' : '#f59e0b' }}>
-              <strong>E</strong>: Mouse Steering ({isSteeringActive ? 'ACTIVE' : 'LOCKED'})
+      {/* Nav Controls - Bottom Right (Collapsible) */}
+      <div style={{ 
+        position: 'absolute', 
+        bottom: '20px', 
+        right: '20px', 
+        zIndex: 10,
+      }}>
+        {showNavControls ? (
+          <div style={{ 
+            backgroundColor: 'rgba(30, 30, 40, 0.95)', 
+            padding: '8px 12px', 
+            borderRadius: '8px', 
+            color: '#e5e7eb', 
+            fontSize: '0.7rem', 
+            border: '1px solid rgba(255,255,255,0.1)',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+            minWidth: '180px',
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              marginBottom: '6px',
+              paddingBottom: '4px',
+              borderBottom: '1px solid rgba(255,255,255,0.1)',
+              cursor: 'pointer',
+            }} onClick={() => setShowNavControls(false)}>
+              <div style={{ fontWeight: 700, fontSize: '0.75rem', letterSpacing: '1px' }}>NAV CONTROLS</div>
+              <div style={{ fontSize: '0.8rem' }}>👁️</div>
             </div>
-            <div style={{ marginBottom: '4px' }}><strong>WASD</strong>: Move (Hold <strong>Shift</strong> for Boost)</div>
-            <div style={{ marginBottom: '4px' }}><strong>Tab</strong>: Cycle Names</div>
-            <div style={{ marginBottom: '4px' }}><strong>Enter</strong>: Focus selection</div>
-            <div><strong>Esc</strong>: Deselect</div>
-          </>
+            <div style={{ lineHeight: '1.6' }}>
+              <div><span style={{ color: isSteeringActive ? '#10b981' : '#fbbf24', fontWeight: 600 }}>E</span>: Mouse Steering <span style={{ color: isSteeringActive ? '#10b981' : '#fbbf24' }}>({isSteeringActive ? 'ACTIVE' : 'LOCKED'})</span></div>
+              <div><span style={{ color: '#fff', fontWeight: 600 }}>WASD</span>: Move (Hold <span style={{ color: '#fff', fontWeight: 600 }}>Shift</span> for Boost)</div>
+              <div><span style={{ color: '#fff', fontWeight: 600 }}>Tab</span>: Cycle Names</div>
+              <div><span style={{ color: '#fff', fontWeight: 600 }}>Enter</span>: Focus selection</div>
+              <div><span style={{ color: '#fff', fontWeight: 600 }}>Esc</span>: Deselect</div>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setShowNavControls(true)}
+            style={{
+              backgroundColor: 'rgba(30, 30, 40, 0.95)',
+              border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              color: '#e5e7eb',
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              letterSpacing: '1px',
+              boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
+            }}
+          >
+            NAV CONTROLS 👁️
+          </button>
         )}
       </div>
     </div>
   );
 };
 
-const FamilyTree3D: React.FC = () => {
-  // Debug: Check for missing env vars FIRST to avoid hook mismatch in the main content
-  const hasEnvVars = !!import.meta.env.VITE_SUPABASE_URL && !!import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Default export for backward compatibility
+export default FamilyTree3DContent;
 
-  if (!hasEnvVars) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: '100vh', background: '#0a0a0a', color: '#f59e0b', textAlign: 'center', padding: '20px' }}>
-        <div>
-          <h2>⚠️ Configuration Missing</h2>
-          <p>Supabase environment variables are not set. Please add <strong>VITE_SUPABASE_URL</strong> and <strong>VITE_SUPABASE_ANON_KEY</strong> to your Vercel project settings.</p>
-        </div>
-      </div>
-    );
-  }
-
-  return <FamilyTreeContent />;
+const panelStyle: React.CSSProperties = { 
+  position: 'absolute', 
+  bottom: '40px', 
+  left: '50%', 
+  transform: 'translateX(-50%)', 
+  backgroundColor: 'rgba(42, 42, 42, 0.9)', 
+  padding: '15px 25px', 
+  borderRadius: '12px', 
+  display: 'flex', 
+  flexDirection: 'column', 
+  alignItems: 'center', 
+  zIndex: 100, 
+  boxShadow: '0 4px 15px rgba(0,0,0,0.5)', 
+  border: '1px solid #444' 
 };
 
-const panelStyle: React.CSSProperties = { position: 'absolute', bottom: '40px', left: '50%', transform: 'translateX(-50%)', backgroundColor: 'rgba(42, 42, 42, 0.9)', padding: '15px 25px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', zIndex: 100, boxShadow: '0 4px 15px rgba(0,0,0,0.5)', border: '1px solid #444' };
-const btnStyle = (bg: string, border = 'none') => ({ padding: '6px 12px', backgroundColor: bg, color: 'white', border: border === 'none' ? 'none' : `1px solid ${border}`, borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' as const, fontSize: '0.75rem', minHeight: '32px', boxSizing: 'border-box' as const });
-const topBtnStyle = (bg: string) => ({ padding: '6px 12px', backgroundColor: bg, color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' as const, width: '100%', textAlign: 'center' as const, fontSize: '0.75rem', minHeight: '32px', boxSizing: 'border-box' as const });
-const presetMenuStyle: React.CSSProperties = { position: 'absolute', top: '100%', right: 0, marginTop: '5px', backgroundColor: 'rgba(42, 42, 42, 0.95)', borderRadius: '8px', border: '1px solid #444', overflowX: 'hidden', overflowY: 'auto', maxHeight: '400px', minWidth: '180px', boxShadow: '0 4px 15px rgba(0,0,0,0.5)', display: 'flex', flexDirection: 'column', zIndex: 20 };
-const legendStyle: React.CSSProperties = { position: 'absolute', bottom: '20px', right: '20px', backgroundColor: 'rgba(0, 0, 0, 0.7)', padding: '12px', borderRadius: '8px', color: '#ccc', fontSize: '0.75rem', zIndex: 10, border: '1px solid rgba(255, 255, 255, 0.1)', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' };
-
-export default React.memo(FamilyTree3D);
+const btnStyle = (bg: string, border = 'none') => ({ 
+  padding: '6px 12px', 
+  backgroundColor: bg, 
+  color: 'white', 
+  border: border === 'none' ? 'none' : `1px solid ${border}`, 
+  borderRadius: '4px', 
+  cursor: 'pointer', 
+  fontWeight: 'bold' as const, 
+  fontSize: '0.75rem', 
+  minHeight: '32px', 
+  boxSizing: 'border-box' as const 
+});
