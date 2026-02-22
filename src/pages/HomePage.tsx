@@ -1,4 +1,4 @@
-import FamilyTree3D from '../components/FamilyTree3D';
+import { FamilyTree } from '../components/FamilyTree';
 import { LandingPage } from '../landing/LandingPage';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -7,10 +7,10 @@ export default function HomePage() {
 
   if (isLoading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
         height: '100vh',
         color: 'white',
         background: '#0a0a0a'
@@ -64,9 +64,10 @@ export default function HomePage() {
     );
   }
 
-  // Logged in and bound - show the 3D tree
+  // Logged in and bound - show the Family Tree with 2D/3D toggle
   return (
     <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
+      {/* Sign Out Button - positioned in top left */}
       <div style={{
         position: 'absolute',
         top: '20px',
@@ -89,7 +90,7 @@ export default function HomePage() {
           Sign Out
         </button>
       </div>
-      <FamilyTree3D />
+      <FamilyTree />
     </div>
   );
 }
