@@ -18,9 +18,19 @@ interface FamilyTree2DProps {
   onBackgroundClick?: () => void;
   collapsedNodes?: Set<string>;
   onToggleCollapse?: (nodeId: string) => void;
+  onSetCollapsedNodes?: (nodes: Set<string>) => void;
   onModeChange?: (mode: '3D' | '2D') => void;
   uniqueClusters: string[];
   onPresetSelect: (preset: string | null) => void;
+}
+
+// Helper to get robust node ID from string or object
+const getNodeId = (nodeOrId: any): string => {
+  if (!nodeOrId) return '';
+  if (typeof nodeOrId === 'object') {
+    return nodeOrId.id || '';
+  }
+  return String(nodeOrId);
 }
 
 // Family colors for UI
@@ -57,8 +67,8 @@ function filterGraphData(
     nodes = nodes.filter(n => n.familyCluster === activePreset);
     const nodeIds = new Set(nodes.map(n => n.id));
     links = links.filter(l => {
-      const sourceId = typeof l.source === 'object' ? (l.source as any).id : l.source;
-      const targetId = typeof l.target === 'object' ? (l.target as any).id : l.target;
+      const sourceId = getNodeId(l.source);
+      const targetId = getNodeId(l.target);
       return nodeIds.has(sourceId) && nodeIds.has(targetId);
     });
   }
@@ -80,10 +90,10 @@ function filterGraphData(
 
       const children = links
         .filter(l => {
-          const sourceId = typeof l.source === 'object' ? (l.source as any).id : l.source;
+          const sourceId = getNodeId(l.source);
           return sourceId === currentId && l.type === 'parent';
         })
-        .map(l => typeof l.target === 'object' ? (l.target as any).id : l.target);
+        .map(l => getNodeId(l.target));
 
       descendants.push(...children);
       queue.push(...children);
@@ -99,8 +109,8 @@ function filterGraphData(
   return {
     nodes: nodes.filter(n => !hiddenNodes.has(n.id)),
     links: links.filter(l => {
-      const sourceId = typeof l.source === 'object' ? (l.source as any).id : l.source;
-      const targetId = typeof l.target === 'object' ? (l.target as any).id : l.target;
+      const sourceId = getNodeId(l.source);
+      const targetId = getNodeId(l.target);
       return !hiddenNodes.has(sourceId) && !hiddenNodes.has(targetId);
     }),
   };
@@ -116,6 +126,7 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
   onBackgroundClick,
   collapsedNodes = new Set(),
   onToggleCollapse,
+  onSetCollapsedNodes,
   onModeChange,
   uniqueClusters,
   onPresetSelect,
@@ -274,17 +285,28 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
 
   // Handle node double click for collapse toggle
   const handleNodeDoubleClick = useCallback((node: Node2D) => {
+    const nodeId = node.id;
+    if (!nodeId) return;
+
     const hasChildren = graphData.links.some(l => {
-      const sourceId = typeof l.source === 'object' ? (l.source as any).id : l.source;
-      return sourceId === node.id && l.type === 'parent';
+      const sId = getNodeId(l.source);
+      return sId === nodeId && l.type === 'parent';
     });
 
-    if (hasChildren && onToggleCollapse) {
-      onToggleCollapse(node.id);
+    if (hasChildren) {
+      if (onToggleCollapse) {
+        onToggleCollapse(nodeId);
+      } else {
+        // Internal toggle if no parent provided
+        onSetCollapsedNodes?.(new Set(collapsedNodes.has(nodeId)
+          ? [...collapsedNodes].filter(id => id !== nodeId)
+          : [...collapsedNodes, nodeId]
+        ));
+      }
     }
 
-    onNodeDoubleClick?.(node);
-  }, [graphData.links, onNodeDoubleClick, onToggleCollapse]);
+    onNodeDoubleClick?.(node as any);
+  }, [graphData.links, onNodeDoubleClick, onToggleCollapse, onSetCollapsedNodes, collapsedNodes]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', background: !activePreset ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' : '#0a0a0a' }}>
@@ -509,6 +531,26 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
                 </button>
               </div>
             )}
+            {/* Expand/Collapse All */}
+            <button
+              onClick={() => {
+                if (collapsedNodes.size > 0) {
+                  onSetCollapsedNodes?.(new Set());
+                } else {
+                  const parents = new Set<string>();
+                  graphData?.links.forEach(l => {
+                    if (l.type === 'parent') {
+                      const sId = getNodeId(l.source);
+                      parents.add(sId);
+                    }
+                  });
+                  onSetCollapsedNodes?.(parents);
+                }
+              }}
+              style={{ padding: '6px 12px', backgroundColor: '#f43f5e', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
+            >
+              {collapsedNodes.size > 0 ? 'Expand All' : 'Collapse All'}
+            </button>
           </div>
         )}
       </div>

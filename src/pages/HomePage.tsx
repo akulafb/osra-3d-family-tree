@@ -15,7 +15,7 @@ export default function HomePage() {
         color: 'white',
         background: '#0a0a0a'
       }}>
-        Loading...
+        Loading <span style={{ fontFamily: 'cursive', fontWeight: 'bold' }}>Osra</span>...
       </div>
     );
   }
