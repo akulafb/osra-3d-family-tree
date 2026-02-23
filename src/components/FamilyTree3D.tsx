@@ -1200,6 +1200,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
             <div style={{ lineHeight: '1.6' }}>
               <div><span style={{ color: isSteeringActive ? '#10b981' : '#fbbf24', fontWeight: 600 }}>R</span>: Mouse Steering <span style={{ color: isSteeringActive ? '#10b981' : '#fbbf24' }}>({isSteeringActive ? 'ACTIVE' : 'LOCKED'})</span></div>
               <div><span style={{ color: '#fff', fontWeight: 600 }}>WASD</span>: Move (Hold <span style={{ color: '#fff', fontWeight: 600 }}>Shift</span> for Boost)</div>
+              <div><span style={{ color: '#fff', fontWeight: 600 }}>Q / E</span>: Rotate Left / Right</div>
               <div><span style={{ color: '#fff', fontWeight: 600 }}>Tab</span>: Cycle Names</div>
               <div><span style={{ color: '#fff', fontWeight: 600 }}>Enter</span>: Focus selection</div>
               <div><span style={{ color: '#fff', fontWeight: 600 }}>Esc</span>: Deselect</div>
