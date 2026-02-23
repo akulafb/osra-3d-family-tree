@@ -199,7 +199,7 @@ export function canCreateLink(
   const exists = existingLinks.some((link: any) => {
     const s = getSafeId(link.source);
     const t = getSafeId(link.target);
-    return (s === sourceNodeId && t === targetNodeId) || (s === targetNodeId && s === targetNodeId);
+    return (s === sourceNodeId && t === targetNodeId) || (s === targetNodeId && t === sourceNodeId);
   });
   if (exists) return { allowed: false, reason: 'Exists' };
 

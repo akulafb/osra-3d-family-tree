@@ -86,7 +86,7 @@ export function useFamilyData() {
         return {
           source: link.source_node_id,
           target: link.target_node_id,
-          type: link.type as 'parent' | 'marriage',
+          type: link.type as 'parent' | 'marriage' | 'divorce',
         };
       });
 
