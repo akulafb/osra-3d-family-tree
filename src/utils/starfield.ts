@@ -79,10 +79,11 @@ const perlin = new PerlinNoise();
  */
 function createDetailedNebulaTexture(
   seed: number = 0,
-  type: 'trifid' | 'helix' = 'trifid'
+  type: 'trifid' | 'helix' = 'trifid',
+  resolution: number = 1024
 ): THREE.Texture {
-  const width = 1024;
-  const height = 1024;
+  const width = resolution;
+  const height = resolution;
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
@@ -94,6 +95,9 @@ function createDetailedNebulaTexture(
   const centerX = width / 2;
   const centerY = height / 2;
 
+  // Reduced octaves for mobile (4 vs 7)
+  const octaves = resolution < 1024 ? 4 : 7;
+
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const nx = x / width * 3.5 + seed;
@@ -103,8 +107,7 @@ function createDetailedNebulaTexture(
       let amplitude = 1;
       let frequency = 1;
       
-      // 7 octaves for intense "shredded" gas detail
-      for (let o = 0; o < 7; o++) {
+      for (let o = 0; o < octaves; o++) {
         noiseVal += perlin.noise(nx * frequency, ny * frequency, seed * 0.13) * amplitude;
         amplitude *= 0.52;
         frequency *= 2.15;
@@ -215,14 +218,27 @@ function createVolumetricNebula(
   type: 'trifid' | 'helix',
   position: { x: number; y: number; z: number },
   cloudCount: number = 24,
-  baseScale: number = 1100
+  baseScale: number = 1100,
+  isMobile: boolean = false
 ): NebulaData {
   const group = new THREE.Group();
   group.position.set(position.x, position.y, position.z);
   const clouds: THREE.Mesh[] = [];
   
+  // Reuse textures on mobile to save memory
+  const textureCache: THREE.Texture[] = [];
+  const maxUniqueTextures = isMobile ? 4 : cloudCount;
+  const resolution = isMobile ? 512 : 1024;
+  
   for (let i = 0; i < cloudCount; i++) {
-    const texture = createDetailedNebulaTexture(i * 17.3, type);
+    let texture;
+    if (isMobile && i >= maxUniqueTextures) {
+      texture = textureCache[i % maxUniqueTextures];
+    } else {
+      texture = createDetailedNebulaTexture(i * 17.3, type, resolution);
+      if (isMobile) textureCache.push(texture);
+    }
+
     const geometry = new THREE.PlaneGeometry(baseScale, baseScale);
     const material = new THREE.MeshBasicMaterial({
       map: texture,
@@ -253,30 +269,34 @@ function createVolumetricNebula(
   return { group, clouds };
 }
 
-export function createStarfield(scene: THREE.Scene): StarfieldResult {
+export function createStarfield(scene: THREE.Scene, isMobileDevice: boolean = false): StarfieldResult {
   const starfieldGroup = new THREE.Group();
   const textureLoader = new THREE.TextureLoader();
 
-  // 1. High-Resolution 8K Background & Environment
-  textureLoader.load('/planet-textures/8K Stars Texture.jpg', (texture) => {
+  // 1. Resolution-aware Background & Environment
+  const starTexturePath = isMobileDevice 
+    ? '/planet-textures/stars.jpg' 
+    : '/planet-textures/8K Stars Texture.jpg';
+
+  textureLoader.load(starTexturePath, (texture) => {
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.mapping = THREE.EquirectangularReflectionMapping; 
-    texture.anisotropy = 16;
+    texture.anisotropy = isMobileDevice ? 2 : 16;
     texture.minFilter = THREE.LinearMipmapLinearFilter;
     
-    // Set as scene background - this ensures it's perfectly crisp and always visible
+    // Set as scene background
     scene.background = texture;
     
     // Set as environment map for planet reflections
     scene.environment = texture;
     
-    console.log('[Starfield] 8K Stars Texture loaded and set as background/environment');
+    console.log(`[Starfield] ${isMobileDevice ? '2K' : '8K'} Stars Texture loaded and set as background/environment`);
   }, undefined, (err) => {
-    console.error('Error loading 8K stars texture:', err);
+    console.error('Error loading stars texture:', err);
   });
 
   // 2. Stars (Foreground Points for Parallax)
-  const starCount = 5000;
+  const starCount = isMobileDevice ? 1500 : 5000;
   const positions = new Float32Array(starCount * 3);
   const colors = new Float32Array(starCount * 3);
   
@@ -304,7 +324,7 @@ export function createStarfield(scene: THREE.Scene): StarfieldResult {
   starGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
   
   const starMaterial = new THREE.PointsMaterial({
-    size: 15,
+    size: isMobileDevice ? 10 : 15,
     vertexColors: true,
     map: createStarTexture(),
     transparent: true,
@@ -325,8 +345,9 @@ export function createStarfield(scene: THREE.Scene): StarfieldResult {
   const trifidNebula = createVolumetricNebula(
     'trifid',
     { x: -2500, y: 300, z: -3500 },
-    28,
-    1200
+    isMobileDevice ? 8 : 28,
+    1200,
+    isMobileDevice
   );
   starfieldGroup.add(trifidNebula.group);
   nebulae.push(trifidNebula);
@@ -335,8 +356,9 @@ export function createStarfield(scene: THREE.Scene): StarfieldResult {
   const helixNebula = createVolumetricNebula(
     'helix',
     { x: 3500, y: -400, z: -7500 },
-    32, 
-    1500
+    isMobileDevice ? 10 : 32, 
+    1500,
+    isMobileDevice
   );
   starfieldGroup.add(helixNebula.group);
   nebulae.push(helixNebula);
