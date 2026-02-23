@@ -88,7 +88,7 @@ export function isWithin1Degree(
     links.some((link: any) => {
       const s = getSafeId(link.source);
       const t = getSafeId(link.target);
-      return link.type === 'marriage' && 
+      return (link.type === 'marriage' || link.type === 'divorce') && 
              ((s === parentId && t === targetNodeId) || (t === parentId && s === targetNodeId));
     })
   );
@@ -157,9 +157,9 @@ export function get1DegreeNodesSync(
     const siblings = getChildren(parentId, links).filter(id => id !== userNodeId);
     siblings.forEach(id => oneDegreeIds.add(id));
     
-    // Parent's spouse
+    // Parent's spouse (marriage or divorce)
     links.forEach((link: any) => {
-      if (link.type === 'marriage') {
+      if (link.type === 'marriage' || link.type === 'divorce') {
         const s = getSafeId(link.source);
         const t = getSafeId(link.target);
         if (s === parentId && t) oneDegreeIds.add(t);
