@@ -174,8 +174,6 @@ export default function BulkInviteModal({
         const token = `invite-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
         const expiresAt = new Date(); expiresAt.setDate(expiresAt.getDate() + 7);
         
-        console.log(`[BulkInvite] Creating invite for ${relative.node.name} (${relative.node.id})`);
-        
         const res = await fetch(`${supabaseUrl}/rest/v1/node_invites`, {
           method: 'POST',
           headers: { 
@@ -196,11 +194,9 @@ export default function BulkInviteModal({
           results.push({ ...relative, generatedToken: token });
         } else {
           const errorData = await res.json().catch(() => ({}));
-          console.error('[BulkInvite] Error response:', res.status, errorData);
           lastError = errorData.message || `Error ${res.status}`;
         }
       } catch (err: any) { 
-        console.error('[BulkInvite] Fetch error:', err);
         lastError = err.message;
       }
     }

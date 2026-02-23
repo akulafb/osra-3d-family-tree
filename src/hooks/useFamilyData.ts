@@ -19,8 +19,6 @@ export function useFamilyData() {
       setIsLoading(true);
       setError(null);
 
-      console.log('[useFamilyData] Fetching nodes and links...');
-
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
@@ -56,8 +54,6 @@ export function useFamilyData() {
           },
         }
       );
-
-      console.log('[useFamilyData] Links response status:', linksResponse.status, linksResponse.statusText);
       
       if (!linksResponse.ok) {
         const errorText = await linksResponse.text();
@@ -66,7 +62,6 @@ export function useFamilyData() {
       }
 
       const linksData = await linksResponse.json();
-      console.log('[useFamilyData] Raw links count from API:', linksData?.length);
 
       if (!nodesData || nodesData.length === 0) {
         console.warn('[useFamilyData] No nodes returned from Supabase');
@@ -79,10 +74,7 @@ export function useFamilyData() {
         familyCluster: node.family_cluster || undefined,
       }));
 
-      const links: FamilyLink[] = (linksData || []).map((link: any, idx: number) => {
-        if (idx < 3) {
-          console.log(`[useFamilyData] Transforming link ${idx}:`, link);
-        }
+      const links: FamilyLink[] = (linksData || []).map((link: any) => {
         return {
           source: link.source_node_id,
           target: link.target_node_id,
@@ -90,10 +82,7 @@ export function useFamilyData() {
         };
       });
 
-      console.log('[useFamilyData] Transformed links count:', links.length);
-      
       setGraphData({ nodes, links });
-      console.log('[useFamilyData] Loaded:', { nodes: nodes.length, links: links.length });
       setIsLoading(false);
     } catch (err) {
       console.error('[useFamilyData] Error fetching family data:', err);
