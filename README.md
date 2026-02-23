@@ -369,7 +369,16 @@ We completed the "Osra Refinement" cycle:
 - **UI Consolidation**: Centralized selection UI in `FamilyTree.tsx` to fix overlaps and sync behavior (Collapse All, Double-Click) across 3D and 2D views.
 - **Control Sync**: Fixed zoom/trackpad responsiveness by updating `OrbitControls` in the navigation loop.
 
+**Phase 12: Security & UI Hardening**
+We completed the "Safety First" security cycle:
+- **One-Time Invites**: Implemented automatic invalidation of existing unclaimed invites when generating new ones.
+- **Identity Verification**: Added a confirmation screen for invitees ("Is this you?") with a soft "Alrighty then!" rejection flow to prevent accidental claims.
+- **Chatbot Gating**: Moved the Family Chat Bot inside the authenticated `FamilyTree` component, ensuring it is hidden from uninvited strangers and during initial loading.
+- **Hardened Sign-Out**: Fixed a session persistence bug by forcing `prompt: select_account` on Google sign-in and implementing a hard redirect on sign-out.
+- **Cleanup**: Centralized all node-selection UI and modals to prevent visual overlaps.
+
 **High-Level Learnings**
 - **Context is King**: Pre-processing data into human-readable formats is more effective for AI accuracy than simply using larger models.
 - **Centralized Animation**: High-performance 3D requires a single centralized loop to maintain a smooth frame rate as the network grows.
 - **Living History**: Immersive navigation and AI assistance transform a static database into an explorable family legacy.
+- **Friction as a Feature**: Strategic confirmation steps (like the "Is this you?" screen) provide essential security without sacrificing a premium user experience.
