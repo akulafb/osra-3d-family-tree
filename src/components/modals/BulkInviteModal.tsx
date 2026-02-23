@@ -169,6 +169,30 @@ export default function BulkInviteModal({
     const results: RelativeWithInvite[] = [];
     let lastError = '';
 
+    // Invalidate any existing unclaimed invites for the selected nodes
+    try {
+      const selectedNodeIds = selected.map(r => r.node.id).join(',');
+      const nowIso = new Date().toISOString();
+      await fetch(
+        `${supabaseUrl}/rest/v1/node_invites?node_id=in.(${selectedNodeIds})&claimed_by_user_id=is.null`,
+        {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            apikey: supabaseKey,
+            Authorization: `Bearer ${authToken}`,
+            Prefer: 'return=minimal',
+          },
+          body: JSON.stringify({
+            expires_at: nowIso,
+          }),
+        }
+      );
+    } catch (err) {
+      console.error('[BulkInvite] Failed to invalidate existing invites:', err);
+      // Continue anyway; failure to invalidate should not block new invites
+    }
+
     for (const relative of selected) {
       try {
         const token = `invite-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
