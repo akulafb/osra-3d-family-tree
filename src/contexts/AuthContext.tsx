@@ -127,6 +127,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         provider: 'google',
         options: {
           redirectTo: redirectUrl,
+          queryParams: {
+            prompt: 'select_account',
+          },
         },
       });
       if (error) throw error;
@@ -140,7 +143,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      // Explicitly clear all states for immediate UI reaction
+      setUser(null);
+      setSession(null);
       setUserProfile(null);
+      
+      // Force a clean state by redirecting to home
+      window.location.href = '/';
     } catch (error) {
       console.error('Error signing out:', error);
       throw error;

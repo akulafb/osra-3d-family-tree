@@ -9,6 +9,7 @@ import { canEdit } from '../lib/permissions';
 import AddRelativeModal from './modals/AddRelativeModal';
 import EditNodeModal from './modals/EditNodeModal';
 import BulkInviteModal from './modals/BulkInviteModal';
+import { FamilyChat } from './FamilyChat';
 
 export const FamilyTree: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -314,6 +315,9 @@ export const FamilyTree: React.FC = () => {
           />
         )}
       </div>
+
+      {/* Family Chat Bot */}
+      <FamilyChat />
     </div>
   );
 };
