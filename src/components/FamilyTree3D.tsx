@@ -8,6 +8,7 @@ import { FamilyGraph, FamilyNode } from '../types/graph';
 import { useAuth } from '../contexts/AuthContext';
 import { FamilyLink } from '../lib/permissions';
 import { createStarfield, type NebulaData } from '../utils/starfield';
+import { isMobile } from '../utils/device';
 
 // V3 Shared Assets
 const planetTextures = [
@@ -29,9 +30,9 @@ const planetTextures = [
 ];
 
 const textureLoader = new THREE.TextureLoader();
-const planetMaterialCache = new Map<string, THREE.MeshPhysicalMaterial>();
+const planetMaterialCache = new Map<string, THREE.Material>();
 
-const getPlanetMaterial = (nodeId: string) => {
+const getPlanetMaterial = (nodeId: string, isMobileDevice: boolean = false) => {
   let hash = 0;
   for (let i = 0; i < nodeId.length; i++) {
     hash = nodeId.charCodeAt(i) + ((hash << 5) - hash);
@@ -42,35 +43,56 @@ const getPlanetMaterial = (nodeId: string) => {
     const texture = textureLoader.load(texturePath);
     texture.colorSpace = THREE.SRGBColorSpace;
     
-    planetMaterialCache.set(texturePath, new THREE.MeshPhysicalMaterial({
-      map: texture,
-      roughness: 0.8,
-      metalness: 0.1,
-      clearcoat: 0.3,
-      clearcoatRoughness: 0.2,
-      transmission: 0,
-      thickness: 0,
-      side: THREE.FrontSide
-    }));
+    // Use Standard instead of Physical on mobile for performance
+    if (isMobileDevice) {
+      planetMaterialCache.set(texturePath, new THREE.MeshStandardMaterial({
+        map: texture,
+        roughness: 0.8,
+        metalness: 0.1,
+        side: THREE.FrontSide
+      }));
+    } else {
+      planetMaterialCache.set(texturePath, new THREE.MeshPhysicalMaterial({
+        map: texture,
+        roughness: 0.8,
+        metalness: 0.1,
+        clearcoat: 0.3,
+        clearcoatRoughness: 0.2,
+        transmission: 0,
+        thickness: 0,
+        side: THREE.FrontSide
+      }));
+    }
   }
   return planetMaterialCache.get(texturePath)!;
 };
 
-const materialCache = new Map<string, THREE.MeshPhysicalMaterial>();
-const getMaterial = (color: string) => {
+const materialCache = new Map<string, THREE.Material>();
+const getMaterial = (color: string, isMobileDevice: boolean = false) => {
   if (!materialCache.has(color)) {
-    materialCache.set(color, new THREE.MeshPhysicalMaterial({
-      color,
-      transparent: true,
-      opacity: 0.4,
-      roughness: 0.8,
-      metalness: 0.2,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.1,
-      transmission: 0.3,
-      thickness: 2,
-      side: THREE.DoubleSide
-    }));
+    if (isMobileDevice) {
+      materialCache.set(color, new THREE.MeshStandardMaterial({
+        color,
+        transparent: true,
+        opacity: 0.5,
+        roughness: 0.8,
+        metalness: 0.2,
+        side: THREE.DoubleSide
+      }));
+    } else {
+      materialCache.set(color, new THREE.MeshPhysicalMaterial({
+        color,
+        transparent: true,
+        opacity: 0.4,
+        roughness: 0.8,
+        metalness: 0.2,
+        clearcoat: 1.0,
+        clearcoatRoughness: 0.1,
+        transmission: 0.3,
+        thickness: 2,
+        side: THREE.DoubleSide
+      }));
+    }
   }
   return materialCache.get(color)!;
 };
@@ -168,11 +190,18 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   const ForceGraph3DAny = ForceGraph3D as unknown as React.ComponentType<any>;
   const { userProfile } = useAuth();
 
-  const geometries = useMemo(() => ({
-    sphere: new THREE.SphereGeometry(10, 16, 16),
-    aura: new THREE.SphereGeometry(18, 12, 12),
-    glow: new THREE.SphereGeometry(22, 12, 12)
-  }), []);
+  const geometries = useMemo(() => {
+    const isMob = isMobile();
+    // Reduce segments on mobile to save memory and draw calls
+    const segments = isMob ? 8 : 16;
+    const auraSegments = isMob ? 8 : 12;
+    
+    return {
+      sphere: new THREE.SphereGeometry(10, segments, segments),
+      aura: new THREE.SphereGeometry(18, auraSegments, auraSegments),
+      glow: new THREE.SphereGeometry(22, auraSegments, auraSegments)
+    };
+  }, []);
 
   const fgRef = useRef<any>();
   const starfieldRef = useRef<THREE.Group | null>(null);
@@ -784,16 +813,18 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   // Node UI
   const nodeThreeObject = useCallback((node: FamilyNode) => {
     try {
+      const isMob = isMobile();
       const isSelected = selectedNode?.id === node.id;
       const color = getClusterColor(node.familyCluster);
       const group = new THREE.Group();
 
       if (nodeTexture !== 'none') {
-        const material = nodeTexture === 'planets' ? getPlanetMaterial(node.id) : getMaterial(color);
+        const material = nodeTexture === 'planets' ? getPlanetMaterial(node.id, isMob) : getMaterial(color, isMob);
         const sphere = new THREE.Mesh(geometries.sphere, material);
         group.add(sphere);
 
-        const speedFactor = 0.5 + Math.random() * 0.5;
+        // Slow down rotation on mobile to save CPU
+        const speedFactor = (isMob ? 0.2 : 0.5) + Math.random() * 0.5;
         sphere.onBeforeRender = () => {
           const rot = rotationRef.current * speedFactor;
           sphere.rotation.y = rot;
@@ -821,7 +852,8 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
 
         const sprite = new SpriteText(displayName);
         sprite.color = '#ffffff';
-        sprite.textHeight = 4;
+        // Smaller text on mobile
+        sprite.textHeight = isMob ? 3.5 : 4;
         sprite.fontWeight = 'bold';
         sprite.position.set(0, 0, 0);
         sprite.renderOrder = 999;
@@ -920,11 +952,12 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
         }
 
         if (renderer) {
-          renderer.shadowMap.enabled = true;
+          renderer.shadowMap.enabled = !isMobile(); // Disable shadows on mobile
           renderer.setClearColor(0x0a0a0a, 1);
         }
 
-        const starfieldResult = createStarfield(scene);
+        const isMob = isMobile();
+        const starfieldResult = createStarfield(scene, isMob);
         starfieldRef.current = starfieldResult.group;
         nebulaeRef.current = starfieldResult.nebulae;
         scene.fog = new THREE.Fog(0x020205, 5000, 20000);
