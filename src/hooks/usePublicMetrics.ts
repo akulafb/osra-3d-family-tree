@@ -89,14 +89,7 @@ export function usePublicMetrics(): PublicMetrics {
         const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
         const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-        console.log('[usePublicMetrics] Starting fetch...', { 
-          hasUrl: !!supabaseUrl, 
-          hasKey: !!supabaseKey,
-          url: supabaseUrl?.substring(0, 30) + '...'
-        });
-
         if (!supabaseUrl || !supabaseKey) {
-          console.warn('[usePublicMetrics] Missing env vars');
           setMetrics({
             individuals: 0,
             families: 0,
@@ -108,7 +101,6 @@ export function usePublicMetrics(): PublicMetrics {
 
         // Call public RPC function (bypasses RLS)
         const rpcUrl = `${supabaseUrl}/rest/v1/rpc/get_public_metrics`;
-        console.log('[usePublicMetrics] Calling RPC:', rpcUrl);
         
         const rpcResponse = await fetch(rpcUrl, {
           method: 'POST',
@@ -120,29 +112,15 @@ export function usePublicMetrics(): PublicMetrics {
           body: JSON.stringify({}),
         });
 
-        console.log('[usePublicMetrics] RPC response status:', rpcResponse.status, rpcResponse.statusText);
-
         if (!rpcResponse.ok) {
-          const errorText = await rpcResponse.text();
-          console.error('[usePublicMetrics] RPC call failed:', {
-            status: rpcResponse.status,
-            statusText: rpcResponse.statusText,
-            error: errorText,
-          });
-          
+          await rpcResponse.text();
           throw new Error(`Failed to fetch metrics: ${rpcResponse.status} ${rpcResponse.statusText}`);
         }
 
         const metricsData = await rpcResponse.json();
-        console.log('[usePublicMetrics] RPC response:', metricsData);
 
         const individualCount = metricsData?.individuals || 0;
         const familyCount = metricsData?.families || 0;
-
-        console.log('[usePublicMetrics] Calculated metrics:', { 
-          individualCount, 
-          familyCount
-        });
 
         // Cache the results
         setCachedMetrics(individualCount, familyCount);

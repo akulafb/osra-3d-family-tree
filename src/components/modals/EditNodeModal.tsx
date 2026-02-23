@@ -71,8 +71,6 @@ export default function EditNodeModal({
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       const authToken = session?.access_token || supabaseKey;
 
-      console.log(`[EditNodeModal] Updating node ${targetNode.id}...`);
-
       const updateData: { name: string; family_cluster?: string | null } = {
         name: name.trim(),
       };
@@ -100,9 +98,6 @@ export default function EditNodeModal({
         const errData = await response.json().catch(() => ({}));
         throw new Error(errData.message || `Update failed with status ${response.status}`);
       }
-
-      const result = await response.json();
-      console.log('[EditNodeModal] Update result:', result);
 
       setSuccessMessage('Changes saved successfully!');
       onSuccess();

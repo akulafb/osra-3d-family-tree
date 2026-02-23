@@ -1,6 +1,6 @@
-# 3D Family Tree Visualization
+# Osra: 3D Family Tree Visualization
 
-An interactive 3D family tree visualization that transforms complex genealogical relationships into an immersive, explorable 3D space. Built with React, TypeScript, and Three.js, this application combines real-time 3D graphics with Supabase-powered authentication and fine-grained permission controls.
+An interactive 3D family tree visualization—branded as **Osra**—that transforms complex genealogical relationships into an immersive, explorable 3D space. Built with React, TypeScript, and Three.js, this application combines real-time 3D graphics with Supabase-powered authentication and fine-grained permission controls.
 
 ## Overview
 
@@ -73,22 +73,23 @@ Each solution unlocked the next challenge, building from a simple graph visualiz
 ## Features
 
 ### Family Chatbot
-- **Floating assistant (🤖)** in the 3D view for relationship questions. Uses person-centric context from your tree (human-readable profiles, not raw IDs). Toggle **cloud** (OpenRouter) or **local** (Ollama) LLM.
+- **Floating assistant (🤖)**: Now with **User Identification**—the bot knows who is signed in and can answer personal questions like "Who is my father?". Uses person-centric context from your tree. BE EXTREMELY CONCISE responses.
 
 ### Core Functionality
-- **3D Force-Directed Graph**: Physics-based layout using react-force-graph-3d
-- **Multi-Cluster Architecture**: Multiple family clusters spatially separated in 3D space
-- **Marriage Links**: Visual bridges connecting different family clusters
-- **Starship FPS Navigation**: Immersive mouse steering and WASD movement
-- **Dynamic Node Interaction**: Click-to-focus and Tab-based node cycling with a glowing aura
-- **Planetary Textures**: Realistic 3D planet skins for nodes with continuous rotation and dynamic lighting
-- **Multi-Style Rendering**: Toggle between Planets, futuristic metallic Spheres, or simple Labels
-- **True 3D Starfield**: Immersive 8K backdrop with multi-layered parallax stars and galactic dust core
-- **Procedural Nebulae**: High-detail, volumetric gaseous clouds (Trifid and Helix styles) with organic motion
-- **Cinematic Intro Zoom**: Dramatic 30,000-unit "fly-in" from deep space upon app entry
-- **Ambient Cosmic Music**: Immersive background audio synced with the cinematic entry (default ON)
-- **Celestial Body Mode**: Toggle links visibility to see family members as floating stars in deep space
-- **Clean UI**: Settings gear (⚙️) to hide/show controls for an unobstructed view
+- **3D Force-Directed Graph**: Physics-based layout using react-force-graph-3d.
+- **Regional Background Grouping**: In Family Presets, connected background sub-trees are automatically grouped behind their anchors using a Z-axis spiral spread to prevent collisions.
+- **Multi-Cluster Architecture**: Multiple family clusters spatially separated in 3D space.
+- **Marriage Links**: Visual bridges connecting different family clusters.
+- **Starship FPS Navigation**: Immersive mouse steering and WASD movement with fixed zoom/trackpad responsiveness.
+- **Dynamic Node Interaction**: Click-to-focus and Tab-based node cycling with a glowing aura.
+- **Planetary Textures**: Realistic 3D planet skins for nodes with continuous rotation and dynamic lighting.
+- **Multi-Style Rendering**: Toggle between Planets, futuristic metallic Spheres, or simple Labels.
+- **True 3D Starfield**: Immersive 8K backdrop with multi-layered parallax stars and galactic dust core.
+- **Procedural Nebulae**: High-detail, volumetric gaseous clouds (Trifid and Helix styles) with organic motion.
+- **Cinematic Intro Zoom**: Dramatic 30,000-unit "fly-in" from deep space upon app entry.
+- **Ambient Cosmic Music**: Immersive background audio synced with the cinematic entry (default ON).
+- **Celestial Body Mode**: Toggle links visibility to see family members as floating stars in deep space.
+- **Clean UI**: Centralized selection panel and settings gear (⚙️) for an unobstructed view across 3D and 2D modes.
 
 ### Navigation Controls
 - **E**: Toggle Steering Engine (Enable/Disable Mouse Look)
@@ -146,17 +147,13 @@ src/
 │   ├── modals/                   # AddRelative, EditNode, BulkInvite modals
 │   └── landing/                  # Landing page sections
 │       ├── LandingPage.tsx       # Main landing orchestrator
-│       ├── HeroSection.tsx       # Hero with scroll indicator
-│       ├── SequenceViewer.tsx    # Scroll-driven frame player
 │       ├── HangarTransition.tsx  # Post-sequence CTA
-│       ├── HowItWorks.tsx        # 4-step process cards
-│       └── MetricsSection.tsx    # Animated stats counters
+│       └── HowItWorks.tsx        # 4-step process cards
 ├── contexts/
 │   └── AuthContext.tsx           # Authentication state management
 ├── hooks/
 │   ├── useFamilyData.ts          # Family tree data fetching logic
-│   ├── useFamilyChat.ts          # Chatbot logic and LLM orchestration
-│   └── useImageSequence.ts       # Frame preloading for landing
+│   └── useFamilyChat.ts          # Chatbot logic and LLM orchestration
 ├── lib/
 │   ├── supabase.ts               # Supabase client configuration
 │   └── permissions.ts            # 1-degree permission helpers
@@ -171,8 +168,6 @@ src/
 │   └── graph.ts                  # Graph data structures
 ├── App.tsx                       # Route definitions
 └── main.tsx                      # Application entry point
-
-public/frames/                    # Landing page sequence (001.png - 100.png)
 supabase-policies.sql             # RLS policies and helper functions
 supabase-seed.sql                 # Sample family tree data
 ```
@@ -363,14 +358,16 @@ We completed the "Infinity and Beyond" upgrade:
 **Phase 10: The Immersive Deep Space Experience**
 We completed the "Cosmic Cinematic" upgrade:
 - **Nebulae**: Added procedural, multi-colored gaseous nebulae.
-    - **Tech**: Used Fractal Brownian Motion (FBM) with 7-octave Perlin noise for high-fidelity gas textures.
-    - **Art**: Implemented distinct "Trifid" (pink/blue) and "Helix" (teal/orange) styles with organic independent layer rotation.
 - **8K Visuals**: Upgraded the environment to an 8K Starfield background.
-    - **Detail**: Exposed the galactic dust core and enabled high-quality environment reflections on all family planets.
-- **Cinematics**: Built a synchronized Intro experience.
-    - **Motion**: Camera now performs a dramatic 30,000-unit "fly-in" from deep space with exponential deceleration.
-    - **Sound**: Integrated "Cosmic Ambience" audio that swells in perfectly as the zoom starts (on by default).
-- **Hardening**: Fixed camera reset logic to preserve the immersive focus distance after the intro ends.
+- **Cinematics**: Built a synchronized Intro experience with 30,000-unit fly-in and audio.
+
+**Phase 11: OSRA Rebranding & Spatial Intelligence**
+We completed the "Osra Refinement" cycle:
+- **Branding**: App renamed to **Osra** with cursive bold styling in loading states.
+- **Spatial Intelligence**: Implemented **Regional Background Grouping** in 3D presets. Whole background sub-trees now follow their anchors into Z-depth "corridors" using a spiral anti-collision layout.
+- **AI Personalization**: Chatbot now identifies the signed-in user for first-person queries ("my cousins") and provides extremely concise answers.
+- **UI Consolidation**: Centralized selection UI in `FamilyTree.tsx` to fix overlaps and sync behavior (Collapse All, Double-Click) across 3D and 2D views.
+- **Control Sync**: Fixed zoom/trackpad responsiveness by updating `OrbitControls` in the navigation loop.
 
 **High-Level Learnings**
 - **Context is King**: Pre-processing data into human-readable formats is more effective for AI accuracy than simply using larger models.

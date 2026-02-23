@@ -28,8 +28,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Fetch user profile from the users table using raw fetch (avoid websocket hang)
   const fetchUserProfile = async (userId: string, authToken?: string) => {
     try {
-      console.log('[AuthContext] Fetching profile for user:', userId);
-      
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
@@ -54,10 +52,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
       
       if (data && data.length > 0) {
-        console.log('[AuthContext] Profile loaded:', { node_id: data[0].node_id, role: data[0].role });
         setUserProfile(data[0]);
       } else {
-        console.log('[AuthContext] No profile found for user');
         setUserProfile(null);
       }
       
@@ -72,23 +68,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize auth state
   useEffect(() => {
-    console.log('[AuthContext] Initializing...');
-    
     let isSubscribed = true;
     
     // Get initial session - use supabase.auth which is separate from REST API
     // Note: auth.getSession() doesn't rely on the problematic websocket
-    console.log('[AuthContext] Fetching initial session...');
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (!isSubscribed) return;
-      
-      console.log('[AuthContext] Initial session result:', session ? 'Session found' : 'No session');
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchUserProfile(session.user.id, session.access_token);
       } else {
-        console.log('[AuthContext] No user in session, ending loading state.');
         setIsLoading(false);
       }
     }).catch((error) => {
@@ -104,13 +94,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       if (!isSubscribed) return;
       
-      console.log('[AuthContext] Auth state changed:', _event);
-      
       // Only update if user actually changed or signed out
       const newUserId = newSession?.user?.id ?? null;
       
       if (newUserId === lastUserId && _event === 'SIGNED_IN') {
-        console.log('[AuthContext] Same user, skipping duplicate fetch');
         return;
       }
       
@@ -136,8 +123,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Ensure customRedirect is a string (prevents issues if passed directly to onClick)
       const redirectUrl = typeof customRedirect === 'string' ? customRedirect : window.location.origin;
-      console.log('[AuthContext] Initiating Google Sign-In with redirect:', redirectUrl);
-      
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

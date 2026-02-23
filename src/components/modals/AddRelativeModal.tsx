@@ -60,8 +60,6 @@ export default function AddRelativeModal({
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       const authToken = session?.access_token || supabaseKey;
-
-      console.log(`[AddRelativeModal] Calling create_relative_secure RPC...`);
       const response = await fetch(`${supabaseUrl}/rest/v1/rpc/create_relative_secure`, {
         method: 'POST',
         headers: {
@@ -83,13 +81,10 @@ export default function AddRelativeModal({
       }
 
       const result = await response.json();
-      console.log('[AddRelativeModal] RPC Result:', result);
 
       if (!result.success) {
         throw new Error(result.message || 'Failed to create relative');
       }
-
-      console.log('[AddRelativeModal] Success! New Node ID:', result.new_node_id);
       onSuccess();
       onClose();
     } catch (err) {
