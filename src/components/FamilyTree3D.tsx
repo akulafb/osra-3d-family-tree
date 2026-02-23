@@ -410,8 +410,8 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
           }
         } else if (t === id && s && clusterNodeIds.has(s)) {
           if (!levels.has(s)) {
-            const nextLevel = link.type === 'marriage' ? level : level - 1;
-            if (link.type === 'marriage') {
+            const nextLevel = (link.type === 'marriage' || link.type === 'divorce') ? level : level - 1;
+            if (link.type === 'marriage' || link.type === 'divorce') {
               levels.set(s, nextLevel);
               queue.push({ id: s, level: nextLevel });
             }
@@ -967,8 +967,8 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
         nodeThreeObject={nodeThreeObject}
         linkThreeObject={linkThreeObject}
         linkPositionUpdate={linkPositionUpdate}
-        linkDistance={(l: any) => activePreset ? (l.type === 'marriage' ? 450 : 250) : (l.type === 'marriage' ? 250 : 120)}
-        linkStrength={(l: any) => activePreset ? 0.1 : (l.type === 'marriage' ? 0.3 : 0.8)}
+        linkDistance={(l: any) => activePreset ? ((l.type === 'marriage' || l.type === 'divorce') ? 450 : 250) : ((l.type === 'marriage' || l.type === 'divorce') ? 250 : 120)}
+        linkStrength={(l: any) => activePreset ? 0.1 : ((l.type === 'marriage' || l.type === 'divorce') ? 0.3 : 0.8)}
         ref={fgRef}
         cooldownTicks={activePreset ? 600 : 200}
         onEngineStop={() => setIsSimulationLoading(false)}
