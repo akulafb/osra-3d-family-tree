@@ -109,7 +109,7 @@
     { "source": 21, "target": 24, "type": "parent" },
     { "source": 23, "target": 25, "type": "marriage" },
     { "source": 23, "target": 26, "type": "parent" },
-    { "source": 27, "target": 24, "type": "marriage" },
+    { "source": 27, "target": 24, "type": "divorce" },
     { "source": 27, "target": 28, "type": "parent" },
     { "source": 27, "target": 29, "type": "parent" },
     { "source": 28, "target": 30, "type": "marriage" },
