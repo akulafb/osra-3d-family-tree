@@ -526,17 +526,103 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       currentRootLeft += rootWidth * horizontalSpread;
     });
 
-    // Push non-cluster nodes back
+    // Push non-cluster nodes back, but stagger those connected to the cluster (including their local branches)
+    const processedNonClusterNodes = new Set<string>();
+    
+    // 1. Identify "bridge nodes" - non-cluster nodes directly connected to the active cluster
+    const bridgeNodes: { node: any, anchorNode: any }[] = [];
     graphData.nodes.forEach((node: any) => {
       if (node.familyCluster !== clusterName) {
+        const connection = graphData.links.find(l => {
+          const sId = getNodeId(l.source);
+          const tId = getNodeId(l.target);
+          if (sId === node.id && clusterNodeIds.has(tId)) return true;
+          if (tId === node.id && clusterNodeIds.has(sId)) return true;
+          return false;
+        });
+
+        if (connection) {
+          const anchorId = clusterNodeIds.has(getNodeId(connection.source)) 
+            ? getNodeId(connection.source) 
+            : getNodeId(connection.target);
+          const anchorNode = graphData.nodes.find(n => n.id === anchorId) as any;
+          if (anchorNode && typeof anchorNode.fx === 'number') {
+            bridgeNodes.push({ node, anchorNode });
+          }
+        }
+      }
+    });
+
+    // 2. For each bridge node, find its local branch of other non-cluster nodes and position them together
+    const anchorCounters = new Map<string, number>();
+    
+    bridgeNodes.forEach(({ node, anchorNode }) => {
+      if (processedNonClusterNodes.has(node.id)) return;
+
+      // BFS to find the connected local branch of non-cluster nodes
+      const localBranch: any[] = [];
+      const queue = [node.id];
+      const visitedInBFS = new Set<string>([node.id]);
+
+      while (queue.length > 0) {
+        const currentId = queue.shift()!;
+        const currentNode = graphData.nodes.find(n => n.id === currentId);
+        if (currentNode) localBranch.push(currentNode);
+        processedNonClusterNodes.add(currentId);
+
+        graphData.links.forEach(l => {
+          const sId = getNodeId(l.source);
+          const tId = getNodeId(l.target);
+          let neighborId = null;
+          if (sId === currentId) neighborId = tId;
+          else if (tId === currentId) neighborId = sId;
+
+          if (neighborId && !visitedInBFS.has(neighborId)) {
+            const neighborNode = graphData.nodes.find(n => n.id === neighborId);
+            // Only traverse into other non-cluster nodes
+            if (neighborNode && neighborNode.familyCluster !== clusterName) {
+              visitedInBFS.add(neighborId);
+              queue.push(neighborId);
+            }
+          }
+        });
+      }
+
+      // Position the entire local branch behind the anchor
+      const anchorId = anchorNode.id;
+      localBranch.forEach((branchNode, index) => {
+        const count = (anchorCounters.get(anchorId) || 0) + 1;
+        anchorCounters.set(anchorId, count);
+
+        // All nodes in this branch share the anchor's X/Y region
+        // but are spread out slightly in X/Y and staggered in Z
+        const staggerZ = -300 - (count * 200);
+        // Add a small spiral/circular spread in X/Y so they aren't perfectly linear
+        const angle = index * 0.5;
+        const radius = 40 + (index * 15);
+        const offsetX = Math.cos(angle) * radius;
+        const offsetY = Math.sin(angle) * radius;
+
+        branchNode.fx = anchorNode.fx + offsetX;
+        branchNode.fy = anchorNode.fy + offsetY;
+        branchNode.fz = staggerZ;
+        branchNode.x = anchorNode.fx + offsetX;
+        branchNode.y = anchorNode.fy + offsetY;
+        branchNode.z = staggerZ;
+      });
+    });
+
+    // 3. Default background position for any remaining unconnected non-cluster nodes
+    graphData.nodes.forEach((node: any) => {
+      if (node.familyCluster !== clusterName && !processedNonClusterNodes.has(node.id)) {
         const safeX = (typeof node.x === 'number' && !isNaN(node.x)) ? node.x : (Math.random() - 0.5) * 2000;
         const safeY = (typeof node.y === 'number' && !isNaN(node.y)) ? node.y : (Math.random() - 0.5) * 2000;
         node.fx = safeX;
         node.fy = safeY;
-        node.fz = -600;
+        node.fz = -1500; // Push even further back
         node.x = safeX;
         node.y = safeY;
-        node.z = -600;
+        node.z = -1500;
       }
     });
 
