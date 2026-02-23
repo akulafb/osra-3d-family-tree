@@ -18,6 +18,16 @@ export default function InvitePage() {
   const [inviteStatus, setInviteStatus] = useState<InviteStatus>('loading');
   const [inviteData, setInviteData] = useState<any>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [declinedIdentity, setDeclinedIdentity] = useState<boolean>(false);
+  const [confirmedIdentity, setConfirmedIdentity] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    if (!token) return false;
+    try {
+      return window.sessionStorage.getItem(`invite_confirmed_identity_${token}`) === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   // Validate the invite
   useEffect(() => {
@@ -54,7 +64,7 @@ export default function InvitePage() {
           setInviteStatus('not_found');
           return;
         }
-        
+
         const data = await response.json();
 
         // RPC returns null when no row found
@@ -80,6 +90,21 @@ export default function InvitePage() {
 
         setInviteStatus('valid');
         setInviteData(data);
+
+        // Reset any previous decline state when a fresh invite validates
+        setDeclinedIdentity(false);
+
+        // Persist invite data for UX continuity across auth redirects
+        try {
+          if (token) {
+            window.sessionStorage.setItem(
+              `invite_data_${token}`,
+              JSON.stringify(data)
+            );
+          }
+        } catch {
+          // Non-fatal if sessionStorage is unavailable
+        }
       } catch (err) {
         if (cancelled) return;
         setInviteStatus('error');
@@ -96,10 +121,10 @@ export default function InvitePage() {
 
   // Auto-claim when user logs in
   useEffect(() => {
-    if (user && inviteStatus === 'valid' && inviteData) {
+    if (user && inviteStatus === 'valid' && inviteData && confirmedIdentity) {
       claimInvite();
     }
-  }, [user, inviteStatus, inviteData]);
+  }, [user, inviteStatus, inviteData, confirmedIdentity]);
 
   const claimInvite = async () => {
     if (!user || !inviteData || !token) return;
@@ -158,6 +183,16 @@ export default function InvitePage() {
         return;
       }
 
+      // Clear any invite confirmation/session markers on success
+      try {
+        if (token) {
+          window.sessionStorage.removeItem(`invite_confirmed_identity_${token}`);
+          window.sessionStorage.removeItem(`invite_data_${token}`);
+        }
+      } catch {
+        // Ignore storage errors
+      }
+
       // Success! Redirect with hard reload to ensure fresh auth context
       window.location.href = '/';
       
@@ -177,43 +212,115 @@ export default function InvitePage() {
         );
 
       case 'valid':
-        if (!user) {
+        if (!user || !confirmedIdentity) {
+          const displayName = inviteData?.node_name ?? 'a family member';
+
+          const handleYes = () => {
+            try {
+              if (token) {
+                window.sessionStorage.setItem(
+                  `invite_confirmed_identity_${token}`,
+                  'true'
+                );
+              }
+            } catch {
+              // Non-fatal if storage fails
+            }
+            setConfirmedIdentity(true);
+            setDeclinedIdentity(false);
+
+            if (!user) {
+              // Proceed to auth; redirect back to this invite URL
+              signInWithGoogle(window.location.href);
+            } else {
+              // Already signed in and now confirmed; claim immediately
+              claimInvite();
+            }
+          };
+
+          const handleNo = () => {
+            try {
+              if (token) {
+                window.sessionStorage.removeItem(
+                  `invite_confirmed_identity_${token}`
+                );
+                window.sessionStorage.removeItem(`invite_data_${token}`);
+              }
+            } catch {
+              // Ignore storage errors
+            }
+            setConfirmedIdentity(false);
+            setInviteStatus('error');
+            setDeclinedIdentity(true);
+            setErrorMessage(
+              "This invite appears to be for someone else. Please contact your family member to get the correct link."
+            );
+          };
+
           return (
             <div style={{ textAlign: 'center' }}>
               <h1 style={{ fontSize: '2.5rem', marginBottom: '20px' }}>
                 You're Invited!
               </h1>
               <p style={{ fontSize: '1.2rem', marginBottom: '10px' }}>
-                You've been invited to join the family tree as:
+                You are being invited to claim this profile in the family tree:
               </p>
-              <p style={{ 
-                fontSize: '1.8rem', 
-                fontWeight: 'bold', 
-                color: '#667eea',
-                marginBottom: '30px'
-              }}>
-                {inviteData?.node_name ?? 'a family member'}
-              </p>
-              <button
-                onClick={() => signInWithGoogle(window.location.href)}
+              <p
                 style={{
-                  padding: '15px 40px',
-                  fontSize: '1.1rem',
-                  background: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
+                  fontSize: '1.8rem',
                   fontWeight: 'bold',
                   color: '#667eea',
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+                  marginBottom: '16px',
                 }}
               >
-                Sign in with Google to Accept
-              </button>
+                {displayName}
+              </p>
+              <p style={{ fontSize: '1.1rem', marginBottom: '24px' }}>
+                Is this you?
+              </p>
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: '12px',
+                }}
+              >
+                <button
+                  onClick={handleYes}
+                  style={{
+                    padding: '12px 32px',
+                    fontSize: '1rem',
+                    background: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    color: '#667eea',
+                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                  }}
+                >
+                  Yes, continue
+                </button>
+                <button
+                  onClick={handleNo}
+                  style={{
+                    padding: '12px 24px',
+                    fontSize: '0.95rem',
+                    background: 'transparent',
+                    border: '1px solid rgba(255,255,255,0.6)',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    color: 'white',
+                  }}
+                >
+                  No, this isn't me
+                </button>
+              </div>
             </div>
           );
         }
-        return null; // Will auto-claim when user is present
+        return null; // Will auto-claim when user is present and identity confirmed
 
       case 'claiming':
         return (
@@ -277,6 +384,39 @@ export default function InvitePage() {
         );
 
       case 'error':
+        if (declinedIdentity) {
+          const displayName = inviteData?.node_name ?? 'this profile';
+          return (
+            <div style={{ textAlign: 'center' }}>
+              <h1
+                style={{
+                  fontSize: '2.3rem',
+                  marginBottom: '16px',
+                  color: '#fb7185', // soft rose
+                }}
+              >
+                Alrighty then!
+              </h1>
+              <p style={{ fontSize: '1.1rem', marginBottom: '8px' }}>
+                We won&apos;t claim this profile:
+              </p>
+              <p
+                style={{
+                  fontSize: '1.4rem',
+                  fontWeight: 600,
+                  color: 'rgba(249, 250, 251, 0.9)', // lighter name for contrast
+                  marginBottom: '20px',
+                }}
+              >
+                {displayName}
+              </p>
+              <p style={{ fontSize: '0.95rem', opacity: 0.85 }}>
+                If this invite was meant for someone else, feel free to close this
+                tab and ask your family member to resend the correct link.
+              </p>
+            </div>
+          );
+        }
         return (
           <div style={{ textAlign: 'center' }}>
             <h1 style={{ fontSize: '2.5rem', marginBottom: '20px', color: '#ef4444' }}>
