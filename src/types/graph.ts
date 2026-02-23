@@ -11,7 +11,7 @@ export interface FamilyNode {
 export interface FamilyLink {
   source: string;  // UUID
   target: string;  // UUID
-  type: 'parent' | 'marriage';
+  type: 'parent' | 'marriage' | 'divorce';
 }
 
 export interface FamilyGraph {
@@ -31,7 +31,7 @@ export interface Node2D extends FamilyNode {
 export interface Link2D {
   source: Node2D;
   target: Node2D;
-  type: 'parent' | 'marriage';
+  type: 'parent' | 'marriage' | 'divorce';
   path: string;
 }
 

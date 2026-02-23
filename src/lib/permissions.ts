@@ -4,7 +4,7 @@
 import { FamilyNode, FamilyLink } from '../types/graph';
 export type { FamilyNode, FamilyLink };
 
-export type RelationshipType = 'self' | 'parent' | 'child' | 'spouse' | 'sibling' | 'unrelated';
+export type RelationshipType = 'self' | 'parent' | 'child' | 'spouse' | 'sibling' | 'divorce' | 'unrelated';
 
 /**
  * SYNCHRONOUS version: Check if current user can edit a specific node
@@ -88,7 +88,7 @@ export function isWithin1Degree(
     links.some((link: any) => {
       const s = getSafeId(link.source);
       const t = getSafeId(link.target);
-      return link.type === 'marriage' && 
+      return (link.type === 'marriage' || link.type === 'divorce') && 
              ((s === parentId && t === targetNodeId) || (t === parentId && s === targetNodeId));
     })
   );
@@ -157,9 +157,9 @@ export function get1DegreeNodesSync(
     const siblings = getChildren(parentId, links).filter(id => id !== userNodeId);
     siblings.forEach(id => oneDegreeIds.add(id));
     
-    // Parent's spouse
+    // Parent's spouse (marriage or divorce)
     links.forEach((link: any) => {
-      if (link.type === 'marriage') {
+      if (link.type === 'marriage' || link.type === 'divorce') {
         const s = getSafeId(link.source);
         const t = getSafeId(link.target);
         if (s === parentId && t) oneDegreeIds.add(t);
@@ -189,7 +189,7 @@ export function get1DegreeNodesSync(
 export function canCreateLink(
   sourceNodeId: string,
   targetNodeId: string,
-  _linkType: 'parent' | 'sibling' | 'marriage', // Prefix with underscore to ignore unused
+  _linkType: 'parent' | 'sibling' | 'marriage' | 'divorce', // Prefix with underscore to ignore unused
   userNodeId: string | null | undefined,
   isAdmin: boolean,
   existingLinks: FamilyLink[]
@@ -199,7 +199,7 @@ export function canCreateLink(
   const exists = existingLinks.some((link: any) => {
     const s = getSafeId(link.source);
     const t = getSafeId(link.target);
-    return (s === sourceNodeId && t === targetNodeId) || (s === targetNodeId && s === targetNodeId);
+    return (s === sourceNodeId && t === targetNodeId) || (s === targetNodeId && t === sourceNodeId);
   });
   if (exists) return { allowed: false, reason: 'Exists' };
 

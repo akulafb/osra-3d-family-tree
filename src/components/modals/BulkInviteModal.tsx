@@ -56,7 +56,7 @@ export default function BulkInviteModal({
         }) as any;
         
         if (link) {
-          if (link.type === 'marriage') relationship = 'Spouse';
+          if (link.type === 'marriage' || link.type === 'divorce') relationship = 'Spouse';
           else if (link.type === 'parent') {
             const sourceId = typeof link.source === 'object' ? link.source.id : link.source;
             relationship = sourceId === nodeId ? 'Parent' : 'Child';
@@ -80,7 +80,7 @@ export default function BulkInviteModal({
               linksCopy.some((l: any) => {
                 const s = typeof l.source === 'object' ? l.source.id : l.source;
                 const t = typeof l.target === 'object' ? l.target.id : l.target;
-                return l.type === 'marriage' && ((s === parentId && t === nodeId) || (t === parentId && s === nodeId));
+                return (l.type === 'marriage' || l.type === 'divorce') && ((s === parentId && t === nodeId) || (t === parentId && s === nodeId));
               })
             );
             if (isParentsSpouse) relationship = 'Parent';

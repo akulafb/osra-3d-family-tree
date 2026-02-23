@@ -60,7 +60,7 @@ export interface Database {
           id: string; // UUID
           source_node_id: string; // UUID
           target_node_id: string; // UUID
-          type: 'parent' | 'marriage';
+          type: 'parent' | 'marriage' | 'divorce';
           created_by_user_id: string; // UUID
           created_at: string;
         };
@@ -68,7 +68,7 @@ export interface Database {
           id?: string;
           source_node_id: string;
           target_node_id: string;
-          type: 'parent' | 'marriage';
+          type: 'parent' | 'marriage' | 'divorce';
           created_by_user_id: string;
           created_at?: string;
         };
@@ -76,7 +76,7 @@ export interface Database {
           id?: string;
           source_node_id?: string;
           target_node_id?: string;
-          type?: 'parent' | 'marriage';
+          type?: 'parent' | 'marriage' | 'divorce';
           created_by_user_id?: string;
           created_at?: string;
         };

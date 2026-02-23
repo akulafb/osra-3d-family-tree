@@ -410,8 +410,8 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
           }
         } else if (t === id && s && clusterNodeIds.has(s)) {
           if (!levels.has(s)) {
-            const nextLevel = link.type === 'marriage' ? level : level - 1;
-            if (link.type === 'marriage') {
+            const nextLevel = (link.type === 'marriage' || link.type === 'divorce') ? level : level - 1;
+            if (link.type === 'marriage' || link.type === 'divorce') {
               levels.set(s, nextLevel);
               queue.push({ id: s, level: nextLevel });
             }
@@ -967,8 +967,8 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
         nodeThreeObject={nodeThreeObject}
         linkThreeObject={linkThreeObject}
         linkPositionUpdate={linkPositionUpdate}
-        linkDistance={(l: any) => activePreset ? (l.type === 'marriage' ? 450 : 250) : (l.type === 'marriage' ? 250 : 120)}
-        linkStrength={(l: any) => activePreset ? 0.1 : (l.type === 'marriage' ? 0.3 : 0.8)}
+        linkDistance={(l: any) => activePreset ? ((l.type === 'marriage' || l.type === 'divorce') ? 450 : 250) : ((l.type === 'marriage' || l.type === 'divorce') ? 250 : 120)}
+        linkStrength={(l: any) => activePreset ? 0.1 : ((l.type === 'marriage' || l.type === 'divorce') ? 0.3 : 0.8)}
         ref={fgRef}
         cooldownTicks={activePreset ? 600 : 200}
         onEngineStop={() => setIsSimulationLoading(false)}
@@ -987,11 +987,16 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
           }
         }}
         onBackgroundClick={onBackgroundClick}
-        linkColor={(l: any) => l.type === 'marriage' ? '#f59e0b' : '#60a5fa'}
-        linkWidth={(l: any) => l.type === 'marriage' ? 3 : 1.5}
+        linkColor={(l: any) => {
+          if (l.type === 'marriage') return '#f59e0b';
+          if (l.type === 'divorce') return '#9ca3af';
+          return '#60a5fa';
+        }}
+        linkWidth={(l: any) => (l.type === 'marriage' || l.type === 'divorce') ? 3 : 1.5}
+        linkDashArray={(l: any) => l.type === 'divorce' ? [3, 2] : null}
         linkOpacity={showLinks ? 0.4 : 0}
         linkCurvature={(l: any) => {
-          if (!activePreset) return l.type === 'marriage' ? 0.3 : 0;
+          if (!activePreset) return (l.type === 'marriage' || l.type === 'divorce') ? 0.3 : 0;
           
           const sourceCluster = typeof l.source === 'object' ? l.source.familyCluster : null;
           const targetCluster = typeof l.target === 'object' ? l.target.familyCluster : null;

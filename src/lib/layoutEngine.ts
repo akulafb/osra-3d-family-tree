@@ -57,7 +57,7 @@ function buildHierarchy(
       const parents = parentsOf.get(targetId) || [];
       parents.push(sourceId);
       parentsOf.set(targetId, parents);
-    } else if (link.type === 'marriage') {
+    } else if (link.type === 'marriage' || link.type === 'divorce') {
       marriages.set(sourceId, targetId);
       marriages.set(targetId, sourceId);
     }
@@ -392,10 +392,10 @@ export function calculateRadialLayout(
 function generateOrthogonalPath(
   source: Node2D,
   target: Node2D,
-  type: 'parent' | 'marriage',
+  type: 'parent' | 'marriage' | 'divorce',
   _config: LayoutConfig
 ): string {
-  if (type === 'marriage') {
+  if (type === 'marriage' || type === 'divorce') {
     // Horizontal connection between spouses
     const sourceRight = source.x + source.width / 2;
     const targetLeft = target.x - target.width / 2;

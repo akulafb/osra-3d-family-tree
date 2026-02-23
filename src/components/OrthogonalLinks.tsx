@@ -51,17 +51,18 @@ export const OrthogonalLinks: React.FC<OrthogonalLinksProps> = ({
           link.target.familyCluster === activePreset;
 
         const isMarriage = link.type === 'marriage';
+        const isDivorce = link.type === 'divorce';
 
-        // Marriage links are gold, parent links use family color or blue
+        // Marriage links are gold, divorce links are gray, parent links use family color or blue
         const baseColor = isMarriage
           ? '#f59e0b'
-          : getClusterColor(link.source.familyCluster);
+          : (isDivorce ? '#9ca3af' : getClusterColor(link.source.familyCluster));
 
-        const strokeWidth = isMarriage ? 2.5 : 1.5;
-        const opacity = isMarriage ? 0.8 : 0.6;
+        const strokeWidth = (isMarriage || isDivorce) ? 2.5 : 1.5;
+        const opacity = (isMarriage || isDivorce) ? 0.8 : 0.6;
 
         // Dim links not in the active preset
-        const finalOpacity = activePreset && !isInActiveCluster && !isMarriage
+        const finalOpacity = activePreset && !isInActiveCluster && !isMarriage && !isDivorce
           ? 0.15
           : opacity;
 
@@ -73,6 +74,7 @@ export const OrthogonalLinks: React.FC<OrthogonalLinksProps> = ({
             strokeWidth={strokeWidth}
             fill="none"
             opacity={finalOpacity}
+            strokeDasharray={isDivorce ? "5,5" : "none"}
             strokeLinecap="round"
             strokeLinejoin="round"
             style={{
