@@ -677,15 +677,15 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
             }
           }
 
-          // 3. Keyboard Rotation (Q/E)
-          let kbYaw = 0;
-          if (keysPressed.current['q']) kbYaw += turnSpeed;
-          if (keysPressed.current['e']) kbYaw -= turnSpeed;
+          // 3. Keyboard Roll (Q/E)
+          let kbRoll = 0;
+          if (keysPressed.current['q']) kbRoll -= turnSpeed;
+          if (keysPressed.current['e']) kbRoll += turnSpeed;
 
-          if (kbYaw !== 0) {
-            const direction = new THREE.Vector3().subVectors(controls.target, camera.position);
-            direction.applyAxisAngle(camera.up, kbYaw);
-            controls.target.addVectors(camera.position, direction);
+          if (kbRoll !== 0) {
+            const forward = new THREE.Vector3();
+            camera.getWorldDirection(forward);
+            camera.up.applyAxisAngle(forward, kbRoll);
           }
 
           // 2. Thrust/Strafe (WASD)
@@ -1200,7 +1200,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
             <div style={{ lineHeight: '1.6' }}>
               <div><span style={{ color: isSteeringActive ? '#10b981' : '#fbbf24', fontWeight: 600 }}>R</span>: Mouse Steering <span style={{ color: isSteeringActive ? '#10b981' : '#fbbf24' }}>({isSteeringActive ? 'ACTIVE' : 'LOCKED'})</span></div>
               <div><span style={{ color: '#fff', fontWeight: 600 }}>WASD</span>: Move (Hold <span style={{ color: '#fff', fontWeight: 600 }}>Shift</span> for Boost)</div>
-              <div><span style={{ color: '#fff', fontWeight: 600 }}>Q / E</span>: Rotate Left / Right</div>
+              <div><span style={{ color: '#fff', fontWeight: 600 }}>Q / E</span>: Roll View L / R</div>
               <div><span style={{ color: '#fff', fontWeight: 600 }}>Tab</span>: Cycle Names</div>
               <div><span style={{ color: '#fff', fontWeight: 600 }}>Enter</span>: Focus selection</div>
               <div><span style={{ color: '#fff', fontWeight: 600 }}>Esc</span>: Deselect</div>
