@@ -717,7 +717,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
           document.activeElement?.tagName === 'INPUT' || 
           document.activeElement?.tagName === 'TEXTAREA') return;
       
-      if (key === 'e') {
+      if (key === 'r') {
         setIsSteeringActive(prev => !prev);
       } else if (key === 'tab') {
         e.preventDefault();
@@ -1187,7 +1187,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
               <div style={{ fontSize: '0.8rem' }}>👁️</div>
             </div>
             <div style={{ lineHeight: '1.6' }}>
-              <div><span style={{ color: isSteeringActive ? '#10b981' : '#fbbf24', fontWeight: 600 }}>E</span>: Mouse Steering <span style={{ color: isSteeringActive ? '#10b981' : '#fbbf24' }}>({isSteeringActive ? 'ACTIVE' : 'LOCKED'})</span></div>
+              <div><span style={{ color: isSteeringActive ? '#10b981' : '#fbbf24', fontWeight: 600 }}>R</span>: Mouse Steering <span style={{ color: isSteeringActive ? '#10b981' : '#fbbf24' }}>({isSteeringActive ? 'ACTIVE' : 'LOCKED'})</span></div>
               <div><span style={{ color: '#fff', fontWeight: 600 }}>WASD</span>: Move (Hold <span style={{ color: '#fff', fontWeight: 600 }}>Shift</span> for Boost)</div>
               <div><span style={{ color: '#fff', fontWeight: 600 }}>Tab</span>: Cycle Names</div>
               <div><span style={{ color: '#fff', fontWeight: 600 }}>Enter</span>: Focus selection</div>
