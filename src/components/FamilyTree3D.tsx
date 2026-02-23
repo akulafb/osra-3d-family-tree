@@ -893,7 +893,20 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
         linkColor={(l: any) => l.type === 'marriage' ? '#f59e0b' : '#60a5fa'}
         linkWidth={(l: any) => l.type === 'marriage' ? 3 : 1.5}
         linkOpacity={showLinks ? 0.4 : 0}
-        linkCurvature={(l: any) => activePreset ? 0 : (l.type === 'marriage' ? 0.3 : 0)}
+        linkCurvature={(l: any) => {
+          if (!activePreset) return l.type === 'marriage' ? 0.3 : 0;
+          
+          const sourceCluster = typeof l.source === 'object' ? l.source.familyCluster : null;
+          const targetCluster = typeof l.target === 'object' ? l.target.familyCluster : null;
+          
+          // Only parent links WITHIN the active preset family should be straight
+          if (l.type === 'parent' && sourceCluster === activePreset && targetCluster === activePreset) {
+            return 0;
+          }
+          
+          // Everything else (marriage links, background families, inter-family links) should be curved/flexible
+          return 0.3;
+        }}
         linkDirectionalArrowLength={(l: any) => (showArrows && l.type === 'parent') ? 8 : 0}
         linkDirectionalArrowColor={() => '#60a5fa'}
         showNavInfo={false}
