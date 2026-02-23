@@ -4,7 +4,7 @@
 import { FamilyNode, FamilyLink } from '../types/graph';
 export type { FamilyNode, FamilyLink };
 
-export type RelationshipType = 'self' | 'parent' | 'child' | 'spouse' | 'sibling' | 'unrelated';
+export type RelationshipType = 'self' | 'parent' | 'child' | 'spouse' | 'sibling' | 'divorce' | 'unrelated';
 
 /**
  * SYNCHRONOUS version: Check if current user can edit a specific node
@@ -189,7 +189,7 @@ export function get1DegreeNodesSync(
 export function canCreateLink(
   sourceNodeId: string,
   targetNodeId: string,
-  _linkType: 'parent' | 'sibling' | 'marriage', // Prefix with underscore to ignore unused
+  _linkType: 'parent' | 'sibling' | 'marriage' | 'divorce', // Prefix with underscore to ignore unused
   userNodeId: string | null | undefined,
   isAdmin: boolean,
   existingLinks: FamilyLink[]
