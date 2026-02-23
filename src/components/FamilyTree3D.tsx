@@ -677,6 +677,17 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
             }
           }
 
+          // 3. Keyboard Rotation (Q/E)
+          let kbYaw = 0;
+          if (keysPressed.current['q']) kbYaw += turnSpeed;
+          if (keysPressed.current['e']) kbYaw -= turnSpeed;
+
+          if (kbYaw !== 0) {
+            const direction = new THREE.Vector3().subVectors(controls.target, camera.position);
+            direction.applyAxisAngle(camera.up, kbYaw);
+            controls.target.addVectors(camera.position, direction);
+          }
+
           // 2. Thrust/Strafe (WASD)
           const moveSpeed = keysPressed.current['shift'] ? baseSpeed * boostMultiplier : baseSpeed;
           const forward = new THREE.Vector3();
