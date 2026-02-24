@@ -1,4 +1,5 @@
 import { Routes, Route } from 'react-router-dom';
+import { Analytics } from '@vercel/analytics/react';
 import HomePage from './pages/HomePage';
 import InvitePage from './pages/InvitePage';
 
@@ -9,6 +10,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/invite/:token" element={<InvitePage />} />
       </Routes>
+      <Analytics />
     </>
   );
 }
