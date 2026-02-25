@@ -8,47 +8,18 @@ The goal is to create a collaborative family tree platform where multiple family
 
 ## System Architecture
 
-![System Architecture](./docs/Architecture.svg)
+![System Architecture](./docs/System%20Architecture.svg)
 
 The system architecture diagram above illustrates the complete flow from the browser-based React frontend through authentication, data management, and backend services to the 3D visualization and AI chat components.
 
-## Building Story
-
-This project was built progressively, with each step unlocking the next capability:
-
-```mermaid
-graph TD
-    A[Goal: Visualize<br/>family relationships] --> B[Need: Network<br/>structure]
-    B --> C[Force-directed<br/>graphs]
-    C --> D[Need: 3D<br/>separation]
-    D --> E[react-force-<br/>graph-3d]
-    
-    E --> F[Need: Multi-<br/>user collab]
-    F --> G[Supabase +<br/>OAuth]
-    G --> H[Need: Privacy<br/>controls]
-    H --> I[Node binding<br/>system]
-    
-    I --> J[Need: Permission<br/>enforcement]
-    J --> K[PostgreSQL<br/>RLS policies]
-    K --> L[Need: Controlled<br/>onboarding]
-    L --> M[Invite token<br/>system]
-    
-    M --> N[Need: Visual<br/>clarity]
-    N --> O[Color-coded<br/>links]
-    O --> P[Need: Intuitive<br/>navigation]
-    P --> Q[Starship FPS<br/>controls]
-    Q --> R[Result: Secure<br/>3D family tree]
-
-    classDef needStyle fill:#f8f9fa,stroke:#adb5bd,stroke-width:1px
-    classDef solutionStyle fill:#e9ecef,stroke:#6c757d,stroke-width:1px
-    classDef goalStyle fill:#f0f4f8,stroke:#7c8fa0,stroke-width:2px
-    
-    class A,R goalStyle
-    class B,D,F,H,J,L,N,P needStyle
-    class C,E,G,I,K,M,O,Q solutionStyle
-```
+<div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+  <img src="./docs/UX1.svg" alt="Landing & Onboarding" width="400" height="400" style="object-fit: contain;" />
+  <img src="./docs/UX2.svg" alt="Visual World, Navigation, Permissions & AI Chat" width="420" height="420" style="object-fit: contain;" />
+</div>
 
 ### The Flow
+
+This project was built progressively, with each step unlocking the next capability.
 
 1. **Started with the visualization challenge**: Family trees are networks, not hierarchies—we needed a layout that could handle complex interconnections, so we chose **force-directed graphs** where physics naturally clusters related nodes
 
