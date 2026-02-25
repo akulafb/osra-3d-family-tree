@@ -52,34 +52,11 @@ export function HangarTransition({ onSignIn }: HangarTransitionProps) {
           width: '50%',
           height: '100%',
           background: 'linear-gradient(90deg, #0a0a0a 0%, #111 100%)',
-          borderRight: '1px solid rgba(102,126,234,0.2)',
           x: doorLeftX,
           opacity: doorOpacity,
           zIndex: 5,
         }}
-      >
-        {/* Door detail lines */}
-        <div
-          style={{
-            position: 'absolute',
-            right: '20%',
-            top: '10%',
-            bottom: '10%',
-            width: '2px',
-            background: 'linear-gradient(180deg, transparent, rgba(102,126,234,0.3), transparent)',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            right: '40%',
-            top: '20%',
-            bottom: '20%',
-            width: '1px',
-            background: 'linear-gradient(180deg, transparent, rgba(102,126,234,0.2), transparent)',
-          }}
-        />
-      </motion.div>
+      />
 
       <motion.div
         style={{
@@ -89,34 +66,11 @@ export function HangarTransition({ onSignIn }: HangarTransitionProps) {
           width: '50%',
           height: '100%',
           background: 'linear-gradient(270deg, #0a0a0a 0%, #111 100%)',
-          borderLeft: '1px solid rgba(102,126,234,0.2)',
           x: doorRightX,
           opacity: doorOpacity,
           zIndex: 5,
         }}
-      >
-        {/* Door detail lines */}
-        <div
-          style={{
-            position: 'absolute',
-            left: '20%',
-            top: '10%',
-            bottom: '10%',
-            width: '2px',
-            background: 'linear-gradient(180deg, transparent, rgba(102,126,234,0.3), transparent)',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            left: '40%',
-            top: '20%',
-            bottom: '20%',
-            width: '1px',
-            background: 'linear-gradient(180deg, transparent, rgba(102,126,234,0.2), transparent)',
-          }}
-        />
-      </motion.div>
+      />
 
       {/* Background glow */}
       <div

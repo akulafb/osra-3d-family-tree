@@ -27,14 +27,14 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
     setHeroHidden(latest < 0.01);
   });
 
-  // Scroll overlays fade in after hero is gone (3-8%)
-  const overlaysOpacity = useTransform(scrollYProgress, [0.03, 0.08], [0, 1]);
+  // Scroll overlays fade in after hero, then fade out before hangar
+  const overlaysOpacity = useTransform(scrollYProgress, [0.03, 0.08, 0.88, 0.92], [0, 1, 1, 0]);
 
   // Starfield is visible throughout
   const starfieldOpacity = useTransform(scrollYProgress, [0, 0.05], [0, 1]);
 
-  // Hangar section appears at the end
-  const hangarOpacity = useTransform(scrollYProgress, [0.85, 0.95], [0, 1]);
+  // Hangar section appears after step 4 is fully visible
+  const hangarOpacity = useTransform(scrollYProgress, [0.90, 0.97], [0, 1]);
   const hangarPointerEvents = useTransform(hangarOpacity, (v) => (v > 0.01 ? 'auto' : 'none'));
 
   return (

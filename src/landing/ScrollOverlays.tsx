@@ -29,14 +29,11 @@ const HOW_IT_WORKS_STEPS = [
 
 // How It Works overlays - displayed as glowing violet cards during scroll
 export function ScrollOverlays({ scrollProgress }: ScrollOverlaysProps) {
-  // Step 1: 15% - 30% (15% duration)
-  const step1Opacity = useTransform(scrollProgress, [0.15, 0.18, 0.27, 0.3], [0, 1, 1, 0]);
-  // Step 2: 35% - 50% (15% duration)
-  const step2Opacity = useTransform(scrollProgress, [0.35, 0.38, 0.47, 0.5], [0, 1, 1, 0]);
-  // Step 3: 55% - 70% (15% duration)
-  const step3Opacity = useTransform(scrollProgress, [0.55, 0.58, 0.67, 0.7], [0, 1, 1, 0]);
-  // Step 4: 75% - 90% (15% duration)
-  const step4Opacity = useTransform(scrollProgress, [0.75, 0.78, 0.87, 0.9], [0, 1, 1, 0]);
+  // Each card fades in and stays visible; the next card layers on top.
+  const step1Opacity = useTransform(scrollProgress, [0.15, 0.18], [0, 1]);
+  const step2Opacity = useTransform(scrollProgress, [0.35, 0.38], [0, 1]);
+  const step3Opacity = useTransform(scrollProgress, [0.55, 0.58], [0, 1]);
+  const step4Opacity = useTransform(scrollProgress, [0.75, 0.78], [0, 1]);
 
   const stepOpacities = [step1Opacity, step2Opacity, step3Opacity, step4Opacity];
 
