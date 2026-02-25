@@ -35,6 +35,7 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
 
   // Hangar section appears at the end
   const hangarOpacity = useTransform(scrollYProgress, [0.85, 0.95], [0, 1]);
+  const hangarPointerEvents = useTransform(hangarOpacity, (v) => (v > 0.01 ? 'auto' : 'none'));
 
   return (
     <div
@@ -248,6 +249,7 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
           alignItems: 'center',
           justifyContent: 'center',
           opacity: hangarOpacity,
+          pointerEvents: hangarPointerEvents,
           background: '#0a0a0a',
         }}
       >
