@@ -8,7 +8,7 @@ The goal is to create a collaborative family tree platform where multiple family
 
 ## System Architecture
 
-![System Architecture](./docs/3DFT%20System%20Arch.svg)
+![System Architecture](./docs/Architecture.svg)
 
 The system architecture diagram above illustrates the complete flow from the browser-based React frontend through authentication, data management, and backend services to the 3D visualization and AI chat components.
 
