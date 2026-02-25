@@ -139,10 +139,9 @@ function CameraController({ scrollYProgress }: CameraControllerProps) {
     velocityRef.current = delta;
     lastProgress.current = progress;
 
-    // Map scroll progress to camera z-position
-    // Start at z=5, move back to z=-30 as user scrolls
+    // Gentle camera drift — keep stars at consistent brightness
     const startZ = 10;
-    const endZ = -40;
+    const endZ = 5;
     const targetZ = startZ + (endZ - startZ) * progress;
 
     camera.position.z = THREE.MathUtils.lerp(camera.position.z, targetZ, 0.05);
