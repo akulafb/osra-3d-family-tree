@@ -28,3 +28,4 @@ Optional:
 - Lint (`npm run lint`) exits with code 1 due to pre-existing `@typescript-eslint/no-explicit-any` errors; this is expected.
 - The Supabase client in `src/lib/supabase.ts` throws immediately if env vars are empty strings or undefined, so `.env.local` must exist with at least placeholder values.
 - No Docker or local database setup is needed — all backend is Supabase cloud.
+- **Landing page CSS layering bug**: The Hangar section (`zIndex: 30`, `position: fixed`, `inset: 0`) covers the hero section (`zIndex: 10`) at all scroll positions. Since CSS `opacity: 0` does not disable pointer-events, the invisible Hangar overlay blocks clicks on the hero "Sign in with Google" button. To test OAuth, navigate directly to `${VITE_SUPABASE_URL}/auth/v1/authorize?provider=google&redirect_to=http://localhost:5173` or scroll to the very bottom where the Hangar section becomes visible with its own sign-in button.
