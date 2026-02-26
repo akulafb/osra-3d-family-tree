@@ -9,7 +9,6 @@ export interface ViewModeState {
 }
 
 export function useViewMode() {
-  // Initialize from localStorage or default to '3D'
   const [mode, setMode] = useState<'3D' | '2D'>('3D');
   const [layout, setLayout] = useState<LayoutType>('tree');
   const [isHydrated, setIsHydrated] = useState(false);

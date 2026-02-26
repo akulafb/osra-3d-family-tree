@@ -44,7 +44,9 @@ For local sign-in to work:
 1. Open [Supabase Dashboard](https://supabase.com/dashboard) → **Osra 3D Family Tree - DEV**
 2. Go to **Authentication** → **Providers** → **Google**
 3. Enable Google and add your OAuth credentials
-4. Under **Redirect URLs**, add: `http://localhost:5173` (and `http://127.0.0.1:5173` if needed)
+4. Under **URL Configuration**:
+   - **Redirect URLs**: Add `http://localhost:5173`, `http://127.0.0.1:5173`, and for mobile testing `http://YOUR_IP:5173` (e.g. `http://192.168.0.154:5173`). Find your IP with `ipconfig getifaddr en0` (Mac).
+   - **Site URL**: For mobile testing on same Wi‑Fi, temporarily set to `http://YOUR_IP:5173`. Supabase falls back to Site URL when redirectTo doesn't match; changing it ensures OAuth redirects to your phone. Change back to `http://localhost:5173` when done.
 
 ## Verification
 

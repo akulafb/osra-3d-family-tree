@@ -1,29 +1,37 @@
+import { lazy, Suspense } from 'react';
 import { FamilyTree } from '../components/FamilyTree';
-import { LandingPage } from '../landing/LandingPage';
 import { useAuth } from '../contexts/AuthContext';
+
+const LandingPage = lazy(() => import('../landing/LandingPage'));
 
 export default function HomePage() {
   const { user, isLoading, signInWithGoogle, signOut, isBound } = useAuth();
 
   if (isLoading) {
     return (
-      <div style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        color: 'white',
-        background: '#0a0a0a'
-      }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '100vh',
+          minHeight: '100vh',
+          color: 'white',
+          background: '#0a0a0a',
+        }}
+        aria-busy="true"
+      >
         Loading <span style={{ fontFamily: 'cursive', fontWeight: 'bold' }}>Osra</span>...
       </div>
     );
   }
 
-  // If not logged in, show the new landing page
+  // If not logged in, show the new landing page (lazy loaded)
   if (!user) {
     return (
-      <LandingPage onSignIn={signInWithGoogle} />
+      <Suspense fallback={<div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#0a0a0a', color: '#fff' }}>Loading...</div>}>
+        <LandingPage onSignIn={() => signInWithGoogle(window.location.origin)} />
+      </Suspense>
     );
   }
 

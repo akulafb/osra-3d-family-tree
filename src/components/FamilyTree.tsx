@@ -10,6 +10,7 @@ import AddRelativeModal from './modals/AddRelativeModal';
 import EditNodeModal from './modals/EditNodeModal';
 import BulkInviteModal from './modals/BulkInviteModal';
 import { FamilyChat } from './FamilyChat';
+import { isMobile } from '../utils/device';
 
 export const FamilyTree: React.FC = () => {
   const { user, userProfile } = useAuth();
@@ -80,26 +81,35 @@ export const FamilyTree: React.FC = () => {
 
   if (!isHydrated || isLoading) {
     return (
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: '100%',
-        height: '100vh',
-        background: '#0a0a0a',
-        color: '#fff',
-      }}>
-        <div style={{ textAlign: 'center' }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          height: '100vh',
+          minHeight: '100vh',
+          background: '#0a0a0a',
+          color: '#fff',
+        }}
+        aria-busy="true"
+        aria-live="polite"
+      >
+        <div style={{ textAlign: 'center', minWidth: '200px' }}>
           <div>Loading <span style={{ fontFamily: 'cursive', fontWeight: 'bold' }}>Osra</span> Family Tree...</div>
-          <div style={{
-            width: '40px',
-            height: '40px',
-            border: '4px solid rgba(255,255,255,0.3)',
-            borderTop: '4px solid #3b82f6',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '16px auto',
-          }} />
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              border: '4px solid rgba(255,255,255,0.3)',
+              borderTop: '4px solid #3b82f6',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '16px auto',
+            }}
+            role="status"
+            aria-label="Loading"
+          />
         </div>
       </div>
     );
@@ -303,6 +313,7 @@ export const FamilyTree: React.FC = () => {
             graphData={graphData}
             layoutType="tree"
             activePreset={activePreset}
+            isMobile={isMobile()}
             selectedNodeId={selectedNode?.id || null}
             onNodeSelect={handleNodeSelect}
             onBackgroundClick={handleBackgroundClick}

@@ -273,9 +273,9 @@ export function createStarfield(scene: THREE.Scene, isMobileDevice: boolean = fa
   const starfieldGroup = new THREE.Group();
   const textureLoader = new THREE.TextureLoader();
 
-  // 1. Resolution-aware Background & Environment
-  const starTexturePath = isMobileDevice 
-    ? '/planet-textures/stars.jpg' 
+  // 1. Resolution-aware Background & Environment (unchanged - max quality)
+  const starTexturePath = isMobileDevice
+    ? '/planet-textures/stars.jpg'
     : '/planet-textures/8K Stars Texture.jpg';
 
   textureLoader.load(starTexturePath, (texture) => {

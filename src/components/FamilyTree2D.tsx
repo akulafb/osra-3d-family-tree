@@ -22,6 +22,7 @@ interface FamilyTree2DProps {
   onModeChange?: (mode: '3D' | '2D') => void;
   uniqueClusters: string[];
   onPresetSelect: (preset: string | null) => void;
+  isMobile?: boolean;
 }
 
 // Helper to get robust node ID from string or object
@@ -130,6 +131,7 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
   onModeChange,
   uniqueClusters,
   onPresetSelect,
+  isMobile = false,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
@@ -318,12 +320,24 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
           width: '100%',
           height: '100%',
           color: '#fff',
-          fontSize: '1.5rem',
+          fontSize: '1rem',
           textAlign: 'center',
+          padding: '24px',
         }}>
-          <div>
-            <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🌳</div>
-            <div>Select a family above to view in 2D</div>
+          <div style={{ maxWidth: '320px' }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '16px' }}>🌳</div>
+            {isMobile ? (
+              <>
+                <div style={{ marginBottom: '12px', lineHeight: 1.5 }}>
+                  Select a family above to explore, or try the <strong>3D view</strong> for a richer experience.
+                </div>
+                <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>
+                  Visit on desktop for the full immersive 3D experience.
+                </div>
+              </>
+            ) : (
+              <div>Select a family above to view in 2D</div>
+            )}
           </div>
         </div>
       ) : (

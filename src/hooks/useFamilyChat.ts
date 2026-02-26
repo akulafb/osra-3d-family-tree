@@ -6,6 +6,8 @@ import { formatFamilyData } from '../utils/familyContext';
 import { useFamilyData } from './useFamilyData';
 import { useAuth } from '../contexts/AuthContext';
 
+const MAX_DISPLAYED_MESSAGES = 50;
+
 export function useFamilyChat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -75,9 +77,8 @@ Family Data:
 ${familyContext}`
       };
 
-      // We only send the last few messages to keep the context window manageable if needed, 
-      // but here we send the whole history for simplicity since it's a small chat.
-      const llmResponse = await callLLM([systemPrompt, ...messages, userMessage]);
+      const recentMessages = messages.slice(-20);
+      const llmResponse = await callLLM([systemPrompt, ...recentMessages, userMessage]);
 
       const assistantMessage: Message = { role: 'assistant', content: llmResponse };
       setMessages(prev => [...prev, assistantMessage]);
@@ -94,8 +95,10 @@ ${familyContext}`
     setError(null);
   }, []);
 
+  const displayedMessages = messages.slice(-MAX_DISPLAYED_MESSAGES);
+
   return {
-    messages,
+    messages: displayedMessages,
     isLoading,
     error,
     sendMessage,
