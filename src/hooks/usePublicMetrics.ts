@@ -113,8 +113,9 @@ export function usePublicMetrics(): PublicMetrics {
         });
 
         if (!rpcResponse.ok) {
-          await rpcResponse.text();
-          throw new Error(`Failed to fetch metrics: ${rpcResponse.status} ${rpcResponse.statusText}`);
+          const text = await rpcResponse.text();
+          console.error('[usePublicMetrics] RPC failed:', rpcResponse.status, text);
+          throw new Error('Failed to fetch metrics');
         }
 
         const metricsData = await rpcResponse.json();

@@ -12,6 +12,8 @@ interface AddRelativeModalProps {
 
 type RelationshipType = 'parent' | 'child' | 'spouse' | 'sibling';
 
+const MAX_NAME_LENGTH = 200;
+
 export default function AddRelativeModal({
   isOpen,
   onClose,
@@ -51,7 +53,8 @@ export default function AddRelativeModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !name.trim()) return;
+    const sanitizedName = name.trim().slice(0, MAX_NAME_LENGTH);
+    if (!user || !sanitizedName) return;
 
     setIsSubmitting(true);
     setError(null);
@@ -68,7 +71,7 @@ export default function AddRelativeModal({
           'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify({
-          new_node_name: name.trim(),
+          new_node_name: sanitizedName,
           rel_type: relationship,
           target_node_id: targetNode.id,
           creator_id: user.id
@@ -89,7 +92,7 @@ export default function AddRelativeModal({
       onClose();
     } catch (err) {
       console.error('[AddRelativeModal] Error:', err);
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setError('Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -108,9 +111,10 @@ export default function AddRelativeModal({
             <input 
               type="text" 
               value={name} 
-              onChange={(e) => setName(e.target.value)} 
+              onChange={(e) => setName(e.target.value.slice(0, MAX_NAME_LENGTH))} 
               placeholder="e.g. John Doe"
               style={inputStyle}
+              maxLength={MAX_NAME_LENGTH}
               required
             />
           </div>

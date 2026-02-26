@@ -227,7 +227,8 @@ export default function BulkInviteModal({
 
     setIsGenerating(false);
     if (!results.length) {
-      setError(`Failed to create invites: ${lastError || 'Unknown error'}`);
+      console.error('[BulkInvite] Failed to create invites:', lastError);
+      setError('Failed to create invites. Please try again.');
     } else {
       setRelatives(prev => prev.map(r => {
         const res = results.find(res => res.node.id === r.node.id);

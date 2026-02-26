@@ -38,15 +38,17 @@ async function callOpenRouter(messages: Message[]): Promise<string> {
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(`OpenRouter error: ${errorData.error?.message || response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      const detail = errorData.error?.message || response.statusText;
+      console.error('OpenRouter error:', detail);
+      throw new Error('Unable to get a response. Please try again.');
     }
 
     const data = await response.json();
     return data.choices[0].message.content;
   } catch (err) {
     console.error('Error calling OpenRouter:', err);
-    throw err;
+    throw new Error('Unable to get a response. Please try again.');
   }
 }
 
@@ -65,14 +67,14 @@ async function callOllama(messages: Message[]): Promise<string> {
     });
 
     if (!response.ok) {
-      throw new Error(`Ollama error: ${response.statusText}`);
+      console.error('Ollama error:', response.statusText);
+      throw new Error('Unable to get a response. Please try again.');
     }
 
     const data = await response.json();
     return data.message.content;
   } catch (err) {
     console.error('Error calling Ollama:', err);
-    const detail = err instanceof Error ? err.message : String(err);
-    throw new Error(`Ollama connection failed (${detail}). Ensure Ollama is running on localhost:11434 with OLLAMA_ORIGINS="*"`);
+    throw new Error('Unable to get a response. Please try again.');
   }
 }

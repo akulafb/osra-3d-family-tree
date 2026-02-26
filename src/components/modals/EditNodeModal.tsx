@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { FamilyNode } from '../../types/graph';
 
+const MAX_NAME_LENGTH = 200;
+const MAX_CLUSTER_LENGTH = 100;
+
 interface EditNodeModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -60,7 +63,8 @@ export default function EditNodeModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user || !name.trim()) return;
+    const sanitizedName = name.trim().slice(0, MAX_NAME_LENGTH);
+    if (!user || !sanitizedName) return;
 
     setIsSubmitting(true);
     setError(null);
@@ -72,12 +76,13 @@ export default function EditNodeModal({
       const authToken = session?.access_token || supabaseKey;
 
       const updateData: { name: string; family_cluster?: string | null } = {
-        name: name.trim(),
+        name: sanitizedName,
       };
 
       // Only include family_cluster if admin (regular users shouldn't change clusters)
-      if (isAdmin && familyCluster.trim()) {
-        updateData.family_cluster = familyCluster.trim();
+      const sanitizedCluster = familyCluster.trim().slice(0, MAX_CLUSTER_LENGTH);
+      if (isAdmin && sanitizedCluster) {
+        updateData.family_cluster = sanitizedCluster;
       }
 
       const response = await fetch(
@@ -108,7 +113,7 @@ export default function EditNodeModal({
       }, 1500);
     } catch (err) {
       console.error('[EditNodeModal] Error:', err);
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setError('Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -127,9 +132,10 @@ export default function EditNodeModal({
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={(e) => setName(e.target.value.slice(0, MAX_NAME_LENGTH))}
               placeholder="e.g. John - Smith"
               style={inputStyle}
+              maxLength={MAX_NAME_LENGTH}
               required
               disabled={isSubmitting}
             />
@@ -147,9 +153,10 @@ export default function EditNodeModal({
               <input
                 type="text"
                 value={familyCluster}
-                onChange={(e) => setFamilyCluster(e.target.value)}
+                onChange={(e) => setFamilyCluster(e.target.value.slice(0, MAX_CLUSTER_LENGTH))}
                 placeholder="e.g. Badran, Kutob, etc."
                 style={inputStyle}
+                maxLength={MAX_CLUSTER_LENGTH}
                 disabled={isSubmitting}
               />
               <p style={{ margin: '5px 0 0 0', fontSize: '0.8rem', color: '#888' }}>
