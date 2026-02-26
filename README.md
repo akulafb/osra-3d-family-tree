@@ -180,15 +180,11 @@ npm run dev
 
 ### Database Setup
 
-1. Run the schema and RLS policies in your Supabase SQL Editor:
+1. Apply migrations and seed data in your Supabase SQL Editor (or via Supabase CLI):
 
-```bash
-# Apply the RLS policies
-supabase-policies.sql
-
-# (Optional) Seed with sample data
-supabase-seed.sql
-```
+   - Run migrations in `supabase/migrations/` in order (schema, RLS policies, indexes, etc.)
+   - See `supabase-policies.sql` for policy reference (policies are applied via migrations)
+   - Optionally run `supabase-seed.sql` for sample family tree data
 
 2. Configure Google OAuth in Supabase Dashboard:
    - Navigate to Authentication > Providers

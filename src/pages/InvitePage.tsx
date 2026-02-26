@@ -11,6 +11,12 @@ type InviteStatus =
   | 'claiming' 
   | 'error';
 
+const INVITE_TOKEN_REGEX = /^[a-zA-Z0-9_-]{10,64}$/;
+
+function isValidInviteToken(t: string | undefined): t is string {
+  return !!t && INVITE_TOKEN_REGEX.test(t);
+}
+
 export default function InvitePage() {
   const { token } = useParams<{ token: string }>();
   const { user, session, signInWithGoogle } = useAuth();
@@ -31,7 +37,7 @@ export default function InvitePage() {
 
   // Validate the invite
   useEffect(() => {
-    if (!token) {
+    if (!isValidInviteToken(token)) {
       setInviteStatus('not_found');
       return;
     }

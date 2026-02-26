@@ -38,7 +38,8 @@ export function useFamilyData() {
       );
 
       if (!nodesResponse.ok) {
-        throw new Error(`Failed to fetch nodes: ${nodesResponse.statusText}`);
+        console.error('[useFamilyData] Nodes fetch failed:', nodesResponse.status, nodesResponse.statusText);
+        throw new Error('Failed to load family data');
       }
 
       const nodesData = await nodesResponse.json();
@@ -57,8 +58,8 @@ export function useFamilyData() {
       
       if (!linksResponse.ok) {
         const errorText = await linksResponse.text();
-        console.error('[useFamilyData] Links fetch failed:', errorText);
-        throw new Error(`Failed to fetch links: ${linksResponse.statusText}`);
+        console.error('[useFamilyData] Links fetch failed:', linksResponse.status, errorText);
+        throw new Error('Failed to load family data');
       }
 
       const linksData = await linksResponse.json();
@@ -86,7 +87,7 @@ export function useFamilyData() {
       setIsLoading(false);
     } catch (err) {
       console.error('[useFamilyData] Error fetching family data:', err);
-      setError(err instanceof Error ? err.message : 'Failed to load family data');
+      setError('Failed to load family data');
       setIsLoading(false);
     }
   };

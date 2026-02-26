@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { useFamilyChat } from '../hooks/useFamilyChat';
 
+const MAX_CHAT_INPUT_LENGTH = 2000;
+
 export const FamilyChat: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [inputValue, setInputValue] = useState('');
@@ -23,9 +25,9 @@ export const FamilyChat: React.FC = () => {
 
   const handleSend = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!inputValue.trim() || isLoading) return;
+    const query = inputValue.trim().slice(0, MAX_CHAT_INPUT_LENGTH);
+    if (!query || isLoading) return;
 
-    const query = inputValue;
     setInputValue('');
     await sendMessage(query);
   };
@@ -146,8 +148,9 @@ export const FamilyChat: React.FC = () => {
               <input
                 type="text"
                 value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
+                onChange={(e) => setInputValue(e.target.value.slice(0, MAX_CHAT_INPUT_LENGTH))}
                 placeholder="Who are my maternal cousins?"
+                maxLength={MAX_CHAT_INPUT_LENGTH}
                 style={{
                   flex: 1,
                   backgroundColor: '#1a1a1a',
