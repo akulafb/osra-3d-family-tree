@@ -9,9 +9,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { FamilyLink } from '../lib/permissions';
 import { createStarfield, type NebulaData } from '../utils/starfield';
 import { isMobile } from '../utils/device';
+import { getTexturePath } from '../utils/imageFormat';
 
-// V3 Shared Assets
-const planetTextures = [
+// V3 Shared Assets - paths resolved at runtime for WebP when supported
+const planetTexturePaths = [
   '/planet-textures/earth.jpg',
   '/planet-textures/jupiter.jpg',
   '/planet-textures/mars.jpg',
@@ -26,7 +27,7 @@ const planetTextures = [
   '/planet-textures/Eris Fictional Texture.jpg',
   '/planet-textures/Haumea Texture.jpg',
   '/planet-textures/Makemake Texture.jpg',
-  '/planet-textures/Gemini Fictional.png'
+  '/planet-textures/Gemini Fictional.png',
 ];
 
 const textureLoader = new THREE.TextureLoader();
@@ -37,7 +38,8 @@ const getPlanetMaterial = (nodeId: string, isMobileDevice: boolean = false) => {
   for (let i = 0; i < nodeId.length; i++) {
     hash = nodeId.charCodeAt(i) + ((hash << 5) - hash);
   }
-  const texturePath = planetTextures[Math.abs(hash) % planetTextures.length];
+  const rawPath = planetTexturePaths[Math.abs(hash) % planetTexturePaths.length];
+  const texturePath = isMobileDevice ? getTexturePath(rawPath) : rawPath;
 
   if (!planetMaterialCache.has(texturePath)) {
     const texture = textureLoader.load(texturePath);
