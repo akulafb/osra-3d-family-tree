@@ -3,19 +3,11 @@
 -- ============================================================================
 -- This script populates the database with test family tree data
 -- Run this in Supabase SQL Editor after applying the RLS policies
+--
+-- Note: public.users requires id to exist in auth.users. Sign in with Google
+-- first, then claim an invite to create your user record. The placeholder
+-- UUID below is used only for created_by_user_id in nodes/links (no FK).
 -- ============================================================================
-
--- First, let's create a temporary admin user ID for seeding
--- Replace this with your actual Google OAuth user ID after first login
-DO $$
-DECLARE
-  admin_user_id UUID := '00000000-0000-0000-0000-000000000001'; -- Placeholder
-BEGIN
-  -- Create placeholder admin user (will be replaced after real OAuth)
-  INSERT INTO users (id, node_id, role, created_at)
-  VALUES (admin_user_id, NULL, 'admin', NOW())
-  ON CONFLICT (id) DO NOTHING;
-END $$;
 
 -- ============================================================================
 -- SEED NODES (People in the family tree)

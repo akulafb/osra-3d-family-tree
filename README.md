@@ -165,12 +165,14 @@ cd 3d-family-tree
 npm install
 ```
 
-3. Create a `.env.local` file with your Supabase credentials:
+3. Create a `.env.local` file with your **development** Supabase credentials (copy from `.env.example`):
 
 ```bash
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_SUPABASE_URL=https://your-dev-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your_dev_anon_key
 ```
+
+   **Important:** Use your dev project credentials for local development so `npm run dev` does not write to production. See [docs/DEV_VS_PROD_DATABASE.md](docs/DEV_VS_PROD_DATABASE.md) for full setup.
 
 4. Run the development server:
 
