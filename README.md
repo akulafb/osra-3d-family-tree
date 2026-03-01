@@ -61,6 +61,7 @@ Each solution unlocked the next challenge, building from a simple graph visualiz
 - **Ambient Cosmic Music**: Immersive background audio synced with the cinematic entry (default ON).
 - **Celestial Body Mode**: Toggle links visibility to see family members as floating stars in deep space.
 - **Clean UI**: Centralized selection panel and settings gear (⚙️) for an unobstructed view across 3D and 2D modes.
+- **Landing (osra.cc)**: Scroll-driven 3D node graph hero, Meet Osra copy, 3-step How It Works, CTA.
 
 ### Navigation Controls
 - **E**: Toggle Steering Engine (Enable/Disable Mouse Look)
@@ -116,10 +117,11 @@ src/
 │   ├── FamilyTree3D.tsx          # Main 3D visualization component
 │   ├── FamilyChat.tsx            # AI Chatbot UI component
 │   ├── modals/                   # AddRelative, EditNode, BulkInvite modals
-│   └── landing/                  # Landing page sections
-│       ├── LandingPage.tsx       # Main landing orchestrator
-│       ├── HangarTransition.tsx  # Post-sequence CTA
-│       └── HowItWorks.tsx        # 4-step process cards
+│   └── landing/                  # Landing page (osra.cc)
+│       ├── LandingPage.tsx       # Orchestrator, hero track, spacers
+│       ├── MeetOsraHero.tsx      # Scroll-driven 3D node graph
+│       ├── HowItWorks.tsx        # 3-step section
+│       └── HangarTransition.tsx  # CTA
 ├── contexts/
 │   └── AuthContext.tsx           # Authentication state management
 ├── hooks/
@@ -300,11 +302,6 @@ We needed **H) classic tree readability** and **I) clean visual paths**.
 - **Custom Rendering**: Fine-grained control over link positioning is essential for non-straight geometries like elbow connectors.
 - **Dynamic Leveling**: Using smart traversal algorithms allows us to calculate generation levels on-the-fly without storing fixed coordinates.
 
-**Phase 7: The Landing Experience**
-We needed **J) a compelling entry point** and **K) smooth frame playback**.
-- **J = Cinematic scroll sequence** so visitors travel through a galaxy of planets and solar systems before arriving at the app.
-- **K = Motion.dev scroll sync** so frames play smoothly as the user scrolls, with smart preloading to avoid visual glitches.
-
 **Phase 8: AI Intelligence & Visual Fidelity**
 We completed the "Brain and Beauty" upgrade:
 - **The Brain**: Implemented an AI Chat Bot that understands family relationships.
@@ -345,6 +342,9 @@ We completed the "Safety First" security cycle:
 - **Chatbot Gating**: Moved the Family Chat Bot inside the authenticated `FamilyTree` component, ensuring it is hidden from uninvited strangers and during initial loading.
 - **Hardened Sign-Out**: Fixed a session persistence bug by forcing `prompt: select_account` on Google sign-in and implementing a hard redirect on sign-out.
 - **Cleanup**: Centralized all node-selection UI and modals to prevent visual overlaps.
+
+**Phase 13: Osra Landing Page**
+Scroll-driven 3D node graph hero (1000vh sticky), Meet Osra copy, 3-step How It Works, CTA. Lora, purple accents, #07030f.
 
 **High-Level Learnings**
 - **Context is King**: Pre-processing data into human-readable formats is more effective for AI accuracy than simply using larger models.
