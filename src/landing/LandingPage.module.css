@@ -1,0 +1,173 @@
+.pageRoot {
+  position: relative;
+  background: var(--landing-bg);
+  color: #fff;
+}
+
+.heroTrack {
+  height: 1000vh;
+  position: relative;
+}
+
+.progressTrack {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  z-index: 60;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.progressFill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #d946ef 0%, #a855f7 45%, #ffffff 100%);
+  box-shadow:
+    0 0 12px rgba(217, 70, 239, 0.7),
+    0 0 18px rgba(168, 85, 247, 0.55);
+}
+
+.heroLayer {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  width: 100%;
+  z-index: 10;
+  display: block;
+}
+
+.staticMeetOsra {
+  position: relative;
+  background: var(--landing-bg);
+  padding: 120px 6vw 80px;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 40px;
+}
+
+.staticTitle {
+  font-weight: 700;
+  font-size: clamp(52px, 5.5vw, 88px);
+  line-height: 1;
+  letter-spacing: -0.015em;
+  color: #ede9fe;
+  white-space: nowrap;
+}
+
+.staticBody {
+  text-align: right;
+  font-weight: 400;
+  font-size: clamp(13px, 1.1vw, 18px);
+  line-height: 1.7;
+  color: #7c5cbf;
+  max-width: 40ch;
+}
+
+.hangarLayerStatic {
+  position: relative;
+  background: var(--landing-bg);
+  z-index: 20;
+}
+
+.sectionSpacer {
+  height: 60vh;
+  position: relative;
+  background: var(--landing-bg);
+  z-index: 10;
+}
+
+.shine {
+  color: #ffffff;
+  text-shadow:
+    0 0 10px rgba(255, 255, 255, 0.95),
+    0 0 26px rgba(196, 181, 253, 0.7),
+    0 0 55px rgba(124, 58, 237, 0.45);
+}
+
+@media (max-width: 768px) {
+  .staticMeetOsra {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 80px 6vw;
+  }
+
+  .staticTitle {
+    font-size: clamp(44px, 11vw, 72px);
+    white-space: normal;
+  }
+
+  .staticBody {
+    text-align: center;
+    max-width: 80vw;
+  }
+}
+
+.scrollHint {
+  position: absolute;
+  bottom: 34px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.scrollMouse {
+  width: 24px;
+  height: 40px;
+  border: 2px solid rgba(255, 255, 255, 0.22);
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  padding-top: 8px;
+}
+
+.scrollDot {
+  width: 4px;
+  height: 8px;
+  background: #7b61ff;
+  border-radius: 2px;
+}
+
+.footer {
+  position: relative; /* Changed from absolute to flow naturally at the end */
+  padding: 60px 20px;
+  text-align: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--landing-bg);
+  z-index: 40;
+}
+
+.footerMain {
+  color: #fff;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+.footerSignature {
+  margin-top: 16px;
+  font-family: inherit;
+  font-size: 1.4rem;
+  color: #a5b4ff;
+  font-style: normal;
+  text-shadow: 0 0 15px rgba(165, 180, 255, 0.4);
+}
+
+@media (max-width: 760px) {
+  .scrollHint {
+    bottom: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrollHint {
+    opacity: 0.8;
+  }
+}

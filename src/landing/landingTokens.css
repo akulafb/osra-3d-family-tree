@@ -1,0 +1,30 @@
+.osraLanding {
+  --landing-bg: #07030f;
+  --landing-text: #ede9fe;
+  --landing-text-muted: #7c5cbf;
+  --landing-accent: #c4b5fd;
+  --landing-accent-strong: #7c3aed;
+  --landing-motion-fast: 180ms;
+  --landing-motion-mid: 400ms;
+  --landing-ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  color: var(--landing-text);
+  font-family: 'Lora', Georgia, serif;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.osraLanding button,
+.osraLanding input,
+.osraLanding textarea,
+.osraLanding select {
+  font: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .osraLanding {
+    --landing-motion-fast: 1ms;
+    --landing-motion-mid: 1ms;
+  }
+}
