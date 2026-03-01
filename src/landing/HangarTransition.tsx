@@ -15,7 +15,7 @@ export function HangarTransition({ onSignIn }: HangarTransitionProps) {
     <section
       style={{
         minHeight: '100vh',
-        background: '#0a0a0a',
+        background: '#07030f',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
