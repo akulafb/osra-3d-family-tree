@@ -1,0 +1,12 @@
+.osraLanding {
+  --landing-bg: #07030f;
+  --accent-1: #6d28d9;
+  --accent-2: #7c3aed;
+  --accent-3: #9333ea;
+  --accent-light: #c4b5fd;
+  --text-primary: #ede9fe;
+  --text-muted: #7c5cbf;
+  font-family: 'Lora', Georgia, serif;
+  background: var(--landing-bg);
+  color: var(--text-primary);
+}
