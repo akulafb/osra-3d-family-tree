@@ -3,7 +3,6 @@ import { useScroll, motion, useTransform, useReducedMotion } from 'motion/react'
 import { HangarTransition } from './HangarTransition';
 import { MeetOsraHero } from './MeetOsraHero';
 import { HowItWorks } from './HowItWorks';
-import { landingHeroCopy } from './content';
 import styles from './LandingPage.module.css';
 import './landingTokens.css';
 
