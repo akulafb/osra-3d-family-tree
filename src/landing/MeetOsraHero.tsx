@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { type MotionValue } from 'motion/react';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
@@ -65,6 +65,7 @@ export function MeetOsraHero({ onSignIn, scrollYProgress }: MeetOsraHeroProps) {
   const bodyRef = useRef<HTMLDivElement>(null);
   const nodeCountRef = useRef<HTMLSpanElement>(null);
   const scrollHintRef = useRef<HTMLSpanElement>(null);
+  const [webglFailed, setWebglFailed] = useState(false);
 
   useEffect(() => {
     const rootEl = rootRef.current;
@@ -78,9 +79,17 @@ export function MeetOsraHero({ onSignIn, scrollYProgress }: MeetOsraHeroProps) {
     if (!rootEl || !canvas || !welcomeEl || !titleEl || !bodyEl || !nodeCountEl || !scrollHintEl) return;
 
     const rng = makeRng(0xdeadbeef);
+    const isMobileInit = window.matchMedia('(max-width: 768px)').matches;
 
+    try {
     // ── Renderer ─────────────────────────────────────────────────────────────
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+    const renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: !isMobileInit,
+      alpha: false,
+      powerPreference: isMobileInit ? 'low-power' : 'default',
+      failIfMajorPerformanceCaveat: false,
+    });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x07030f, 1);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -109,6 +118,7 @@ export function MeetOsraHero({ onSignIn, scrollYProgress }: MeetOsraHeroProps) {
       lineMats.forEach(m => m.resolution.set(vpW, vpH));
     };
     resize();
+    requestAnimationFrame(() => resize());
 
     // ── Lights ───────────────────────────────────────────────────────────────
     scene.add(new THREE.AmbientLight(0x1a0033, 2.2));
@@ -517,7 +527,30 @@ export function MeetOsraHero({ onSignIn, scrollYProgress }: MeetOsraHeroProps) {
       renderer.dispose();
       scene.clear();
     };
+    } catch (err) {
+      console.error('[MeetOsraHero] WebGL init failed:', err);
+      setWebglFailed(true);
+    }
   }, [scrollYProgress]);
+
+  if (webglFailed) {
+    return (
+      <div className={styles.heroRoot} style={{ background: 'radial-gradient(ellipse at 50% 50%, #1a0a2e 0%, #07030f 70%)' }}>
+        <div className={styles.hud}>
+          <span className={styles.nodeCount}>—</span>
+          <span className={styles.scrollHint} style={{ opacity: 0.22 }}>scroll to explore</span>
+        </div>
+        <button onClick={onSignIn} className={styles.signInButton}>Sign in</button>
+        <div className={`${styles.welcomeTitle} ${styles.visible}`}>Welcome to Osra</div>
+        <div className={styles.heroTitle}>Meet Osra</div>
+        <div className={styles.heroBody}>
+          <span className={styles.shine}>Osra</span> is a beautiful, interactive, and fully immersive family tree experience.
+          Built for privacy and performance, Osra gives every family their own universe
+          to explore, in <span className={styles.shine}>stunning</span> 3D space.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div ref={rootRef} className={styles.heroRoot}>

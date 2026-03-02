@@ -358,7 +358,7 @@ export default function InvitePage() {
             </p>
             {!user && (
               <button
-                onClick={() => signInWithGoogle(window.location.href)}
+                onClick={() => signInWithGoogle(window.location.origin)}
                 style={{
                   padding: '15px 40px',
                   fontSize: '1.1rem',
@@ -371,7 +371,7 @@ export default function InvitePage() {
                   boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
                 }}
               >
-                Sign in with Google
+                Returning? Sign in here
               </button>
             )}
           </div>
