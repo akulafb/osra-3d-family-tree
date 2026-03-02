@@ -145,26 +145,26 @@
 /* ── Mobile ── */
 @media (max-width: 768px) {
   .heroTitle {
-    bottom: auto;
+    bottom: 14vh;
     left: 0;
     right: 0;
-    top: 50%;
-    transform: translateY(calc(-50% + 14px));
+    top: auto;
+    transform: translateY(14px);
     text-align: center;
     font-size: clamp(44px, 11vw, 72px);
     white-space: normal;
   }
 
   .heroTitle.visible {
-    transform: translateY(-50%) !important;
+    transform: translateY(0) !important;
   }
 
   .heroBody {
-    bottom: auto;
+    bottom: 4vh;
     left: 0;
     right: 0;
-    top: 50%;
-    transform: translateY(calc(-50% + 14px));
+    top: auto;
+    transform: translateY(14px);
     text-align: center;
     font-size: clamp(14px, 3.8vw, 20px);
     max-width: 80vw;
@@ -172,7 +172,7 @@
   }
 
   .heroBody.visible {
-    transform: translateY(-50%) !important;
+    transform: translateY(0) !important;
   }
 
   .welcomeTitle {
