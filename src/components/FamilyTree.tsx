@@ -79,6 +79,10 @@ export const FamilyTree: React.FC = () => {
     setActivePreset(preset);
   }, []);
 
+  const handleFindMeRequest = useCallback((userCluster: string) => {
+    setActivePreset(userCluster);
+  }, []);
+
   if (!isHydrated || isLoading) {
     return (
       <div
@@ -323,6 +327,8 @@ export const FamilyTree: React.FC = () => {
             onModeChange={handleModeChange}
             uniqueClusters={uniqueClusters}
             onPresetSelect={handlePresetSelect}
+            userNodeId={userProfile?.node_id ?? null}
+            onFindMeRequest={handleFindMeRequest}
           />
         )}
       </div>

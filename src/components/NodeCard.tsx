@@ -8,6 +8,8 @@ interface NodeCardProps {
   onDoubleClick?: (node: Node2D) => void;
   /** When viewing a cluster, maternal-only children use lighter tint */
   activePreset?: string | null;
+  /** Temporary glow for "Find me!" highlight */
+  isHighlighted?: boolean;
 }
 
 // Family colors matching the 3D view
@@ -63,12 +65,15 @@ function lightenColors(base: { bg: string; border: string; text: string }) {
   };
 }
 
+const HIGHLIGHT_GLOW_COLOR = '#10b981';
+
 export const NodeCard: React.FC<NodeCardProps> = ({
   node,
   isSelected,
   onClick,
   onDoubleClick,
   activePreset,
+  isHighlighted = false,
 }) => {
   const isMaternalOnly =
     activePreset &&
@@ -102,8 +107,24 @@ export const NodeCard: React.FC<NodeCardProps> = ({
       style={{
         cursor: 'pointer',
       }}
-      className={`node-card ${isSelected ? 'selected' : ''}`}
+      className={`node-card ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
     >
+      {/* Find me! highlight glow */}
+      {isHighlighted && (
+        <rect
+          x={-8}
+          y={-8}
+          width={node.width + 16}
+          height={node.height + 16}
+          rx={14}
+          fill="none"
+          stroke={HIGHLIGHT_GLOW_COLOR}
+          strokeWidth={3}
+          opacity={0.5}
+          style={{ transition: 'opacity 0.3s ease' }}
+        />
+      )}
+
       {/* Card shadow */}
       <rect
         x={2}
