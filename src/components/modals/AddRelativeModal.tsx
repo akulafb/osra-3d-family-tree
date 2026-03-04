@@ -78,9 +78,7 @@ export default function AddRelativeModal({
           rel_type: relationship,
           target_node_id: targetNode.id,
           creator_id: user.id,
-          ...(relationship === 'child' && parentRole && {
-            p_parent_role: parentRole === 'mother' ? 'father' : 'mother',
-          }),
+          ...(relationship === 'child' && parentRole && { p_parent_role: parentRole }),
         })
       });
 
