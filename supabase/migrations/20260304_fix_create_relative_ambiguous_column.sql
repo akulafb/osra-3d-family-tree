@@ -1,4 +1,4 @@
--- Update create_relative_secure to support parent_role and set maternal/paternal clusters
+-- Fix ambiguous target_node_id in create_relative_secure (parameter vs links.target_node_id)
 
 CREATE OR REPLACE FUNCTION public.create_relative_secure(
   new_node_name text,
@@ -25,9 +25,7 @@ DECLARE
 BEGIN
   SELECT paternal_family_cluster INTO target_cluster FROM public.nodes WHERE id = v_target;
 
-  -- Determine paternal and maternal clusters for new child
   IF rel_type = 'child' AND p_parent_role IS NOT NULL THEN
-    -- Find spouse via marriage link
     SELECT CASE
       WHEN l.source_node_id = v_target THEN l.target_node_id
       ELSE l.source_node_id
@@ -96,16 +94,9 @@ BEGIN
     RAISE EXCEPTION 'Invalid relationship type: %', rel_type;
   END IF;
 
-  RETURN json_build_object(
-    'success', true,
-    'new_node_id', new_id,
-    'message', 'Relative added successfully'
-  );
+  RETURN json_build_object('success', true, 'new_node_id', new_id, 'message', 'Relative added successfully');
 
 EXCEPTION WHEN OTHERS THEN
-  RETURN json_build_object(
-    'success', false,
-    'message', SQLERRM
-  );
+  RETURN json_build_object('success', false, 'message', SQLERRM);
 END;
 $function$;
