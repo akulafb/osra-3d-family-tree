@@ -23,6 +23,7 @@ export default function EditNodeModal({
   const { user, isAdmin, session } = useAuth();
   const [name, setName] = useState('');
   const [familyCluster, setFamilyCluster] = useState('');
+  const [maternalFamilyCluster, setMaternalFamilyCluster] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -33,6 +34,7 @@ export default function EditNodeModal({
     if (isOpen && targetNode) {
       setName(targetNode.name);
       setFamilyCluster(targetNode.familyCluster || '');
+      setMaternalFamilyCluster(targetNode.maternalFamilyCluster || '');
       setError(null);
       setSuccessMessage(null);
       setDuplicateWarning([]);
@@ -75,14 +77,20 @@ export default function EditNodeModal({
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       const authToken = session?.access_token || supabaseKey;
 
-      const updateData: { name: string; family_cluster?: string | null } = {
+      const updateData: {
+        name: string;
+        paternal_family_cluster?: string | null;
+        maternal_family_cluster?: string | null;
+      } = {
         name: sanitizedName,
       };
 
-      // Only include family_cluster if admin (regular users shouldn't change clusters)
-      const sanitizedCluster = familyCluster.trim().slice(0, MAX_CLUSTER_LENGTH);
-      if (isAdmin && sanitizedCluster) {
-        updateData.family_cluster = sanitizedCluster;
+      // Only include clusters if admin (regular users shouldn't change clusters)
+      const sanitizedPaternal = familyCluster.trim().slice(0, MAX_CLUSTER_LENGTH);
+      const sanitizedMaternal = maternalFamilyCluster.trim().slice(0, MAX_CLUSTER_LENGTH);
+      if (isAdmin) {
+        updateData.paternal_family_cluster = sanitizedPaternal || null;
+        updateData.maternal_family_cluster = sanitizedMaternal || null;
       }
 
       const response = await fetch(
@@ -144,25 +152,44 @@ export default function EditNodeModal({
             </p>
           </div>
 
-          {/* Admin-only: Family Cluster field */}
+          {/* Admin-only: Family Cluster fields */}
           {isAdmin && (
-            <div style={fieldStyle}>
-              <label style={labelStyle}>
-                Family Cluster (Admin Only)
-              </label>
-              <input
-                type="text"
-                value={familyCluster}
-                onChange={(e) => setFamilyCluster(e.target.value.slice(0, MAX_CLUSTER_LENGTH))}
-                placeholder="e.g. Badran, Kutob, etc."
-                style={inputStyle}
-                maxLength={MAX_CLUSTER_LENGTH}
-                disabled={isSubmitting}
-              />
-              <p style={{ margin: '5px 0 0 0', fontSize: '0.8rem', color: '#888' }}>
-                Controls which family cluster this person belongs to (3D positioning)
-              </p>
-            </div>
+            <>
+              <div style={fieldStyle}>
+                <label style={labelStyle}>
+                  Paternal Family Cluster (Admin Only)
+                </label>
+                <input
+                  type="text"
+                  value={familyCluster}
+                  onChange={(e) => setFamilyCluster(e.target.value.slice(0, MAX_CLUSTER_LENGTH))}
+                  placeholder="e.g. Badran, Kutob, etc."
+                  style={inputStyle}
+                  maxLength={MAX_CLUSTER_LENGTH}
+                  disabled={isSubmitting}
+                />
+                <p style={{ margin: '5px 0 0 0', fontSize: '0.8rem', color: '#888' }}>
+                  Primary family name (3D positioning, display)
+                </p>
+              </div>
+              <div style={fieldStyle}>
+                <label style={labelStyle}>
+                  Maternal Family Cluster (Admin Only)
+                </label>
+                <input
+                  type="text"
+                  value={maternalFamilyCluster}
+                  onChange={(e) => setMaternalFamilyCluster(e.target.value.slice(0, MAX_CLUSTER_LENGTH))}
+                  placeholder="e.g. mother's family name"
+                  style={inputStyle}
+                  maxLength={MAX_CLUSTER_LENGTH}
+                  disabled={isSubmitting}
+                />
+                <p style={{ margin: '5px 0 0 0', fontSize: '0.8rem', color: '#888' }}>
+                  For children to appear on mother&apos;s family tree in 2D
+                </p>
+              </div>
+            </>
           )}
 
           {/* Show current cluster for non-admins */}

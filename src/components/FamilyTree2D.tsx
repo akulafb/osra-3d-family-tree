@@ -65,7 +65,10 @@ function filterGraphData(
   let links = graphData.links;
 
   if (activePreset) {
-    nodes = nodes.filter(n => n.familyCluster === activePreset);
+    // Include primary (paternal) and maternal-only nodes
+    nodes = nodes.filter(
+      n => n.familyCluster === activePreset || n.maternalFamilyCluster === activePreset
+    );
     const nodeIds = new Set(nodes.map(n => n.id));
     links = links.filter(l => {
       const sourceId = getNodeId(l.source);
@@ -374,6 +377,7 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
                 isSelected={selectedNodeId === node.id}
                 onClick={handleNodeClick}
                 onDoubleClick={handleNodeDoubleClick}
+                activePreset={activePreset}
               />
             ))}
           </g>

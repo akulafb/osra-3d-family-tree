@@ -6,6 +6,8 @@ interface NodeCardProps {
   isSelected: boolean;
   onClick: (node: Node2D) => void;
   onDoubleClick?: (node: Node2D) => void;
+  /** When viewing a cluster, maternal-only children use lighter tint */
+  activePreset?: string | null;
 }
 
 // Family colors matching the 3D view
@@ -43,13 +45,39 @@ const getClusterColors = (cluster: string | undefined | null) => {
   return fallbackColors[Math.abs(hash) % fallbackColors.length];
 };
 
+/** Lighten colors for maternal-only nodes (same hue, lighter tint) */
+function lightenColors(base: { bg: string; border: string; text: string }) {
+  // Parse hex to RGB and mix with white (60% white) for lighter tint
+  const hexToRgb = (hex: string) => {
+    const m = hex.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+    return m ? [parseInt(m[1], 16), parseInt(m[2], 16), parseInt(m[3], 16)] : null;
+  };
+  const rgb = hexToRgb(base.border);
+  const lightBorder = rgb
+    ? `rgb(${Math.round(rgb[0] * 0.4 + 255 * 0.6)}, ${Math.round(rgb[1] * 0.4 + 255 * 0.6)}, ${Math.round(rgb[2] * 0.4 + 255 * 0.6)})`
+    : base.border;
+  return {
+    bg: base.bg.replace(/[\d.]+\)$/, '0.08)'),
+    border: lightBorder,
+    text: base.text,
+  };
+}
+
 export const NodeCard: React.FC<NodeCardProps> = ({
   node,
   isSelected,
   onClick,
   onDoubleClick,
+  activePreset,
 }) => {
-  const colors = getClusterColors(node.familyCluster);
+  const isMaternalOnly =
+    activePreset &&
+    node.maternalFamilyCluster === activePreset &&
+    node.familyCluster !== activePreset;
+  const baseColors = getClusterColors(
+    isMaternalOnly ? activePreset : node.familyCluster
+  );
+  const colors = isMaternalOnly ? lightenColors(baseColors) : baseColors;
 
   // Split name for better display
   const nameParts = node.name.trim().split(' ');
@@ -151,6 +179,21 @@ export const NodeCard: React.FC<NodeCardProps> = ({
         r={4}
         fill={colors.border}
       />
+
+      {/* Claimed tick (subtle) */}
+      {node.isClaimed && (
+        <text
+          x={node.width - 10}
+          y={node.height - 8}
+          textAnchor="end"
+          fill={colors.text}
+          fontSize={10}
+          opacity={0.7}
+          style={{ pointerEvents: 'none' }}
+        >
+          ✓
+        </text>
+      )}
     </g>
   );
 };

@@ -5,7 +5,8 @@ export interface FamilyNode {
   name: string;
   birthDate?: string;
   birthPlace?: string;
-  familyCluster?: string;
+  familyCluster?: string;  // paternal (display)
+  maternalFamilyCluster?: string;
   isClaimed?: boolean;
 }
 
@@ -13,6 +14,7 @@ export interface FamilyLink {
   source: string;  // UUID
   target: string;  // UUID
   type: 'parent' | 'marriage' | 'divorce';
+  parentRole?: 'mother' | 'father' | null;
 }
 
 export interface FamilyGraph {

@@ -851,6 +851,9 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
           const lastName = nameParts[nameParts.length - 1];
           displayName = `${firstName}\n${lastName}`;
         }
+        if (node.isClaimed) {
+          displayName += ' ✓';
+        }
 
         const sprite = new SpriteText(displayName);
         sprite.color = '#ffffff';

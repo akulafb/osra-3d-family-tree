@@ -97,17 +97,17 @@ export function useFamilyData() {
       const nodes: FamilyNode[] = (nodesData || []).map((node: any) => ({
         id: node.id,
         name: node.name,
-        familyCluster: node.family_cluster || undefined,
+        familyCluster: node.paternal_family_cluster ?? node.family_cluster ?? undefined,
+        maternalFamilyCluster: node.maternal_family_cluster || undefined,
         isClaimed: claimedNodeIds.has(String(node.id)),
       }));
 
-      const links: FamilyLink[] = (linksData || []).map((link: any) => {
-        return {
-          source: link.source_node_id,
-          target: link.target_node_id,
-          type: link.type as 'parent' | 'marriage' | 'divorce',
-        };
-      });
+      const links: FamilyLink[] = (linksData || []).map((link: any) => ({
+        source: link.source_node_id,
+        target: link.target_node_id,
+        type: link.type as 'parent' | 'marriage' | 'divorce',
+        parentRole: link.parent_role || undefined,
+      }));
 
       setGraphData({ nodes, links });
       setIsLoading(false);

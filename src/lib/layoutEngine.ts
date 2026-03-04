@@ -24,9 +24,11 @@ function buildHierarchy(
   links: FamilyLink[],
   clusterName?: string
 ) {
-  // Filter nodes by cluster if specified
+  // Filter nodes by cluster if specified (include maternal children)
   const nodesInScope = clusterName
-    ? nodes.filter(n => n.familyCluster === clusterName)
+    ? nodes.filter(
+        n => n.familyCluster === clusterName || n.maternalFamilyCluster === clusterName
+      )
     : nodes;
 
   const nodeIdsInScope = new Set(nodesInScope.map(n => n.id));

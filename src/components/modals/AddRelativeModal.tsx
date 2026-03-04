@@ -24,6 +24,7 @@ export default function AddRelativeModal({
   const { user, session } = useAuth();
   const [name, setName] = useState('');
   const [relationship, setRelationship] = useState<RelationshipType>('child');
+  const [parentRole, setParentRole] = useState<'mother' | 'father' | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState<FamilyNode[]>([]);
@@ -33,6 +34,7 @@ export default function AddRelativeModal({
     if (!isOpen) {
       setName('');
       setRelationship('child');
+      setParentRole(null);
       setError(null);
       setDuplicateWarning([]);
     }
@@ -74,7 +76,8 @@ export default function AddRelativeModal({
           new_node_name: sanitizedName,
           rel_type: relationship,
           target_node_id: targetNode.id,
-          creator_id: user.id
+          creator_id: user.id,
+          ...(relationship === 'child' && parentRole && { p_parent_role: parentRole }),
         })
       });
 
@@ -123,7 +126,10 @@ export default function AddRelativeModal({
             <label style={labelStyle}>Relationship</label>
             <select 
               value={relationship} 
-              onChange={(e) => setRelationship(e.target.value as RelationshipType)}
+              onChange={(e) => {
+                setRelationship(e.target.value as RelationshipType);
+                if (e.target.value !== 'child') setParentRole(null);
+              }}
               style={inputStyle}
             >
               <option value="child">Add as Child</option>
@@ -132,6 +138,24 @@ export default function AddRelativeModal({
               <option value="sibling">Add as Sibling</option>
             </select>
           </div>
+
+          {relationship === 'child' && (
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Target is the...</label>
+              <select
+                value={parentRole ?? ''}
+                onChange={(e) => setParentRole(e.target.value ? (e.target.value as 'mother' | 'father') : null)}
+                style={inputStyle}
+              >
+                <option value="">— Select (optional) —</option>
+                <option value="mother">Mother</option>
+                <option value="father">Father</option>
+              </select>
+              <p style={{ margin: '5px 0 0 0', fontSize: '0.8rem', color: '#888' }}>
+                Helps show children on both parents&apos; family trees
+              </p>
+            </div>
+          )}
 
           {duplicateWarning.length > 0 && (
             <div style={warningStyle}>

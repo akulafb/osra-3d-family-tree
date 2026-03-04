@@ -36,21 +36,24 @@ export interface Database {
         Row: {
           id: string; // UUID
           name: string;
-          family_cluster: string | null;
+          paternal_family_cluster: string | null;
+          maternal_family_cluster: string | null;
           created_by_user_id: string; // UUID
           created_at: string;
         };
         Insert: {
           id?: string;
           name: string;
-          family_cluster?: string | null;
+          paternal_family_cluster?: string | null;
+          maternal_family_cluster?: string | null;
           created_by_user_id: string;
           created_at?: string;
         };
         Update: {
           id?: string;
           name?: string;
-          family_cluster?: string | null;
+          paternal_family_cluster?: string | null;
+          maternal_family_cluster?: string | null;
           created_by_user_id?: string;
           created_at?: string;
         };
@@ -61,6 +64,7 @@ export interface Database {
           source_node_id: string; // UUID
           target_node_id: string; // UUID
           type: 'parent' | 'marriage' | 'divorce';
+          parent_role: 'mother' | 'father' | null;
           created_by_user_id: string; // UUID
           created_at: string;
         };
@@ -69,6 +73,7 @@ export interface Database {
           source_node_id: string;
           target_node_id: string;
           type: 'parent' | 'marriage' | 'divorce';
+          parent_role?: 'mother' | 'father' | null;
           created_by_user_id: string;
           created_at?: string;
         };
@@ -77,6 +82,7 @@ export interface Database {
           source_node_id?: string;
           target_node_id?: string;
           type?: 'parent' | 'marriage' | 'divorce';
+          parent_role?: 'mother' | 'father' | null;
           created_by_user_id?: string;
           created_at?: string;
         };
@@ -155,6 +161,7 @@ export interface Database {
           rel_type: string;
           target_node_id: string;
           creator_id: string;
+          p_parent_role?: string | null;
         };
         Returns: {
           success: boolean;

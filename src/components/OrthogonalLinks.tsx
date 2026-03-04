@@ -47,8 +47,8 @@ export const OrthogonalLinks: React.FC<OrthogonalLinksProps> = ({
     <g className="links-layer">
       {links.map((link, index) => {
         const isInActiveCluster = activePreset &&
-          link.source.familyCluster === activePreset &&
-          link.target.familyCluster === activePreset;
+          (link.source.familyCluster === activePreset || link.source.maternalFamilyCluster === activePreset) &&
+          (link.target.familyCluster === activePreset || link.target.maternalFamilyCluster === activePreset);
 
         const isMarriage = link.type === 'marriage';
         const isDivorce = link.type === 'divorce';
