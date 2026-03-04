@@ -173,6 +173,17 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth <= 768
+  );
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px)');
+    const handler = () => setIsMobileViewport(mq.matches);
+    handler();
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
 
   // Filter graph data by preset and collapsed nodes
   const filteredGraphData = useMemo(() => {
@@ -361,11 +372,13 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
             {isMobile ? (
               <>
                 <div style={{ marginBottom: '12px', lineHeight: 1.5 }}>
-                  Select a family above to explore, or try the <strong>3D view</strong> for a richer experience.
+                  Select a family above to explore, or try the <strong>3D view</strong>.
                 </div>
-                <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>
-                  Visit on desktop for the full immersive 3D experience.
-                </div>
+                {isMobileViewport && (
+                  <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>
+                    Visit on desktop for the full immersive experience.
+                  </div>
+                )}
               </>
             ) : (
               <div>Select a family above to view in 2D</div>
