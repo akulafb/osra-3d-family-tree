@@ -23,6 +23,8 @@ interface FamilyTree2DProps {
   uniqueClusters: string[];
   onPresetSelect: (preset: string | null) => void;
   isMobile?: boolean;
+  userNodeId?: string | null;
+  onFindMeRequest?: (userCluster: string) => void;
 }
 
 // Helper to get robust node ID from string or object
@@ -164,15 +166,20 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
   uniqueClusters,
   onPresetSelect,
   isMobile = false,
+  userNodeId = null,
+  onFindMeRequest,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
   const zoomBehaviorRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  const pendingFindMeRef = useRef<string | null>(null);
+  const highlightTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [transform, setTransform] = useState({ x: 0, y: 0, k: 1 });
   const [isDragging, setIsDragging] = useState(false);
   const [showControls, setShowControls] = useState(false);
   const [isPresetMenuOpen, setIsPresetMenuOpen] = useState(false);
+  const [highlightedNodeId, setHighlightedNodeId] = useState<string | null>(null);
   const [isMobileViewport, setIsMobileViewport] = useState(
     () => typeof window !== 'undefined' && window.innerWidth <= 768
   );
@@ -292,8 +299,8 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [nodes, selectedNodeId, onNodeSelect, onBackgroundClick, transform.k]);
 
-  // Focus on specific node
-  const focusNode = useCallback((nodeId: string) => {
+  // Focus on specific node (scale 1.25 for subtle "Find me!" zoom)
+  const focusNode = useCallback((nodeId: string, scale = 1.2) => {
     const node = nodes.find(n => n.id === nodeId);
     if (!node || !svgRef.current || !zoomBehaviorRef.current) return;
 
@@ -302,13 +309,52 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
 
     const targetTransform = zoomIdentity
       .translate(rect.width / 2 - node.x, rect.height / 2 - node.y)
-      .scale(1.2);
+      .scale(scale);
 
-      select(svg)
-        .transition()
-        .duration(500)
-        .call(zoomBehaviorRef.current.transform as any, targetTransform);
+    select(svg)
+      .transition()
+      .duration(1040)
+      .call(zoomBehaviorRef.current.transform as any, targetTransform);
   }, [nodes]);
+
+  // Handle "Find me!" click: switch preset if needed, pan/zoom, temporary glow
+  const handleFindMe = useCallback(() => {
+    if (!userNodeId) return;
+    const userNode = graphData.nodes.find(n => n.id === userNodeId);
+    if (!userNode) return;
+    const userCluster = userNode.familyCluster ?? userNode.maternalFamilyCluster ?? null;
+
+    if (!activePreset || (userCluster && activePreset !== userCluster)) {
+      if (userCluster) onFindMeRequest?.(userCluster);
+    }
+
+    setHighlightedNodeId(userNodeId);
+    if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
+    highlightTimeoutRef.current = setTimeout(() => {
+      setHighlightedNodeId(null);
+      highlightTimeoutRef.current = null;
+    }, 3500);
+
+    if (nodes.some(n => n.id === userNodeId)) {
+      focusNode(userNodeId, 1.25);
+    } else {
+      pendingFindMeRef.current = userNodeId;
+    }
+  }, [userNodeId, graphData.nodes, activePreset, onFindMeRequest, nodes, focusNode]);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimeoutRef.current) clearTimeout(highlightTimeoutRef.current);
+    };
+  }, []);
+
+  // Focus when user's node appears after preset switch
+  useEffect(() => {
+    const pending = pendingFindMeRef.current;
+    if (!pending || !nodes.some(n => n.id === pending)) return;
+    pendingFindMeRef.current = null;
+    focusNode(pending, 1.25);
+  }, [nodes, focusNode]);
 
   // Expose focus method via ref if needed
   useEffect(() => {
@@ -420,6 +466,7 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
                 onClick={handleNodeClick}
                 onDoubleClick={handleNodeDoubleClick}
                 activePreset={activePreset}
+                isHighlighted={highlightedNodeId === node.id}
               />
             ))}
           </g>
@@ -555,6 +602,16 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
             borderRadius: '8px', 
             border: '1px solid rgba(255,255,255,0.1)' 
           }}>
+            {/* Find me! - First when user is bound */}
+            {userNodeId && (
+              <button
+                onClick={handleFindMe}
+                style={{ padding: '6px 12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
+              >
+                Find me!
+              </button>
+            )}
+
             {/* 3D/2D Toggle */}
             {onModeChange && (
               <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>

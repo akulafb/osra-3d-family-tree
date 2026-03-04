@@ -333,7 +333,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       z: z + direction.z * distance
     };
 
-    fgRef.current.cameraPosition(targetPos, nodePos, 800);
+    fgRef.current.cameraPosition(targetPos, nodePos, 1665);
   }, [onNodeSelect]);
 
   // Reset View functionality
@@ -1090,6 +1090,16 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
 
         {showControls && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '180px', backgroundColor: 'rgba(30, 30, 40, 0.95)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+            {/* Find me! - First */}
+            {userProfile?.node_id && (
+              <button
+                onClick={() => focusNodeById(userProfile!.node_id!)}
+                style={{ padding: '6px 12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
+              >
+                Find me!
+              </button>
+            )}
+
             {/* 3D/2D Toggle */}
             {onModeChange && (
               <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
@@ -1187,15 +1197,6 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
               {isPresetsOpen && (
                 <div style={{ marginTop: '4px', backgroundColor: 'rgba(42, 42, 42, 0.95)', borderRadius: '4px', overflow: 'hidden', maxHeight: '250px', overflowY: 'auto' }}>
                   <button onClick={() => applyPreset(null)} style={{ padding: '8px', color: !activePreset ? '#3b82f6' : '#fff', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', fontSize: '0.75rem' }}>3D Global View</button>
-                  
-                  {userProfile?.node_id && (
-                    <button 
-                      onClick={() => applyPreset('me')} 
-                      style={{ padding: '8px', color: '#10b981', border: 'none', background: 'transparent', width: '100%', textAlign: 'left', fontSize: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.05)' }}
-                    >
-                      Focus on Me 📍
-                    </button>
-                  )}
 
                   <div style={{ padding: '8px 8px 4px', fontSize: '0.6rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>Families</div>
                   {uniqueClusters.map(cluster => (
