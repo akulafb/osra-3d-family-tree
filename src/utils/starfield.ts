@@ -289,8 +289,6 @@ export function createStarfield(scene: THREE.Scene, isMobileDevice: boolean = fa
     
     // Set as environment map for planet reflections
     scene.environment = texture;
-    
-    console.log(`[Starfield] ${isMobileDevice ? '2K' : '8K'} Stars Texture loaded and set as background/environment`);
   }, undefined, (err) => {
     console.error('Error loading stars texture:', err);
   });

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Node2D } from '../types/graph';
+import { getClusterColors } from '../utils/familyColors';
 
 interface NodeCardProps {
   node: Node2D;
@@ -11,41 +12,6 @@ interface NodeCardProps {
   /** Temporary glow for "Find me!" highlight */
   isHighlighted?: boolean;
 }
-
-// Family colors matching the 3D view
-const familyColors: Record<string, { bg: string; border: string; text: string }> = {
-  'Badran': { bg: 'rgba(0, 102, 255, 0.15)', border: '#0066ff', text: '#fff' },
-  'Kutob': { bg: 'rgba(0, 255, 136, 0.15)', border: '#00ff88', text: '#fff' },
-  'Hajjaj': { bg: 'rgba(255, 170, 0, 0.15)', border: '#ffaa00', text: '#fff' },
-  'Zabalawi': { bg: 'rgba(255, 0, 170, 0.15)', border: '#ff00aa', text: '#fff' },
-  'Malhis': { bg: 'rgba(170, 0, 255, 0.15)', border: '#aa00ff', text: '#fff' },
-  'Shawa': { bg: 'rgba(255, 51, 51, 0.15)', border: '#ff3333', text: '#fff' },
-  'Dajani': { bg: 'rgba(51, 255, 255, 0.15)', border: '#33ffff', text: '#000' },
-  'Masri': { bg: 'rgba(255, 255, 51, 0.15)', border: '#ffff33', text: '#000' },
-  'Tamimi': { bg: 'rgba(0, 255, 0, 0.15)', border: '#00ff00', text: '#000' },
-  'Husaini': { bg: 'rgba(255, 0, 0, 0.15)', border: '#ff0000', text: '#fff' },
-  'Nabulsi': { bg: 'rgba(255, 102, 0, 0.15)', border: '#ff6600', text: '#fff' },
-  'Ghazali': { bg: 'rgba(0, 204, 255, 0.15)', border: '#00ccff', text: '#000' },
-  'Rifai': { bg: 'rgba(204, 0, 255, 0.15)', border: '#cc00ff', text: '#fff' },
-  'Qudsi': { bg: 'rgba(102, 255, 0, 0.15)', border: '#66ff00', text: '#000' },
-  'Jaabari': { bg: 'rgba(255, 0, 102, 0.15)', border: '#ff0066', text: '#fff' },
-  'Khalidi': { bg: 'rgba(0, 255, 204, 0.15)', border: '#00ffcc', text: '#000' },
-};
-
-const getClusterColors = (cluster: string | undefined | null) => {
-  if (!cluster) {
-    return { bg: 'rgba(100, 100, 100, 0.2)', border: '#888', text: '#fff' };
-  }
-  if (familyColors[cluster]) return familyColors[cluster];
-
-  // Deterministic fallback
-  const fallbackColors = Object.values(familyColors);
-  let hash = 0;
-  for (let i = 0; i < cluster.length; i++) {
-    hash = cluster.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return fallbackColors[Math.abs(hash) % fallbackColors.length];
-};
 
 /** Lighten colors for maternal-only nodes (same hue, lighter tint) */
 function lightenColors(base: { bg: string; border: string; text: string }) {

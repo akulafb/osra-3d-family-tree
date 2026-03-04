@@ -1,7 +1,7 @@
 // src/components/FamilyChat.tsx
 
 import React, { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import ReactMarkdown from 'react-markdown';
 import Button from '@mui/material/Button';
 import { useFamilyChat } from '../hooks/useFamilyChat';
