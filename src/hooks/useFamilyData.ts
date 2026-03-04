@@ -64,6 +64,31 @@ export function useFamilyData() {
 
       const linksData = await linksResponse.json();
 
+      // Fetch claimed node IDs via RPC (bypasses RLS)
+      let claimedNodeIds = new Set<string>();
+      try {
+        const claimedRes = await fetch(
+          `${supabaseUrl}/rest/v1/rpc/get_claimed_node_ids`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${authToken}`,
+            },
+            body: '{}',
+          }
+        );
+        if (claimedRes.ok) {
+          const claimed = await claimedRes.json();
+          if (Array.isArray(claimed)) {
+            claimedNodeIds = new Set(claimed.filter(Boolean).map(String));
+          }
+        }
+      } catch (_) {
+        // Non-fatal: tree still works without claim indicators
+      }
+
       if (!nodesData || nodesData.length === 0) {
         console.warn('[useFamilyData] No nodes returned from Supabase');
       }
@@ -73,6 +98,7 @@ export function useFamilyData() {
         id: node.id,
         name: node.name,
         familyCluster: node.family_cluster || undefined,
+        isClaimed: claimedNodeIds.has(String(node.id)),
       }));
 
       const links: FamilyLink[] = (linksData || []).map((link: any) => {

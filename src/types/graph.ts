@@ -6,6 +6,7 @@ export interface FamilyNode {
   birthDate?: string;
   birthPlace?: string;
   familyCluster?: string;
+  isClaimed?: boolean;
 }
 
 export interface FamilyLink {
