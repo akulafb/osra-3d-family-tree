@@ -78,7 +78,9 @@ export default function AddRelativeModal({
           rel_type: relationship,
           target_node_id: targetNode.id,
           creator_id: user.id,
-          ...(relationship === 'child' && parentRole && { p_parent_role: parentRole }),
+          ...(relationship === 'child' && parentRole && {
+            p_parent_role: parentRole === 'mother' ? 'father' : 'mother',
+          }),
         })
       });
 
@@ -111,12 +113,12 @@ export default function AddRelativeModal({
         
         <form onSubmit={handleSubmit}>
           <div style={fieldStyle}>
-            <label style={labelStyle}>Full Name</label>
+            <label style={labelStyle}>First & Last name</label>
             <input 
               type="text" 
               value={name} 
               onChange={(e) => setName(e.target.value.slice(0, MAX_NAME_LENGTH))} 
-              placeholder="e.g. John Doe"
+              placeholder="example: Fahd Badran"
               style={inputStyle}
               maxLength={MAX_NAME_LENGTH}
               required
@@ -142,7 +144,7 @@ export default function AddRelativeModal({
 
           {relationship === 'child' && (
             <div style={fieldStyle}>
-              <label style={labelStyle}>Target is the...</label>
+              <label style={labelStyle}>I am the...</label>
               <select
                 value={parentRole ?? ''}
                 onChange={(e) => setParentRole(e.target.value ? (e.target.value as 'mother' | 'father') : null)}
