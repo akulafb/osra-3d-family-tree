@@ -75,6 +75,35 @@ function filterGraphData(
       const targetId = getNodeId(l.target);
       return nodeIds.has(sourceId) && nodeIds.has(targetId);
     });
+
+    // Add synthetic parent links: maternal-only children branch from mother (father is out of scope)
+    const maternalOnlyIds = new Set(
+      nodes
+        .filter(n => n.maternalFamilyCluster === activePreset && n.familyCluster !== activePreset)
+        .map(n => n.id)
+    );
+    const marriageByNode = new Map<string, string>();
+    graphData.links.forEach(l => {
+      if (l.type === 'marriage') {
+        const a = getNodeId(l.source);
+        const b = getNodeId(l.target);
+        if (a && b) {
+          marriageByNode.set(a, b);
+          marriageByNode.set(b, a);
+        }
+      }
+    });
+    graphData.links.forEach(l => {
+      if (l.type !== 'parent') return;
+      const fatherId = getNodeId(l.source);
+      const childId = getNodeId(l.target);
+      if (!fatherId || !childId || !maternalOnlyIds.has(childId)) return;
+      if (nodeIds.has(fatherId)) return; // father in scope, real link already kept
+      const motherId = marriageByNode.get(fatherId);
+      if (motherId && nodeIds.has(motherId)) {
+        links.push({ source: motherId, target: childId, type: 'parent' });
+      }
+    });
   }
 
   // Then filter by collapsed nodes
