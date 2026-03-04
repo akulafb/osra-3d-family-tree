@@ -48,7 +48,6 @@ const getPlanetMaterial = (nodeId: string, isMobileDevice: boolean = false) => {
   if (!planetMaterialCache.has(texturePath)) {
     const texture = textureLoader.load(texturePath);
     texture.colorSpace = THREE.SRGBColorSpace;
-    
     // Use Standard instead of Physical on mobile for performance
     if (isMobileDevice) {
       planetMaterialCache.set(texturePath, new THREE.MeshStandardMaterial({
@@ -902,6 +901,10 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       return new THREE.Group();
     }
   }, [selectedNode, showNames, nodeTexture, geometries, rotationRef]);
+
+  useEffect(() => {
+    if (fgRef.current?.refresh) fgRef.current.refresh();
+  }, [nodeTexture, selectedNode?.id]);
 
   const linkThreeObject = useCallback((link: any) => {
     if (activePreset && link.type === 'parent') {
