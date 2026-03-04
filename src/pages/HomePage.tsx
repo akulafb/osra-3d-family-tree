@@ -1,4 +1,5 @@
 import { lazy, Suspense } from 'react';
+import Button from '@mui/material/Button';
 import { FamilyTree } from '../components/FamilyTree';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -53,21 +54,9 @@ export default function HomePage() {
         <p style={{ color: 'white', fontSize: '1.2rem', textAlign: 'center', maxWidth: '600px' }}>
           You need an invite link to access the family tree. Please ask a family member to send you an invite.
         </p>
-        <button
-          onClick={signOut}
-          style={{
-            padding: '12px 30px',
-            fontSize: '1rem',
-            background: 'rgba(255,255,255,0.2)',
-            border: '2px solid white',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            color: 'white'
-          }}
-        >
+        <Button variant="outlined" onClick={signOut} sx={{ border: '2px solid white', color: 'white', fontWeight: 'bold' }}>
           Sign Out
-        </button>
+        </Button>
       </div>
     );
   }
@@ -82,21 +71,9 @@ export default function HomePage() {
         left: '20px',
         zIndex: 1000
       }}>
-        <button
-          onClick={signOut}
-          style={{
-            padding: '10px 20px',
-            background: '#ef4444',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
-          }}
-        >
+        <Button variant="contained" color="error" onClick={signOut}>
           Sign Out
-        </button>
+        </Button>
       </div>
       <FamilyTree />
     </div>

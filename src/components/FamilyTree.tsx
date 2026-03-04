@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import Button from '@mui/material/Button';
 import FamilyTree3D from './FamilyTree3D';
 import { FamilyTree2D } from './FamilyTree2D';
 import { useViewMode } from '../hooks/useViewMode';
@@ -135,20 +136,9 @@ export const FamilyTree: React.FC = () => {
         <div>
           <h2>Error Loading <span style={{ fontFamily: 'cursive', fontWeight: 'bold' }}>Osra</span> Family Tree</h2>
           <p>{error}</p>
-          <button
-            onClick={() => refetch()}
-            style={{
-              marginTop: '16px',
-              padding: '10px 20px',
-              background: '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-            }}
-          >
+          <Button variant="contained" color="primary" onClick={() => refetch()} sx={{ marginTop: '16px' }}>
             Retry
-          </button>
+          </Button>
         </div>
       </div>
     );
@@ -223,42 +213,22 @@ export const FamilyTree: React.FC = () => {
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
             {canEditSelected && (
               <>
-                <button 
-                  onClick={() => setIsEditModalOpen(true)} 
-                  style={{ padding: '6px 14px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
-                >
+                <Button variant="contained" color="warning" size="small" onClick={() => setIsEditModalOpen(true)}>
                   Edit
-                </button>
-                <button 
-                  onClick={() => setIsAddModalOpen(true)} 
-                  style={{ padding: '6px 14px', backgroundColor: '#667eea', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
-                >
+                </Button>
+                <Button variant="contained" color="primary" size="small" onClick={() => setIsAddModalOpen(true)}>
                   + Add
-                </button>
+                </Button>
                 {selectedNode.id === userProfile?.node_id && (
-                  <button 
-                    onClick={() => setIsBulkInviteOpen(true)} 
-                    style={{ padding: '6px 14px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 600 }}
-                  >
+                  <Button variant="contained" color="success" size="small" onClick={() => setIsBulkInviteOpen(true)}>
                     Invite
-                  </button>
+                  </Button>
                 )}
               </>
             )}
-            <button
-              onClick={() => setSelectedNode(null)}
-              style={{
-                padding: '6px 14px',
-                backgroundColor: 'transparent',
-                color: '#888',
-                border: '1px solid #444',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '0.75rem',
-              }}
-            >
+            <Button variant="outlined" size="small" onClick={() => setSelectedNode(null)} sx={{ color: '#888', borderColor: '#444' }}>
               Close
-            </button>
+            </Button>
           </div>
         </div>
       )}

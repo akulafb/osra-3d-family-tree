@@ -1,6 +1,8 @@
 import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { ThemeProvider } from '@mui/material/styles';
 import { Analytics } from '@vercel/analytics/react';
+import { osraTheme } from './theme/osraTheme';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
 const InvitePage = lazy(() => import('./pages/InvitePage'));
@@ -26,7 +28,7 @@ function PageFallback() {
 
 function App() {
   return (
-    <>
+    <ThemeProvider theme={osraTheme}>
       <Suspense fallback={<PageFallback />}>
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -34,7 +36,7 @@ function App() {
         </Routes>
       </Suspense>
       <Analytics />
-    </>
+    </ThemeProvider>
   );
 }
 

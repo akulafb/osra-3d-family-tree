@@ -1,8 +1,10 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
+import { useSpring, animated } from 'react-spring';
 import { select } from 'd3-selection';
 import { zoom, zoomIdentity, ZoomBehavior } from 'd3-zoom';
 import type { D3ZoomEvent } from 'd3-zoom';
 import 'd3-transition'; // Import for transition support
+import Button from '@mui/material/Button';
 import { FamilyGraph, FamilyNode, Node2D, LayoutType } from '../types/graph';
 import { calculateLayout, calculateBounds } from '../lib/layoutEngine';
 import { NodeCard } from './NodeCard';
@@ -34,6 +36,19 @@ const getNodeId = (nodeOrId: any): string => {
     return nodeOrId.id || '';
   }
   return String(nodeOrId);
+}
+
+function ExpandableSpring({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) {
+  const spring = useSpring({
+    maxHeight: isOpen ? 400 : 0,
+    opacity: isOpen ? 1 : 0,
+    config: { tension: 300, friction: 30 },
+  });
+  return (
+    <animated.div style={{ ...spring, overflow: 'hidden' }}>
+      {children}
+    </animated.div>
+  );
 }
 
 // Family colors for UI
@@ -495,31 +510,19 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
         {/* Family Preset Selector */}
         {uniqueClusters.length > 0 && (
           <div style={{ width: '180px' }}>
-            <button
+            <Button
+              variant="contained"
+              color="secondary"
               onClick={() => setIsPresetMenuOpen(!isPresetMenuOpen)}
-              style={{
-                width: '100%',
-                padding: '8px 16px',
-                backgroundColor: activePreset ? familyColors[activePreset] || '#8b5cf6' : '#444',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontWeight: 600,
-                fontSize: '0.85rem',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: '6px',
-              }}
+              sx={{ width: '100%', justifyContent: 'space-between' }}
             >
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {activePreset || 'Select Family'}
               </span>
-              <span style={{ fontSize: '0.7rem' }}>▾</span>
-            </button>
+              {isPresetMenuOpen ? '▴' : '▾'}
+            </Button>
 
-            {isPresetMenuOpen && (
+            <ExpandableSpring isOpen={isPresetMenuOpen}>
               <div style={{
                 marginTop: '4px',
                 backgroundColor: 'rgba(30, 30, 40, 0.98)',
@@ -540,116 +543,73 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
                 }}>
                   Families
                 </div>
-
                 <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
                   {uniqueClusters.map(cluster => (
-                    <button
+                    <Button
                       key={cluster}
+                      fullWidth
+                      size="small"
                       onClick={() => {
                         onPresetSelect(cluster);
                         setIsPresetMenuOpen(false);
                       }}
-                      style={{
-                        padding: '10px 16px',
-                        backgroundColor: activePreset === cluster ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
-                        color: activePreset === cluster ? (familyColors[cluster] || '#60a5fa') : '#e5e7eb',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem',
-                        textAlign: 'left',
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
+                      sx={{
                         justifyContent: 'space-between',
+                        color: activePreset === cluster ? (familyColors[cluster] || 'primary.main') : 'inherit',
+                        backgroundColor: activePreset === cluster ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
                       }}
                     >
-                      <span>{cluster}</span>
-                      {activePreset === cluster && <span>✓</span>}
-                    </button>
+                      {cluster}
+                      {activePreset === cluster && '✓'}
+                    </Button>
                   ))}
                 </div>
               </div>
-            )}
+            </ExpandableSpring>
           </div>
         )}
 
         {/* Settings Toggle */}
-        <button
+        <Button
+          variant="contained"
+          color="primary"
           onClick={() => setShowControls(!showControls)}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: '#444',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontWeight: 600,
-            fontSize: '0.8rem',
-            width: '180px',
-          }}
+          sx={{ width: '180px', minWidth: '180px' }}
         >
-          Settings ⚙️
-        </button>
+          Settings ⚙️ {showControls ? '▴' : '▾'}
+        </Button>
 
-        {showControls && (
-          <div style={{ 
-            display: 'flex', 
-            flexDirection: 'column', 
-            gap: '6px', 
-            width: '180px', 
-            backgroundColor: 'rgba(30, 30, 40, 0.95)', 
-            padding: '12px', 
-            borderRadius: '8px', 
-            border: '1px solid rgba(255,255,255,0.1)' 
+        <ExpandableSpring isOpen={showControls}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            width: '180px',
+            backgroundColor: 'rgba(30, 30, 40, 0.95)',
+            padding: '12px',
+            borderRadius: '8px',
+            border: '1px solid rgba(255,255,255,0.1)',
           }}>
-            {/* Find me! - First when user is bound */}
             {userNodeId && (
-              <button
-                onClick={handleFindMe}
-                style={{ padding: '6px 12px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
-              >
+              <Button variant="contained" color="success" size="small" onClick={handleFindMe}>
                 Find me!
-              </button>
+              </Button>
             )}
 
-            {/* 3D/2D Toggle */}
             {onModeChange && (
               <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
-                <button
-                  onClick={() => onModeChange('3D')}
-                  style={{ 
-                    flex: 1,
-                    padding: '6px 12px', 
-                    backgroundColor: '#444', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: '4px', 
-                    cursor: 'pointer', 
-                    fontSize: '0.75rem' 
-                  }}
-                >
+                <Button variant="outlined" size="small" onClick={() => onModeChange('3D')} sx={{ flex: 1 }}>
                   🌌 3D
-                </button>
-                <button
-                  onClick={() => onModeChange('2D')}
-                  style={{ 
-                    flex: 1,
-                    padding: '6px 12px', 
-                    backgroundColor: '#8b5cf6', 
-                    color: 'white', 
-                    border: 'none', 
-                    borderRadius: '4px', 
-                    cursor: 'pointer', 
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                  }}
-                >
+                </Button>
+                <Button variant="contained" color="primary" size="small" onClick={() => onModeChange('2D')} sx={{ flex: 1 }}>
                   🌳 2D
-                </button>
+                </Button>
               </div>
             )}
-            {/* Expand/Collapse All */}
-            <button
+            <Button
+              variant="contained"
+              color="error"
+              size="small"
               onClick={() => {
                 if (collapsedNodes.size > 0) {
                   onSetCollapsedNodes?.(new Set());
@@ -664,12 +624,11 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
                   onSetCollapsedNodes?.(parents);
                 }
               }}
-              style={{ padding: '6px 12px', backgroundColor: '#f43f5e', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}
             >
               {collapsedNodes.size > 0 ? 'Expand All' : 'Collapse All'}
-            </button>
+            </Button>
           </div>
-        )}
+        </ExpandableSpring>
       </div>
     </div>
   );

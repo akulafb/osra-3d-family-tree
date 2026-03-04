@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import Button from '@mui/material/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { FamilyNode, FamilyLink } from '../../types/graph';
 import { get1DegreeNodesSync } from '../../lib/permissions';
@@ -292,8 +293,10 @@ export default function BulkInviteModal({
               )}
             </div>
             <div style={actionsStyle}>
-              <button onClick={onClose} style={cancelButtonStyle}>Cancel</button>
-              <button onClick={generateInvites} disabled={!relatives.some(r => r.selected) || isGenerating} style={primaryButtonStyle}>{isGenerating ? 'Generating...' : `Generate ${relatives.filter(r => r.selected).length} Invites`}</button>
+              <Button variant="outlined" onClick={onClose}>Cancel</Button>
+              <Button variant="contained" color="primary" onClick={generateInvites} disabled={!relatives.some(r => r.selected) || isGenerating}>
+                {isGenerating ? 'Generating...' : `Generate ${relatives.filter(r => r.selected).length} Invites`}
+              </Button>
             </div>
           </>
         ) : (
@@ -304,12 +307,14 @@ export default function BulkInviteModal({
                   <div style={generatedHeaderStyle}><strong>{r.node.name}</strong><span style={relationshipTagStyle}>{r.relationship}</span></div>
                   <div style={linkRowStyle}>
                     <code style={tokenStyle}>{r.generatedToken}</code>
-                    <button onClick={() => copyLink(r.generatedToken!)} style={{ ...copyButtonStyle, backgroundColor: copiedToken === r.generatedToken ? '#10b981' : '#667eea' }}>{copiedToken === r.generatedToken ? 'Copied!' : 'Copy Link'}</button>
+                    <Button variant="contained" color={copiedToken === r.generatedToken ? 'success' : 'primary'} size="small" onClick={() => copyLink(r.generatedToken!)}>
+                      {copiedToken === r.generatedToken ? 'Copied!' : 'Copy Link'}
+                    </Button>
                   </div>
                 </div>
               ))}
             </div>
-            <div style={actionsStyle}><button onClick={onClose} style={primaryButtonStyle}>Done</button></div>
+            <div style={actionsStyle}><Button variant="contained" color="primary" onClick={onClose}>Done</Button></div>
           </>
         )}
       </div>
@@ -330,12 +335,9 @@ const existingBadgeStyle: React.CSSProperties = { fontSize: '0.75rem', padding: 
 const generatedBadgeStyle: React.CSSProperties = { fontSize: '0.75rem', padding: '4px 8px', backgroundColor: 'rgba(16, 185, 129, 0.2)', color: '#10b981', borderRadius: '4px' };
 const errorStyle: React.CSSProperties = { backgroundColor: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', color: '#ef4444', padding: '12px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.9rem' };
 const actionsStyle: React.CSSProperties = { display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #333' };
-const cancelButtonStyle: React.CSSProperties = { padding: '12px 24px', borderRadius: '6px', border: '1px solid #444', backgroundColor: 'transparent', color: '#aaa', cursor: 'pointer', fontWeight: 'bold' };
-const primaryButtonStyle: React.CSSProperties = { padding: '12px 24px', borderRadius: '6px', border: 'none', backgroundColor: '#667eea', color: 'white', cursor: 'pointer', fontWeight: 'bold' };
 const generatedListStyle: React.CSSProperties = { maxHeight: '350px', overflowY: 'auto', marginBottom: '20px' };
 const generatedItemStyle: React.CSSProperties = { backgroundColor: '#252525', border: '1px solid #333', borderRadius: '8px', padding: '15px', marginBottom: '12px' };
 const generatedHeaderStyle: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' };
 const relationshipTagStyle: React.CSSProperties = { fontSize: '0.75rem', padding: '4px 10px', backgroundColor: 'rgba(102, 126, 134, 0.2)', color: '#667eea', borderRadius: '12px', textTransform: 'uppercase' };
 const linkRowStyle: React.CSSProperties = { display: 'flex', gap: '10px', alignItems: 'center' };
 const tokenStyle: React.CSSProperties = { flex: 1, fontFamily: 'monospace', fontSize: '0.85rem', backgroundColor: '#1a1a1a', padding: '8px 12px', borderRadius: '4px', color: '#aaa', wordBreak: 'break-all' };
-const copyButtonStyle: React.CSSProperties = { padding: '8px 16px', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.85rem', whiteSpace: 'nowrap' };

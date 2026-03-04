@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
+import Button from '@mui/material/Button';
 import { useFamilyChat } from '../hooks/useFamilyChat';
 
 const MAX_CHAT_INPUT_LENGTH = 2000;
@@ -63,18 +64,9 @@ export const FamilyChat: React.FC = () => {
               alignItems: 'center'
             }} >
               <div style={{ color: '#fff', fontWeight: 'bold' }}>Family Chat Bot</div>
-              <button 
-                onClick={clearChat}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#888',
-                  cursor: 'pointer',
-                  fontSize: '0.8rem'
-                }}
-              >
+              <Button variant="text" size="small" onClick={clearChat} sx={{ color: '#888', minWidth: 'auto' }}>
                 Clear
-              </button>
+              </Button>
             </div>
 
             {/* Messages Area */}
@@ -161,50 +153,34 @@ export const FamilyChat: React.FC = () => {
                   outline: 'none'
                 }}
               />
-              <button
-                type="submit"
-                disabled={isLoading}
-                style={{
-                  backgroundColor: '#3b82f6',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '6px',
-                  padding: '8px 16px',
-                  cursor: isLoading ? 'default' : 'pointer',
-                  opacity: isLoading ? 0.6 : 1,
-                  fontWeight: 'bold'
-                }}
-              >
+              <Button type="submit" variant="contained" color="primary" disabled={isLoading}>
                 Send
-              </button>
+              </Button>
             </form>
           </motion.div>
         )}
       </AnimatePresence>
 
       {/* Toggle Button */}
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={() => setIsOpen(!isOpen)}
-        style={{
-          width: '56px',
-          height: '56px',
-          borderRadius: '28px',
-          backgroundColor: '#3b82f6',
-          color: '#fff',
-          border: 'none',
-          cursor: 'pointer',
-          boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          fontSize: '24px',
-          float: 'left'
-        }}
-      >
-        {isOpen ? '✕' : '🤖'}
-      </motion.button>
+      <motion.div style={{ float: 'left' }} whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => setIsOpen(!isOpen)}
+          sx={{
+            width: 56,
+            height: 56,
+            borderRadius: '50%',
+            minWidth: 56,
+            minHeight: 56,
+            padding: 0,
+            fontSize: '24px',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+          }}
+        >
+          {isOpen ? '✕' : '🤖'}
+        </Button>
+      </motion.div>
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Button from '@mui/material/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { FamilyNode } from '../../types/graph';
 
@@ -217,25 +218,17 @@ export default function EditNodeModal({
           {error && <div style={errorStyle}>{error}</div>}
 
           <div style={actionsStyle}>
-            <button
-              type="button"
-              onClick={onClose}
-              style={cancelButtonStyle}
-              disabled={isSubmitting}
-            >
+            <Button variant="outlined" onClick={onClose} disabled={isSubmitting}>
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
-              style={{
-                ...submitButtonStyle,
-                opacity: isSubmitting || !name.trim() ? 0.6 : 1,
-                cursor: isSubmitting || !name.trim() ? 'not-allowed' : 'pointer',
-              }}
+              variant="contained"
+              color="primary"
               disabled={isSubmitting || !name.trim()}
             >
               {isSubmitting ? 'Saving...' : 'Save Changes'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -340,22 +333,3 @@ const actionsStyle: React.CSSProperties = {
   borderTop: '1px solid #333',
 };
 
-const cancelButtonStyle: React.CSSProperties = {
-  padding: '10px 20px',
-  borderRadius: '6px',
-  border: '1px solid #444',
-  backgroundColor: 'transparent',
-  color: '#aaa',
-  cursor: 'pointer',
-  fontWeight: 'bold',
-};
-
-const submitButtonStyle: React.CSSProperties = {
-  padding: '10px 25px',
-  borderRadius: '6px',
-  border: 'none',
-  backgroundColor: '#667eea',
-  color: 'white',
-  cursor: 'pointer',
-  fontWeight: 'bold',
-};

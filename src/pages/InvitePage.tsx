@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import Button from '@mui/material/Button';
 import { useAuth } from '../contexts/AuthContext';
 
 type InviteStatus = 
@@ -284,44 +285,13 @@ export default function InvitePage() {
               <p style={{ fontSize: '1.1rem', marginBottom: '24px' }}>
                 Is this you?
               </p>
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  gap: '12px',
-                }}
-              >
-                <button
-                  onClick={handleYes}
-                  style={{
-                    padding: '12px 32px',
-                    fontSize: '1rem',
-                    background: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    color: '#667eea',
-                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                  }}
-                >
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+                <Button variant="contained" onClick={handleYes} sx={{ bgcolor: 'white', color: 'primary.main', '&:hover': { bgcolor: 'rgba(255,255,255,0.9)' } }}>
                   Yes, continue
-                </button>
-                <button
-                  onClick={handleNo}
-                  style={{
-                    padding: '12px 24px',
-                    fontSize: '0.95rem',
-                    background: 'transparent',
-                    border: '1px solid rgba(255,255,255,0.6)',
-                    borderRadius: '8px',
-                    cursor: 'pointer',
-                    fontWeight: 'bold',
-                    color: 'white',
-                  }}
-                >
+                </Button>
+                <Button variant="outlined" onClick={handleNo} sx={{ borderColor: 'rgba(255,255,255,0.6)', color: 'white' }}>
                   No, this isn't me
-                </button>
+                </Button>
               </div>
             </div>
           );
@@ -357,22 +327,9 @@ export default function InvitePage() {
               This invite has already been claimed. If this was you, please sign in.
             </p>
             {!user && (
-              <button
-                onClick={() => signInWithGoogle(window.location.origin)}
-                style={{
-                  padding: '15px 40px',
-                  fontSize: '1.1rem',
-                  background: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  color: '#667eea',
-                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
-                }}
-              >
+              <Button variant="contained" onClick={() => signInWithGoogle(window.location.origin)} sx={{ bgcolor: 'white', color: 'primary.main', '&:hover': { bgcolor: 'rgba(255,255,255,0.9)' } }}>
                 Returning? Sign in here
-              </button>
+              </Button>
             )}
           </div>
         );

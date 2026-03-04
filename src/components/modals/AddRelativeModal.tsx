@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Button from '@mui/material/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { FamilyNode } from '../../types/graph';
 
@@ -172,21 +173,17 @@ export default function AddRelativeModal({
           {error && <div style={errorStyle}>{error}</div>}
 
           <div style={actionsStyle}>
-            <button 
-              type="button" 
-              onClick={onClose} 
-              style={cancelButtonStyle}
-              disabled={isSubmitting}
-            >
+            <Button variant="outlined" onClick={onClose} disabled={isSubmitting}>
               Cancel
-            </button>
-            <button 
-              type="submit" 
-              style={submitButtonStyle}
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
               disabled={isSubmitting || !name.trim()}
             >
               {isSubmitting ? 'Adding...' : 'Add to Tree'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -264,22 +261,3 @@ const actionsStyle: React.CSSProperties = {
   marginTop: '30px',
 };
 
-const cancelButtonStyle: React.CSSProperties = {
-  padding: '10px 20px',
-  borderRadius: '6px',
-  border: 'none',
-  backgroundColor: 'transparent',
-  color: '#aaa',
-  cursor: 'pointer',
-  fontWeight: 'bold',
-};
-
-const submitButtonStyle: React.CSSProperties = {
-  padding: '10px 25px',
-  borderRadius: '6px',
-  border: 'none',
-  backgroundColor: '#667eea',
-  color: 'white',
-  cursor: 'pointer',
-  fontWeight: 'bold',
-};
