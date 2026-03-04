@@ -88,6 +88,7 @@ Each solution unlocked the next challenge, building from a simple graph visualiz
 
 ### Frontend
 - **React 18** + **TypeScript**: Type-safe component architecture
+- **Material UI (MUI)**: Buttons, Switches, theme (`src/theme/osraTheme.ts`). Tree app UI uses MUI + react-spring for expandable panels.
 - **react-force-graph-3d**: Three.js wrapper for 3D force-directed graphs
 - **Three.js/WebGL**: Hardware-accelerated 3D rendering
 - **Framer Motion**: Smooth UI animations for chat and landing page
