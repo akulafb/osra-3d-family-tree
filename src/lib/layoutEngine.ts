@@ -1,5 +1,6 @@
 import { hierarchy, tree, cluster } from 'd3-hierarchy';
 import { FamilyNode, FamilyLink, Node2D, Link2D, LayoutType, LayoutConfig } from '../types/graph';
+import { getNodeId } from '../utils/getNodeId';
 
 // Default layout configuration
 const DEFAULT_CONFIG: LayoutConfig = {
@@ -9,14 +10,6 @@ const DEFAULT_CONFIG: LayoutConfig = {
   siblingGap: 30,
   marriageGap: 20,
 };
-
-// Helper to safely get ID from link source/target
-function getNodeId(value: string | { id: string } | null | undefined): string | null {
-  if (!value) return null;
-  if (typeof value === 'string') return value;
-  if (typeof value === 'object' && 'id' in value) return value.id;
-  return null;
-}
 
 // Build a hierarchy from flat nodes and links
 function buildHierarchy(

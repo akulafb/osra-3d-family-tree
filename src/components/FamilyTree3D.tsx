@@ -14,6 +14,8 @@ import { FamilyLink } from '../lib/permissions';
 import { createStarfield, type NebulaData } from '../utils/starfield';
 import { isMobile } from '../utils/device';
 import { getTexturePath } from '../utils/imageFormat';
+import { getClusterColor } from '../utils/familyColors';
+import { getNodeId } from '../utils/getNodeId';
 
 // V3 Shared Assets - paths resolved at runtime for WebP when supported
 const planetTexturePaths = [
@@ -100,45 +102,6 @@ const getMaterial = (color: string, isMobileDevice: boolean = false) => {
     }
   }
   return materialCache.get(color)!;
-};
-
-const familyColors: Record<string, string> = {
-  'Badran': '#0066ff',
-  'Kutob': '#00ff88',
-  'Hajjaj': '#ffaa00',
-  'Zabalawi': '#ff00aa',
-  'Malhis': '#aa00ff',
-  'Shawa': '#ff3333',
-  'Dajani': '#33ffff',
-  'Masri': '#ffff33',
-  'Tamimi': '#00ff00',
-  'Husaini': '#ff0000',
-  'Nabulsi': '#ff6600',
-  'Ghazali': '#00ccff',
-  'Rifai': '#cc00ff',
-  'Qudsi': '#66ff00',
-  'Jaabari': '#ff0066',
-  'Khalidi': '#00ffcc',
-};
-
-const getClusterColor = (cluster: string | undefined | null) => {
-  if (!cluster) return '#ffffff';
-  if (familyColors[cluster]) return familyColors[cluster];
-  
-  const colors = Object.values(familyColors);
-  let hash = 0;
-  for (let i = 0; i < cluster.length; i++) {
-    hash = cluster.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  return colors[Math.abs(hash) % colors.length];
-};
-
-const getNodeId = (nodeOrId: any): string => {
-  if (!nodeOrId) return '';
-  if (typeof nodeOrId === 'object') {
-    return nodeOrId.id || '';
-  }
-  return String(nodeOrId);
 };
 
 const getDescendantIds = (nodeId: string, links: FamilyLink[]): string[] => {

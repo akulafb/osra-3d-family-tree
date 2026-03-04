@@ -144,7 +144,7 @@ export default function BulkInviteModal({
         }
       });
       setRelatives((prev: RelativeWithInvite[]) => prev.map(r => ({ ...r, existingInvites: counts[r.node.id] || 0 })));
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error('[BulkInvite] Failed to count existing invites', err); }
   };
 
   const toggleSelection = (nodeId: string) => {

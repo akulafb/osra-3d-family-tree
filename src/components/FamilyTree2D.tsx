@@ -9,6 +9,8 @@ import { FamilyGraph, FamilyNode, Node2D, LayoutType } from '../types/graph';
 import { calculateLayout, calculateBounds } from '../lib/layoutEngine';
 import { NodeCard } from './NodeCard';
 import { OrthogonalLinks } from './OrthogonalLinks';
+import { getNodeId } from '../utils/getNodeId';
+import { getClusterColor } from '../utils/familyColors';
 
 interface FamilyTree2DProps {
   graphData: FamilyGraph;
@@ -29,15 +31,6 @@ interface FamilyTree2DProps {
   onFindMeRequest?: (userCluster: string) => void;
 }
 
-// Helper to get robust node ID from string or object
-const getNodeId = (nodeOrId: any): string => {
-  if (!nodeOrId) return '';
-  if (typeof nodeOrId === 'object') {
-    return nodeOrId.id || '';
-  }
-  return String(nodeOrId);
-}
-
 function ExpandableSpring({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) {
   const spring = useSpring({
     maxHeight: isOpen ? 400 : 0,
@@ -50,26 +43,6 @@ function ExpandableSpring({ isOpen, children }: { isOpen: boolean; children: Rea
     </animated.div>
   );
 }
-
-// Family colors for UI
-const familyColors: Record<string, string> = {
-  'Badran': '#0066ff',
-  'Kutob': '#00ff88',
-  'Hajjaj': '#ffaa00',
-  'Zabalawi': '#ff00aa',
-  'Malhis': '#aa00ff',
-  'Shawa': '#ff3333',
-  'Dajani': '#33ffff',
-  'Masri': '#ffff33',
-  'Tamimi': '#00ff00',
-  'Husaini': '#ff0000',
-  'Nabulsi': '#ff6600',
-  'Ghazali': '#00ccff',
-  'Rifai': '#cc00ff',
-  'Qudsi': '#66ff00',
-  'Jaabari': '#ff0066',
-  'Khalidi': '#00ffcc',
-};
 
 // Filter graph data based on collapsed nodes and active preset
 function filterGraphData(
@@ -555,7 +528,7 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
                       }}
                       sx={{
                         justifyContent: 'space-between',
-                        color: activePreset === cluster ? (familyColors[cluster] || 'primary.main') : 'inherit',
+                        color: activePreset === cluster ? (getClusterColor(cluster) || 'primary.main') : 'inherit',
                         backgroundColor: activePreset === cluster ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
                       }}
                     >
