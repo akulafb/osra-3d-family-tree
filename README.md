@@ -8,12 +8,12 @@ The goal is to create a collaborative family tree platform where multiple family
 
 ## System Architecture
 
-![System Architecture](./docs/System%20Architecture.svg)
+![System Architecture](./docs/system-architecture-flowchart.svg)
 
 The system architecture diagram above illustrates the complete flow from the browser-based React frontend through authentication, data management, and backend services to the 3D visualization and AI chat components.
 
 <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
-  <img src="./docs/UX1.svg" alt="Landing & Onboarding" width="400" height="400" style="object-fit: contain;" />
+  <img src="./docs/onboarding-flowchart.svg" alt="Osra Onboarding Flow" width="400" height="400" style="object-fit: contain;" />
   <img src="./docs/UX2.svg" alt="Visual World, Navigation, Permissions & AI Chat" width="420" height="420" style="object-fit: contain;" />
 </div>
 
