@@ -11,6 +11,8 @@ import { NodeCard } from './NodeCard';
 import { OrthogonalLinks } from './OrthogonalLinks';
 import { getNodeId } from '../utils/getNodeId';
 import { getClusterColor } from '../utils/familyColors';
+import { filterGraphData } from '../lib/filterGraphData';
+import { TreeSearchBar } from './TreeSearchBar';
 
 interface FamilyTree2DProps {
   graphData: FamilyGraph;
@@ -29,6 +31,17 @@ interface FamilyTree2DProps {
   isMobile?: boolean;
   userNodeId?: string | null;
   onFindMeRequest?: (userCluster: string) => void;
+  searchHighlightedNodeId?: string | null;
+  searchQuery?: string;
+  onSearchQueryChange?: (q: string) => void;
+  searchMatches?: FamilyNode[];
+  searchIndex?: number;
+  onSearchPrev?: () => void;
+  onSearchNext?: () => void;
+  onSearchClose?: () => void;
+  searchOpenRequested?: number;
+  searchNavigateTrigger?: number;
+  searchDisabled?: boolean;
 }
 
 function ExpandableSpring({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) {
@@ -42,101 +55,6 @@ function ExpandableSpring({ isOpen, children }: { isOpen: boolean; children: Rea
       {children}
     </animated.div>
   );
-}
-
-// Filter graph data based on collapsed nodes and active preset
-function filterGraphData(
-  graphData: FamilyGraph,
-  collapsedNodes: Set<string>,
-  activePreset?: string | null
-): FamilyGraph {
-  // First filter by preset (cluster)
-  let nodes = graphData.nodes;
-  let links = graphData.links;
-
-  if (activePreset) {
-    // Include primary (paternal) and maternal-only nodes
-    nodes = nodes.filter(
-      n => n.familyCluster === activePreset || n.maternalFamilyCluster === activePreset
-    );
-    const nodeIds = new Set(nodes.map(n => n.id));
-    links = links.filter(l => {
-      const sourceId = getNodeId(l.source);
-      const targetId = getNodeId(l.target);
-      return nodeIds.has(sourceId) && nodeIds.has(targetId);
-    });
-
-    // Add synthetic parent links: maternal-only children branch from mother (father is out of scope)
-    const maternalOnlyIds = new Set(
-      nodes
-        .filter(n => n.maternalFamilyCluster === activePreset && n.familyCluster !== activePreset)
-        .map(n => n.id)
-    );
-    const marriageByNode = new Map<string, string>();
-    graphData.links.forEach(l => {
-      if (l.type === 'marriage') {
-        const a = getNodeId(l.source);
-        const b = getNodeId(l.target);
-        if (a && b) {
-          marriageByNode.set(a, b);
-          marriageByNode.set(b, a);
-        }
-      }
-    });
-    graphData.links.forEach(l => {
-      if (l.type !== 'parent') return;
-      const fatherId = getNodeId(l.source);
-      const childId = getNodeId(l.target);
-      if (!fatherId || !childId || !maternalOnlyIds.has(childId)) return;
-      if (nodeIds.has(fatherId)) return; // father in scope, real link already kept
-      const motherId = marriageByNode.get(fatherId);
-      if (motherId && nodeIds.has(motherId)) {
-        links.push({ source: motherId, target: childId, type: 'parent' });
-      }
-    });
-  }
-
-  // Then filter by collapsed nodes
-  if (collapsedNodes.size === 0) return { nodes, links };
-
-  const hiddenNodes = new Set<string>();
-
-  const getDescendants = (nodeId: string): string[] => {
-    const descendants: string[] = [];
-    const queue = [nodeId];
-    const visited = new Set<string>();
-
-    while (queue.length > 0) {
-      const currentId = queue.shift()!;
-      if (visited.has(currentId)) continue;
-      visited.add(currentId);
-
-      const children = links
-        .filter(l => {
-          const sourceId = getNodeId(l.source);
-          return sourceId === currentId && l.type === 'parent';
-        })
-        .map(l => getNodeId(l.target));
-
-      descendants.push(...children);
-      queue.push(...children);
-    }
-
-    return descendants;
-  };
-
-  collapsedNodes.forEach(id => {
-    getDescendants(id).forEach(dId => hiddenNodes.add(dId));
-  });
-
-  return {
-    nodes: nodes.filter(n => !hiddenNodes.has(n.id)),
-    links: links.filter(l => {
-      const sourceId = getNodeId(l.source);
-      const targetId = getNodeId(l.target);
-      return !hiddenNodes.has(sourceId) && !hiddenNodes.has(targetId);
-    }),
-  };
 }
 
 export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
@@ -156,6 +74,17 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
   isMobile = false,
   userNodeId = null,
   onFindMeRequest,
+  searchHighlightedNodeId = null,
+  searchQuery = '',
+  onSearchQueryChange,
+  searchMatches = [],
+  searchIndex = 0,
+  onSearchPrev,
+  onSearchNext,
+  onSearchClose,
+  searchOpenRequested = 0,
+  searchNavigateTrigger = 0,
+  searchDisabled = false,
 }) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
@@ -287,8 +216,11 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [nodes, selectedNodeId, onNodeSelect, onBackgroundClick, transform.k]);
 
-  // Focus on specific node (scale 1.25 for subtle "Find me!" zoom)
-  const focusNode = useCallback((nodeId: string, scale = 1.2) => {
+  // Focus on specific node (scale 1.25 for subtle "Find me!" zoom; duration in ms)
+  const FOCUS_DURATION = 1040;
+  const SEARCH_FOCUS_DURATION = 2080;
+
+  const focusNode = useCallback((nodeId: string, scale = 1.2, durationMs = FOCUS_DURATION) => {
     const node = nodes.find(n => n.id === nodeId);
     if (!node || !svgRef.current || !zoomBehaviorRef.current) return;
 
@@ -301,7 +233,7 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
 
     select(svg)
       .transition()
-      .duration(1040)
+      .duration(durationMs)
       .call(zoomBehaviorRef.current.transform as any, targetTransform);
   }, [nodes]);
 
@@ -324,7 +256,7 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
     }, 3500);
 
     if (nodes.some(n => n.id === userNodeId)) {
-      focusNode(userNodeId, 1.25);
+      focusNode(userNodeId, 1.25, FOCUS_DURATION);
     } else {
       pendingFindMeRef.current = userNodeId;
     }
@@ -341,8 +273,26 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
     const pending = pendingFindMeRef.current;
     if (!pending || !nodes.some(n => n.id === pending)) return;
     pendingFindMeRef.current = null;
-    focusNode(pending, 1.25);
+    focusNode(pending, 1.25, FOCUS_DURATION);
   }, [nodes, focusNode]);
+
+  // Expand settings when Ctrl+F opens search
+  useEffect(() => {
+    if (searchOpenRequested > 0) {
+      setShowControls(true);
+    }
+  }, [searchOpenRequested]);
+
+  // Navigate only when arrow is clicked or Enter pressed (not when typing)
+  const prevSearchNavigateTrigger = useRef(0);
+  useEffect(() => {
+    if (searchNavigateTrigger > prevSearchNavigateTrigger.current) {
+      prevSearchNavigateTrigger.current = searchNavigateTrigger;
+      if (searchHighlightedNodeId && nodes.some(n => n.id === searchHighlightedNodeId)) {
+        focusNode(searchHighlightedNodeId, 1.2, SEARCH_FOCUS_DURATION);
+      }
+    }
+  }, [searchNavigateTrigger, searchHighlightedNodeId, nodes, focusNode]);
 
   // Expose focus method via ref if needed
   useEffect(() => {
@@ -455,6 +405,7 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
                 onDoubleClick={handleNodeDoubleClick}
                 activePreset={activePreset}
                 isHighlighted={highlightedNodeId === node.id}
+                isSearchHighlighted={searchHighlightedNodeId === node.id}
               />
             ))}
           </g>
@@ -579,6 +530,34 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
                 </Button>
               </div>
             )}
+
+            {onSearchQueryChange && onSearchPrev && onSearchNext && onSearchClose && (
+              <div style={{
+                marginTop: '8px',
+                marginBottom: '8px',
+                padding: '12px',
+                backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                borderRadius: '8px',
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#888', marginBottom: '8px' }}>
+                  Search
+                </div>
+                <TreeSearchBar
+                  query={searchQuery}
+                  onQueryChange={onSearchQueryChange}
+                  matches={searchMatches}
+                  currentIndex={searchIndex}
+                  onPrev={onSearchPrev}
+                  onNext={onSearchNext}
+                  onClose={onSearchClose}
+                  disabled={searchDisabled}
+                  embedded
+                  focusTrigger={searchOpenRequested}
+                />
+              </div>
+            )}
+
             <Button
               variant="contained"
               color="error"
