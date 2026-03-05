@@ -7,6 +7,8 @@ import { useFamilyData } from '../hooks/useFamilyData';
 import { FamilyNode, FamilyLink } from '../types/graph';
 import { useAuth } from '../contexts/AuthContext';
 import { canEdit } from '../lib/permissions';
+import { filterGraphData, getVisibleNodes3D } from '../lib/filterGraphData';
+import { searchNodes } from '../utils/treeSearch';
 import AddRelativeModal from './modals/AddRelativeModal';
 import EditNodeModal from './modals/EditNodeModal';
 import BulkInviteModal from './modals/BulkInviteModal';
@@ -27,6 +29,12 @@ export const FamilyTree: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isBulkInviteOpen, setIsBulkInviteOpen] = useState(false);
   const [canEditSelected, setCanEditSelected] = useState(false);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchIndex, setSearchIndex] = useState(0);
+  const [searchOpenRequested, setSearchOpenRequested] = useState(0);
+  const [searchNavigateTrigger, setSearchNavigateTrigger] = useState(0);
 
   // Check permissions when node is selected
   useEffect(() => {
@@ -82,6 +90,55 @@ export const FamilyTree: React.FC = () => {
 
   const handleFindMeRequest = useCallback((userCluster: string) => {
     setActivePreset(userCluster);
+  }, []);
+
+  // Visible nodes for search (depends on mode)
+  const visibleNodes = useMemo(() => {
+    if (!graphData) return [];
+    if (mode === '3D') {
+      return getVisibleNodes3D(graphData, collapsedNodes);
+    }
+    const filtered = filterGraphData(graphData, collapsedNodes, activePreset);
+    return filtered.nodes;
+  }, [graphData, mode, collapsedNodes, activePreset]);
+
+  const searchMatches = useMemo(
+    () => searchNodes(visibleNodes, searchQuery),
+    [visibleNodes, searchQuery]
+  );
+
+  const searchHighlightedNodeId = searchMatches[searchIndex]?.id ?? null;
+
+  const handleSearchPrev = useCallback(() => {
+    setSearchIndex((i) => (i <= 0 ? searchMatches.length - 1 : i - 1));
+    setSearchNavigateTrigger((n) => n + 1);
+  }, [searchMatches.length]);
+
+  const handleSearchNext = useCallback(() => {
+    setSearchIndex((i) => (i >= searchMatches.length - 1 ? 0 : i + 1));
+    setSearchNavigateTrigger((n) => n + 1);
+  }, [searchMatches.length]);
+
+  const handleSearchClose = useCallback(() => {
+    setSearchQuery('');
+    setSearchIndex(0);
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      setSearchIndex(0);
+    }
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setSearchOpenRequested((n) => n + 1);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   if (!isHydrated || isLoading) {
@@ -172,8 +229,6 @@ export const FamilyTree: React.FC = () => {
       overflow: 'hidden',
       background: '#0a0a0a',
     }}>
-      {/* No global controls here, each view handles its own */}
-
       {/* Selected Node Info - Bottom Center */}
       {selectedNode && (
         <div style={{
@@ -281,6 +336,17 @@ export const FamilyTree: React.FC = () => {
             isAddModalOpen={isAddModalOpen}
             isEditModalOpen={isEditModalOpen}
             isBulkInviteOpen={isBulkInviteOpen}
+            searchHighlightedNodeId={searchHighlightedNodeId}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            searchMatches={searchMatches}
+            searchIndex={searchIndex}
+            onSearchPrev={handleSearchPrev}
+            onSearchNext={handleSearchNext}
+            onSearchClose={handleSearchClose}
+            searchOpenRequested={searchOpenRequested}
+            searchNavigateTrigger={searchNavigateTrigger}
+            searchDisabled={false}
           />
         ) : (
           <FamilyTree2D
@@ -299,6 +365,17 @@ export const FamilyTree: React.FC = () => {
             onPresetSelect={handlePresetSelect}
             userNodeId={userProfile?.node_id ?? null}
             onFindMeRequest={handleFindMeRequest}
+            searchHighlightedNodeId={searchHighlightedNodeId}
+            searchQuery={searchQuery}
+            onSearchQueryChange={setSearchQuery}
+            searchMatches={searchMatches}
+            searchIndex={searchIndex}
+            onSearchPrev={handleSearchPrev}
+            onSearchNext={handleSearchNext}
+            onSearchClose={handleSearchClose}
+            searchOpenRequested={searchOpenRequested}
+            searchNavigateTrigger={searchNavigateTrigger}
+            searchDisabled={!activePreset}
           />
         )}
       </div>

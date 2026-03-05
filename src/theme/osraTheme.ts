@@ -1,6 +1,18 @@
 import { createTheme } from '@mui/material/styles';
 
 export const osraTheme = createTheme({
+  typography: {
+    fontFamily: '"Lora", Georgia, serif',
+  },
+  components: {
+    MuiButton: {
+      styleOverrides: {
+        root: {
+          textTransform: 'none',
+        },
+      },
+    },
+  },
   palette: {
     mode: 'dark',
     primary: {

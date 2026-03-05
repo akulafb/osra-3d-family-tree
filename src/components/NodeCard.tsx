@@ -11,6 +11,8 @@ interface NodeCardProps {
   activePreset?: string | null;
   /** Temporary glow for "Find me!" highlight */
   isHighlighted?: boolean;
+  /** Search match highlight (bright red glow) */
+  isSearchHighlighted?: boolean;
 }
 
 /** Lighten colors for maternal-only nodes (same hue, lighter tint) */
@@ -32,6 +34,7 @@ function lightenColors(base: { bg: string; border: string; text: string }) {
 }
 
 const HIGHLIGHT_GLOW_COLOR = '#10b981';
+const SEARCH_GLOW_COLOR = '#ef4444';
 
 export const NodeCard: React.FC<NodeCardProps> = ({
   node,
@@ -40,6 +43,7 @@ export const NodeCard: React.FC<NodeCardProps> = ({
   onDoubleClick,
   activePreset,
   isHighlighted = false,
+  isSearchHighlighted = false,
 }) => {
   const isMaternalOnly =
     activePreset &&
@@ -73,10 +77,25 @@ export const NodeCard: React.FC<NodeCardProps> = ({
       style={{
         cursor: 'pointer',
       }}
-      className={`node-card ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''}`}
+      className={`node-card ${isSelected ? 'selected' : ''} ${isHighlighted ? 'highlighted' : ''} ${isSearchHighlighted ? 'search-highlighted' : ''}`}
     >
+      {/* Search match highlight (red glow, takes precedence) */}
+      {isSearchHighlighted && (
+        <rect
+          x={-10}
+          y={-10}
+          width={node.width + 20}
+          height={node.height + 20}
+          rx={16}
+          fill="none"
+          stroke={SEARCH_GLOW_COLOR}
+          strokeWidth={4}
+          opacity={0.8}
+          style={{ transition: 'opacity 0.3s ease' }}
+        />
+      )}
       {/* Find me! highlight glow */}
-      {isHighlighted && (
+      {isHighlighted && !isSearchHighlighted && (
         <rect
           x={-8}
           y={-8}
