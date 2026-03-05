@@ -137,7 +137,7 @@ git commit -m "feat: render divorce links as gray dotted lines in 2D"
 
 **Files:**
 - Create: `supabase/migrations/20260223_add_divorce_type.sql`
-- Modify: `supabase-seed.sql:160`
+- Modify: `supabase/seed/bulk-upload-1-seed.sql:160`
 - Modify: `src/data/familyData.json:151`
 
 **Step 1: Create SQL Migration**
@@ -153,7 +153,7 @@ WHERE source_node_id = '10000000-1000-4000-8000-00000000001b'
   AND target_node_id = '10000000-1000-4000-8000-000000000018';
 ```
 
-**Step 2: Update `supabase-seed.sql`**
+**Step 2: Update `supabase/seed/bulk-upload-1-seed.sql`**
 ```sql
 -- line 160
 ('10000000-1000-4000-8000-00000000001b', '10000000-1000-4000-8000-000000000018', 'divorce', '00000000-0000-0000-0000-000000000001', NOW()),
@@ -167,7 +167,7 @@ WHERE source_node_id = '10000000-1000-4000-8000-00000000001b'
 
 **Step 4: Commit**
 ```bash
-git add supabase/migrations/20260223_add_divorce_type.sql supabase-seed.sql src/data/familyData.json
+git add supabase/migrations/20260223_add_divorce_type.sql supabase/seed/bulk-upload-1-seed.sql src/data/familyData.json
 git commit -m "data: update Hisham and Hala relationship to divorce"
 ```
 

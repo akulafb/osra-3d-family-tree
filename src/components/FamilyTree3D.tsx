@@ -1004,7 +1004,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
         linkDistance={(l: any) => activePreset ? ((l.type === 'marriage' || l.type === 'divorce') ? 450 : 250) : ((l.type === 'marriage' || l.type === 'divorce') ? 250 : 120)}
         linkStrength={(l: any) => activePreset ? 0.1 : ((l.type === 'marriage' || l.type === 'divorce') ? 0.3 : 0.8)}
         ref={fgRef}
-        cooldownTicks={activePreset ? 600 : 200}
+        cooldownTicks={activePreset ? 1000 : 1000}
         onEngineStop={() => setIsSimulationLoading(false)}
         onNodeClick={handleNodeClick}
         onNodeDoubleClick={(node: any) => {

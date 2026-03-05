@@ -1,0 +1,2607 @@
+{
+  "nodes": [
+    {
+      "id": 1,
+      "name": "Basel",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 2,
+      "name": "Baha",
+      "familyCluster": "Zabalawi"
+    },
+    {
+      "id": 3,
+      "name": "Fahd",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 4,
+      "name": "May",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 5,
+      "name": "Dareen",
+      "familyCluster": "Kutob"
+    },
+    {
+      "id": 6,
+      "name": "Aysha",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 7,
+      "name": "Ammar",
+      "familyCluster": "Hajjaj"
+    },
+    {
+      "id": 8,
+      "name": "Karim",
+      "familyCluster": "Hajjaj"
+    },
+    {
+      "id": 9,
+      "name": "Noora",
+      "familyCluster": "Hajjaj"
+    },
+    {
+      "id": 10,
+      "name": "Issa",
+      "familyCluster": "Hajjaj"
+    },
+    {
+      "id": 11,
+      "name": "Badran",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 12,
+      "name": "Randa",
+      "familyCluster": "Pharoan"
+    },
+    {
+      "id": 13,
+      "name": "Rasha",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 14,
+      "name": "Nada",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 15,
+      "name": "Dana",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 16,
+      "name": "Abdulrazzaq",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 17,
+      "name": "Iftikhar",
+      "familyCluster": "Farekh"
+    },
+    {
+      "id": 18,
+      "name": "Omar",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 19,
+      "name": "Hala",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 20,
+      "name": "Maha",
+      "familyCluster": "Alami"
+    },
+    {
+      "id": 21,
+      "name": "Farah",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 22,
+      "name": "Hisham",
+      "familyCluster": "Shaban"
+    },
+    {
+      "id": 23,
+      "name": "Seif",
+      "familyCluster": "Shaban"
+    },
+    {
+      "id": 24,
+      "name": "Zeina",
+      "familyCluster": "Shaban"
+    },
+    {
+      "id": 25,
+      "name": "Lana",
+      "familyCluster": "Bawaneh"
+    },
+    {
+      "id": 26,
+      "name": "Hashim",
+      "familyCluster": "Shaban"
+    },
+    {
+      "id": 27,
+      "name": "Kareem",
+      "familyCluster": "Shaban"
+    },
+    {
+      "id": 28,
+      "name": "Mohammad Hasan",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 29,
+      "name": "Aisha",
+      "familyCluster": "Qassas"
+    },
+    {
+      "id": 30,
+      "name": "Saadi",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 31,
+      "name": "Jamal",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 32,
+      "name": "Khairi",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 33,
+      "name": "Pakiza",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 34,
+      "name": "Naheeza",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 35,
+      "name": "Ebreeza",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 36,
+      "name": "Atika",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 37,
+      "name": "Zakaria",
+      "familyCluster": "Zabalawi"
+    },
+    {
+      "id": 38,
+      "name": "Ghadeer",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 39,
+      "name": "Yehia",
+      "familyCluster": "Zabalawi"
+    },
+    {
+      "id": 40,
+      "name": "Abdulfattah",
+      "familyCluster": "Zabalawi"
+    },
+    {
+      "id": 41,
+      "name": "Mohammed",
+      "familyCluster": "Zabalawi"
+    },
+    {
+      "id": 42,
+      "name": "Ola",
+      "familyCluster": "Fiedi"
+    },
+    {
+      "id": 43,
+      "name": "Diala",
+      "familyCluster": "Zabalawi"
+    },
+    {
+      "id": 44,
+      "name": "Leen",
+      "familyCluster": "Zabalawi"
+    },
+    {
+      "id": 45,
+      "name": "Aya",
+      "familyCluster": "Zabalawi"
+    },
+    {
+      "id": 46,
+      "name": "Noor",
+      "familyCluster": "Zabalawi"
+    },
+    {
+      "id": 47,
+      "name": "Yasser",
+      "familyCluster": "Zabalawi"
+    },
+    {
+      "id": 48,
+      "name": "Kholoud",
+      "familyCluster": "Bsaiso"
+    },
+    {
+      "id": 49,
+      "name": "Adam",
+      "familyCluster": "Zabalawi"
+    },
+    {
+      "id": 50,
+      "name": "Nasser",
+      "familyCluster": "Abukhalaf"
+    },
+    {
+      "id": 51,
+      "name": "Jihad",
+      "familyCluster": "Zabalawi"
+    },
+    {
+      "id": 52,
+      "name": "Zaid",
+      "familyCluster": "Abukhalaf"
+    },
+    {
+      "id": 53,
+      "name": "Younes",
+      "familyCluster": "Abukhalaf"
+    },
+    {
+      "id": 54,
+      "name": "Aleen",
+      "familyCluster": "Abukhalaf"
+    },
+    {
+      "id": 55,
+      "name": "Taha",
+      "familyCluster": "Abukhalaf"
+    },
+    {
+      "id": 56,
+      "name": "Ayman",
+      "familyCluster": "Okasha"
+    },
+    {
+      "id": 57,
+      "name": "Eman",
+      "familyCluster": "Zabalawi"
+    },
+    {
+      "id": 58,
+      "name": "Hana",
+      "familyCluster": "Okasha"
+    },
+    {
+      "id": 59,
+      "name": "Maya",
+      "familyCluster": "Okasha"
+    },
+    {
+      "id": 60,
+      "name": "Louai",
+      "familyCluster": "Okasha"
+    },
+    {
+      "id": 61,
+      "name": "Salam",
+      "familyCluster": "Zabalawi"
+    },
+    {
+      "id": 62,
+      "name": "Salma",
+      "familyCluster": "Okasha"
+    },
+    {
+      "id": 63,
+      "name": "Laila",
+      "familyCluster": "Okasha"
+    },
+    {
+      "id": 64,
+      "name": "Ali",
+      "familyCluster": "Okasha"
+    },
+    {
+      "id": 65,
+      "name": "Samira",
+      "familyCluster": "Zabalawi"
+    },
+    {
+      "id": 66,
+      "name": "فاطمة الجدة الأولى",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 67,
+      "name": "مسعود",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 68,
+      "name": "أسعد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 69,
+      "name": "عبد القادر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 70,
+      "name": "محمد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 71,
+      "name": "محمود",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 72,
+      "name": "أحمد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 73,
+      "name": "عبد الله",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 74,
+      "name": "بدوي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 75,
+      "name": "عبد الهادي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 76,
+      "name": "مصطفى",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 77,
+      "name": "يوسف",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 78,
+      "name": "عثمان",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 79,
+      "name": "عبد الرحيم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 80,
+      "name": "اسعد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 81,
+      "name": "حسن",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 82,
+      "name": "صادق",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 83,
+      "name": "راغب",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 84,
+      "name": "سعيد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 85,
+      "name": "قاسم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 86,
+      "name": "عزيزةأبو زينة",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 87,
+      "name": "زينب الداري",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 88,
+      "name": "الحاجة كوثر بدران",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 89,
+      "name": "هدى عبد الغني بدران",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 90,
+      "name": "مرام احمد بدران",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 91,
+      "name": "كاظم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 92,
+      "name": "إنتصار احمد بدران",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 93,
+      "name": "سكينة صلاح الدين بدران",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 94,
+      "name": "راسم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 95,
+      "name": "جيدا شلهوب",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 96,
+      "name": "شادية النابلسي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 97,
+      "name": "ابراهيم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 98,
+      "name": "سمر فرهود",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 99,
+      "name": "المرحوم عمار",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 100,
+      "name": "عمار",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 101,
+      "name": "السيدة مي عبد الرحمن",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 102,
+      "name": "ادم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 103,
+      "name": "يزن",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 104,
+      "name": "بدران",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 105,
+      "name": "جوانا حامد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 106,
+      "name": "ظافر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 107,
+      "name": "سيرينا حامد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 108,
+      "name": "مازن",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 109,
+      "name": "ملك لبادة",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 110,
+      "name": "ماهر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 111,
+      "name": "لينا الشحروري",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 112,
+      "name": "ليث",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 113,
+      "name": "أسيمر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 114,
+      "name": "عمرو",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 115,
+      "name": "قصي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 116,
+      "name": "نبهان",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 117,
+      "name": "باسم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 118,
+      "name": "حمزة",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 119,
+      "name": "سامي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 120,
+      "name": "انس",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 121,
+      "name": "هاني",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 122,
+      "name": "عماد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 123,
+      "name": "سناء الدسوقي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 124,
+      "name": "فريال الدسوقي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 125,
+      "name": "أسامة",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 126,
+      "name": "سامر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 127,
+      "name": "حنان الأدهم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 128,
+      "name": "نصر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 129,
+      "name": "نضال",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 130,
+      "name": "ياسر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 131,
+      "name": "عبد الكريم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 132,
+      "name": "احمد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 133,
+      "name": "أنيسة القصص",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 134,
+      "name": "محمد نبيل",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 135,
+      "name": "جواد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 136,
+      "name": "جاوده عبد المحسن الدجاني",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 137,
+      "name": "ردينة الصالح",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 138,
+      "name": "تيسير",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 139,
+      "name": "محمد سعيد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 140,
+      "name": "السيدة سهيلة إستيتية",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 141,
+      "name": "باسل",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 142,
+      "name": "علا محمد علي بدران",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 143,
+      "name": "حسام",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 144,
+      "name": "شيرين السقا",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 145,
+      "name": "حازم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 146,
+      "name": "هنادي يحيى بشير",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 147,
+      "name": "خالد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 148,
+      "name": "مروان",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 149,
+      "name": "امل القاسم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 150,
+      "name": "رزان الدباس",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 151,
+      "name": "عمر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 152,
+      "name": "بيان حمارشة",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 153,
+      "name": "كرم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 154,
+      "name": "سيف",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 155,
+      "name": "شهد فهد الجودي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 156,
+      "name": "راكان",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 157,
+      "name": "انيسة عثمان بدران",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 158,
+      "name": "محمد علي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 159,
+      "name": "منى قادري (سورية)",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 160,
+      "name": "اسماعيل",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 161,
+      "name": "شفيقة (لبنانية)",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 162,
+      "name": "عدنان",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 163,
+      "name": "ربى قادري",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 164,
+      "name": "خليل",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 165,
+      "name": "إبراهيم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 166,
+      "name": "السيدة هيام عبد الفتاح الغنمة",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 167,
+      "name": "فيصل",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 168,
+      "name": "فاروق",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 169,
+      "name": "هبة الصالح",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 170,
+      "name": "علاء",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 171,
+      "name": "مهند",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 172,
+      "name": "عباس",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 173,
+      "name": "كنان",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 174,
+      "name": "رائد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 175,
+      "name": "بهاء",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 176,
+      "name": "غادة جودة",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 177,
+      "name": "هيا العبيسات",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 178,
+      "name": "عون",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 179,
+      "name": "بلال",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 180,
+      "name": "عبد الحليم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 181,
+      "name": "ممحد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 182,
+      "name": "سليمان",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 183,
+      "name": "غسان",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 184,
+      "name": "نجيب",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 185,
+      "name": "أمينة العبوة",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 186,
+      "name": "عبد الرحمن",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 187,
+      "name": "السيدة سكينة علي الشاذلي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 188,
+      "name": "عبد الغني",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 189,
+      "name": "صديقة الحنبلي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 190,
+      "name": "عادل",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 191,
+      "name": "عائشة فارس الشاكر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 192,
+      "name": "اديب",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 193,
+      "name": "رقية الجاعوني من بيت المقدس",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 194,
+      "name": "إمرأة إيطالية أسمها لندا اندريا التوبوللو",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 195,
+      "name": "صلاح",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 196,
+      "name": "فتحية بدران",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 197,
+      "name": "عبد المنعم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 198,
+      "name": "السيدة هانم محمد لبيب ابو يوسف",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 199,
+      "name": "محمد بدوي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 200,
+      "name": "علي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 201,
+      "name": "زياد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 202,
+      "name": "عليه محمد حسن الدجاني",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 203,
+      "name": "نادي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 204,
+      "name": "أديب",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 205,
+      "name": "طارق",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 206,
+      "name": "شروق محمد زكي الخوالدة",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 207,
+      "name": "موسى",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 208,
+      "name": "صفاء فواز السفاريني",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 209,
+      "name": "بــدر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 210,
+      "name": "عارف",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 211,
+      "name": "هاشم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 212,
+      "name": "امير",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 213,
+      "name": "فاطمة فراج",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 214,
+      "name": "رشاد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 215,
+      "name": "د. سوزان عبد المالك",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 216,
+      "name": "صلاح الدين",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 217,
+      "name": "معتز",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 218,
+      "name": "نها زكريا",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 219,
+      "name": "ضياء",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 220,
+      "name": "د. لانا عبيدات",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 221,
+      "name": "سليم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 222,
+      "name": "زكريا",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 223,
+      "name": "فاطمة عبد الصادق",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 224,
+      "name": "محمد حسنين",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 225,
+      "name": "هالة عرابي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 226,
+      "name": "حسناء سليم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 227,
+      "name": "مديحة السبكي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 228,
+      "name": "يحيى",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 229,
+      "name": "سهير حجازي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 230,
+      "name": "شريف",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 231,
+      "name": "حسين",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 232,
+      "name": "حميل",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 233,
+      "name": "حاكمة الخياط",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 234,
+      "name": "السيدة جهاد خليفة",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 235,
+      "name": "منور الخياط",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 236,
+      "name": "زكي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 237,
+      "name": "يسرى العبوة",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 238,
+      "name": "جمال",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 239,
+      "name": "سمير",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 240,
+      "name": "بسنت فتيان",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 241,
+      "name": "عفاف الشاكر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 242,
+      "name": "بدر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 243,
+      "name": "أبنة عمته رايه",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 244,
+      "name": "مجدي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 245,
+      "name": "زيد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 246,
+      "name": "عامر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 247,
+      "name": "جعفر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 248,
+      "name": "قيس",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 249,
+      "name": "عزام",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 250,
+      "name": "وليد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 251,
+      "name": "نصري",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 252,
+      "name": "هلال",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 253,
+      "name": "شهير",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 254,
+      "name": "هيثم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 255,
+      "name": "فراس",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 256,
+      "name": "نورس",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 257,
+      "name": "نزار",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 258,
+      "name": "نادر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 259,
+      "name": "رامي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 260,
+      "name": "فارس",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 261,
+      "name": "ركان",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 262,
+      "name": "حامد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 263,
+      "name": "محمد حسن",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 264,
+      "name": "عائشة القصص",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 265,
+      "name": "عايش",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 266,
+      "name": "حلمي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 267,
+      "name": "ذهبية شعلان",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 268,
+      "name": "عبد الرزاق",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 269,
+      "name": "إفتخار فهيم الفرخ",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 270,
+      "name": "خيري",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 271,
+      "name": "فايزة",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 272,
+      "name": "فاطمة",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 273,
+      "name": "سعدي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 274,
+      "name": "عربية بدران، اخت عثمان",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 275,
+      "name": "باكزة",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 276,
+      "name": "رندة سامي فرعون",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 277,
+      "name": "مها فضل العلمي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 278,
+      "name": "بهاء عبدالفتاح زعبلاوي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 279,
+      "name": "مضر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 280,
+      "name": "فهد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 281,
+      "name": "دارين مازن قطب",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 282,
+      "name": "حمال",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 283,
+      "name": "غازي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 284,
+      "name": "سهل",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 285,
+      "name": "جهاد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 286,
+      "name": "بدرية الخطيب",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 287,
+      "name": "خيرية صائب",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 288,
+      "name": "هيقاء الحسيني",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 289,
+      "name": "بشار",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 290,
+      "name": "نواف",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 291,
+      "name": "حمد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 292,
+      "name": "السيدة هيفاء الشاكر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 293,
+      "name": "هشام",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 294,
+      "name": "السيدة هالة الخماش",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 295,
+      "name": "حسان",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 296,
+      "name": "السيدة بديعة محمد بدران",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 297,
+      "name": "السيدة إلهام خليفة",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 298,
+      "name": "السيدة حنان خليل القطاونة",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 299,
+      "name": "اسامة",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 300,
+      "name": "اشر",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 301,
+      "name": "رياض",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 302,
+      "name": "صبحي",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 303,
+      "name": "جميل",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 304,
+      "name": "انعام السكاكيني",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 305,
+      "name": "ناجية غنوم",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 306,
+      "name": "ساجد",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 307,
+      "name": "سهيل",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 308,
+      "name": "سراج الدين",
+      "familyCluster": "Badran"
+    },
+    {
+      "id": 309,
+      "name": "نوح",
+      "familyCluster": "Badran"
+    }
+  ],
+  "links": [
+    {
+      "source": 1,
+      "target": 2,
+      "type": "marriage"
+    },
+    {
+      "source": 1,
+      "target": 3,
+      "type": "parent"
+    },
+    {
+      "source": 2,
+      "target": 3,
+      "type": "parent"
+    },
+    {
+      "source": 1,
+      "target": 4,
+      "type": "parent"
+    },
+    {
+      "source": 2,
+      "target": 4,
+      "type": "parent"
+    },
+    {
+      "source": 3,
+      "target": 5,
+      "type": "marriage"
+    },
+    {
+      "source": 3,
+      "target": 6,
+      "type": "parent"
+    },
+    {
+      "source": 5,
+      "target": 6,
+      "type": "parent"
+    },
+    {
+      "source": 7,
+      "target": 4,
+      "type": "marriage"
+    },
+    {
+      "source": 7,
+      "target": 8,
+      "type": "parent"
+    },
+    {
+      "source": 4,
+      "target": 8,
+      "type": "parent"
+    },
+    {
+      "source": 7,
+      "target": 9,
+      "type": "parent"
+    },
+    {
+      "source": 4,
+      "target": 9,
+      "type": "parent"
+    },
+    {
+      "source": 7,
+      "target": 10,
+      "type": "parent"
+    },
+    {
+      "source": 4,
+      "target": 10,
+      "type": "parent"
+    },
+    {
+      "source": 11,
+      "target": 12,
+      "type": "marriage"
+    },
+    {
+      "source": 11,
+      "target": 13,
+      "type": "parent"
+    },
+    {
+      "source": 12,
+      "target": 13,
+      "type": "parent"
+    },
+    {
+      "source": 11,
+      "target": 14,
+      "type": "parent"
+    },
+    {
+      "source": 12,
+      "target": 14,
+      "type": "parent"
+    },
+    {
+      "source": 11,
+      "target": 15,
+      "type": "parent"
+    },
+    {
+      "source": 12,
+      "target": 15,
+      "type": "parent"
+    },
+    {
+      "source": 16,
+      "target": 17,
+      "type": "marriage"
+    },
+    {
+      "source": 16,
+      "target": 11,
+      "type": "parent"
+    },
+    {
+      "source": 17,
+      "target": 11,
+      "type": "parent"
+    },
+    {
+      "source": 16,
+      "target": 18,
+      "type": "parent"
+    },
+    {
+      "source": 17,
+      "target": 18,
+      "type": "parent"
+    },
+    {
+      "source": 16,
+      "target": 1,
+      "type": "parent"
+    },
+    {
+      "source": 17,
+      "target": 1,
+      "type": "parent"
+    },
+    {
+      "source": 16,
+      "target": 19,
+      "type": "parent"
+    },
+    {
+      "source": 17,
+      "target": 19,
+      "type": "parent"
+    },
+    {
+      "source": 18,
+      "target": 20,
+      "type": "marriage"
+    },
+    {
+      "source": 18,
+      "target": 21,
+      "type": "parent"
+    },
+    {
+      "source": 20,
+      "target": 21,
+      "type": "parent"
+    },
+    {
+      "source": 22,
+      "target": 19,
+      "type": "marriage"
+    },
+    {
+      "source": 22,
+      "target": 23,
+      "type": "parent"
+    },
+    {
+      "source": 19,
+      "target": 23,
+      "type": "parent"
+    },
+    {
+      "source": 22,
+      "target": 24,
+      "type": "parent"
+    },
+    {
+      "source": 19,
+      "target": 24,
+      "type": "parent"
+    },
+    {
+      "source": 23,
+      "target": 25,
+      "type": "marriage"
+    },
+    {
+      "source": 23,
+      "target": 26,
+      "type": "parent"
+    },
+    {
+      "source": 25,
+      "target": 26,
+      "type": "parent"
+    },
+    {
+      "source": 23,
+      "target": 27,
+      "type": "parent"
+    },
+    {
+      "source": 25,
+      "target": 27,
+      "type": "parent"
+    },
+    {
+      "source": 28,
+      "target": 29,
+      "type": "marriage"
+    },
+    {
+      "source": 28,
+      "target": 30,
+      "type": "parent"
+    },
+    {
+      "source": 29,
+      "target": 30,
+      "type": "parent"
+    },
+    {
+      "source": 28,
+      "target": 31,
+      "type": "parent"
+    },
+    {
+      "source": 29,
+      "target": 31,
+      "type": "parent"
+    },
+    {
+      "source": 28,
+      "target": 32,
+      "type": "parent"
+    },
+    {
+      "source": 29,
+      "target": 32,
+      "type": "parent"
+    },
+    {
+      "source": 28,
+      "target": 16,
+      "type": "parent"
+    },
+    {
+      "source": 29,
+      "target": 16,
+      "type": "parent"
+    },
+    {
+      "source": 28,
+      "target": 33,
+      "type": "parent"
+    },
+    {
+      "source": 29,
+      "target": 33,
+      "type": "parent"
+    },
+    {
+      "source": 28,
+      "target": 34,
+      "type": "parent"
+    },
+    {
+      "source": 29,
+      "target": 34,
+      "type": "parent"
+    },
+    {
+      "source": 28,
+      "target": 35,
+      "type": "parent"
+    },
+    {
+      "source": 29,
+      "target": 35,
+      "type": "parent"
+    },
+    {
+      "source": 28,
+      "target": 36,
+      "type": "parent"
+    },
+    {
+      "source": 29,
+      "target": 36,
+      "type": "parent"
+    },
+    {
+      "source": 37,
+      "target": 38,
+      "type": "marriage"
+    },
+    {
+      "source": 37,
+      "target": 39,
+      "type": "parent"
+    },
+    {
+      "source": 38,
+      "target": 39,
+      "type": "parent"
+    },
+    {
+      "source": 37,
+      "target": 21,
+      "type": "parent"
+    },
+    {
+      "source": 38,
+      "target": 21,
+      "type": "parent"
+    },
+    {
+      "source": 37,
+      "target": 40,
+      "type": "parent"
+    },
+    {
+      "source": 38,
+      "target": 40,
+      "type": "parent"
+    },
+    {
+      "source": 37,
+      "target": 24,
+      "type": "parent"
+    },
+    {
+      "source": 38,
+      "target": 24,
+      "type": "parent"
+    },
+    {
+      "source": 37,
+      "target": 41,
+      "type": "parent"
+    },
+    {
+      "source": 38,
+      "target": 41,
+      "type": "parent"
+    },
+    {
+      "source": 41,
+      "target": 42,
+      "type": "marriage"
+    },
+    {
+      "source": 41,
+      "target": 43,
+      "type": "parent"
+    },
+    {
+      "source": 42,
+      "target": 43,
+      "type": "parent"
+    },
+    {
+      "source": 41,
+      "target": 44,
+      "type": "parent"
+    },
+    {
+      "source": 42,
+      "target": 44,
+      "type": "parent"
+    },
+    {
+      "source": 41,
+      "target": 45,
+      "type": "parent"
+    },
+    {
+      "source": 42,
+      "target": 45,
+      "type": "parent"
+    },
+    {
+      "source": 41,
+      "target": 46,
+      "type": "parent"
+    },
+    {
+      "source": 42,
+      "target": 46,
+      "type": "parent"
+    },
+    {
+      "source": 47,
+      "target": 48,
+      "type": "marriage"
+    },
+    {
+      "source": 47,
+      "target": 49,
+      "type": "parent"
+    },
+    {
+      "source": 48,
+      "target": 49,
+      "type": "parent"
+    },
+    {
+      "source": 50,
+      "target": 51,
+      "type": "marriage"
+    },
+    {
+      "source": 50,
+      "target": 52,
+      "type": "parent"
+    },
+    {
+      "source": 51,
+      "target": 52,
+      "type": "parent"
+    },
+    {
+      "source": 50,
+      "target": 53,
+      "type": "parent"
+    },
+    {
+      "source": 51,
+      "target": 53,
+      "type": "parent"
+    },
+    {
+      "source": 50,
+      "target": 41,
+      "type": "parent"
+    },
+    {
+      "source": 51,
+      "target": 41,
+      "type": "parent"
+    },
+    {
+      "source": 50,
+      "target": 54,
+      "type": "parent"
+    },
+    {
+      "source": 51,
+      "target": 54,
+      "type": "parent"
+    },
+    {
+      "source": 50,
+      "target": 55,
+      "type": "parent"
+    },
+    {
+      "source": 51,
+      "target": 55,
+      "type": "parent"
+    },
+    {
+      "source": 56,
+      "target": 57,
+      "type": "marriage"
+    },
+    {
+      "source": 56,
+      "target": 14,
+      "type": "parent"
+    },
+    {
+      "source": 57,
+      "target": 14,
+      "type": "parent"
+    },
+    {
+      "source": 56,
+      "target": 58,
+      "type": "parent"
+    },
+    {
+      "source": 57,
+      "target": 58,
+      "type": "parent"
+    },
+    {
+      "source": 56,
+      "target": 59,
+      "type": "parent"
+    },
+    {
+      "source": 57,
+      "target": 59,
+      "type": "parent"
+    },
+    {
+      "source": 60,
+      "target": 61,
+      "type": "marriage"
+    },
+    {
+      "source": 60,
+      "target": 62,
+      "type": "parent"
+    },
+    {
+      "source": 61,
+      "target": 62,
+      "type": "parent"
+    },
+    {
+      "source": 60,
+      "target": 63,
+      "type": "parent"
+    },
+    {
+      "source": 61,
+      "target": 63,
+      "type": "parent"
+    },
+    {
+      "source": 60,
+      "target": 64,
+      "type": "parent"
+    },
+    {
+      "source": 61,
+      "target": 64,
+      "type": "parent"
+    },
+    {
+      "source": 40,
+      "target": 65,
+      "type": "marriage"
+    },
+    {
+      "source": 40,
+      "target": 2,
+      "type": "parent"
+    },
+    {
+      "source": 65,
+      "target": 2,
+      "type": "parent"
+    },
+    {
+      "source": 40,
+      "target": 37,
+      "type": "parent"
+    },
+    {
+      "source": 65,
+      "target": 37,
+      "type": "parent"
+    },
+    {
+      "source": 40,
+      "target": 51,
+      "type": "parent"
+    },
+    {
+      "source": 65,
+      "target": 51,
+      "type": "parent"
+    },
+    {
+      "source": 40,
+      "target": 41,
+      "type": "parent"
+    },
+    {
+      "source": 65,
+      "target": 41,
+      "type": "parent"
+    },
+    {
+      "source": 40,
+      "target": 57,
+      "type": "parent"
+    },
+    {
+      "source": 65,
+      "target": 57,
+      "type": "parent"
+    },
+    {
+      "source": 40,
+      "target": 47,
+      "type": "parent"
+    },
+    {
+      "source": 65,
+      "target": 47,
+      "type": "parent"
+    },
+    {
+      "source": 40,
+      "target": 61,
+      "type": "parent"
+    },
+    {
+      "source": 65,
+      "target": 61,
+      "type": "parent"
+    },
+    {
+      "source": 85,
+      "target": 86,
+      "type": "marriage"
+    },
+    {
+      "source": 77,
+      "target": 87,
+      "type": "marriage"
+    },
+    {
+      "source": 73,
+      "target": 88,
+      "type": "marriage"
+    },
+    {
+      "source": 71,
+      "target": 89,
+      "type": "marriage"
+    },
+    {
+      "source": 85,
+      "target": 90,
+      "type": "marriage"
+    },
+    {
+      "source": 91,
+      "target": 92,
+      "type": "marriage"
+    },
+    {
+      "source": 70,
+      "target": 93,
+      "type": "marriage"
+    },
+    {
+      "source": 94,
+      "target": 95,
+      "type": "marriage"
+    },
+    {
+      "source": 83,
+      "target": 96,
+      "type": "marriage"
+    },
+    {
+      "source": 97,
+      "target": 98,
+      "type": "marriage"
+    },
+    {
+      "source": 100,
+      "target": 101,
+      "type": "marriage"
+    },
+    {
+      "source": 75,
+      "target": 105,
+      "type": "marriage"
+    },
+    {
+      "source": 106,
+      "target": 107,
+      "type": "marriage"
+    },
+    {
+      "source": 108,
+      "target": 109,
+      "type": "marriage"
+    },
+    {
+      "source": 110,
+      "target": 111,
+      "type": "marriage"
+    },
+    {
+      "source": 79,
+      "target": 123,
+      "type": "marriage"
+    },
+    {
+      "source": 77,
+      "target": 124,
+      "type": "marriage"
+    },
+    {
+      "source": 126,
+      "target": 127,
+      "type": "marriage"
+    },
+    {
+      "source": 76,
+      "target": 133,
+      "type": "marriage"
+    },
+    {
+      "source": 135,
+      "target": 136,
+      "type": "marriage"
+    },
+    {
+      "source": 78,
+      "target": 137,
+      "type": "marriage"
+    },
+    {
+      "source": 139,
+      "target": 140,
+      "type": "marriage"
+    },
+    {
+      "source": 141,
+      "target": 142,
+      "type": "marriage"
+    },
+    {
+      "source": 143,
+      "target": 144,
+      "type": "marriage"
+    },
+    {
+      "source": 145,
+      "target": 146,
+      "type": "marriage"
+    },
+    {
+      "source": 70,
+      "target": 149,
+      "type": "marriage"
+    },
+    {
+      "source": 85,
+      "target": 150,
+      "type": "marriage"
+    },
+    {
+      "source": 151,
+      "target": 152,
+      "type": "marriage"
+    },
+    {
+      "source": 135,
+      "target": 155,
+      "type": "marriage"
+    },
+    {
+      "source": 151,
+      "target": 157,
+      "type": "marriage"
+    },
+    {
+      "source": 158,
+      "target": 159,
+      "type": "marriage"
+    },
+    {
+      "source": 160,
+      "target": 161,
+      "type": "marriage"
+    },
+    {
+      "source": 162,
+      "target": 163,
+      "type": "marriage"
+    },
+    {
+      "source": 76,
+      "target": 166,
+      "type": "marriage"
+    },
+    {
+      "source": 168,
+      "target": 169,
+      "type": "marriage"
+    },
+    {
+      "source": 175,
+      "target": 176,
+      "type": "marriage"
+    },
+    {
+      "source": 110,
+      "target": 177,
+      "type": "marriage"
+    },
+    {
+      "source": 184,
+      "target": 185,
+      "type": "marriage"
+    },
+    {
+      "source": 186,
+      "target": 187,
+      "type": "marriage"
+    },
+    {
+      "source": 188,
+      "target": 189,
+      "type": "marriage"
+    },
+    {
+      "source": 74,
+      "target": 189,
+      "type": "marriage"
+    },
+    {
+      "source": 97,
+      "target": 191,
+      "type": "marriage"
+    },
+    {
+      "source": 192,
+      "target": 193,
+      "type": "marriage"
+    },
+    {
+      "source": 67,
+      "target": 194,
+      "type": "marriage"
+    },
+    {
+      "source": 195,
+      "target": 196,
+      "type": "marriage"
+    },
+    {
+      "source": 197,
+      "target": 198,
+      "type": "marriage"
+    },
+    {
+      "source": 201,
+      "target": 202,
+      "type": "marriage"
+    },
+    {
+      "source": 205,
+      "target": 206,
+      "type": "marriage"
+    },
+    {
+      "source": 207,
+      "target": 208,
+      "type": "marriage"
+    },
+    {
+      "source": 168,
+      "target": 213,
+      "type": "marriage"
+    },
+    {
+      "source": 214,
+      "target": 215,
+      "type": "marriage"
+    },
+    {
+      "source": 217,
+      "target": 218,
+      "type": "marriage"
+    },
+    {
+      "source": 77,
+      "target": 220,
+      "type": "marriage"
+    },
+    {
+      "source": 222,
+      "target": 223,
+      "type": "marriage"
+    },
+    {
+      "source": 224,
+      "target": 225,
+      "type": "marriage"
+    },
+    {
+      "source": 77,
+      "target": 226,
+      "type": "marriage"
+    },
+    {
+      "source": 186,
+      "target": 227,
+      "type": "marriage"
+    },
+    {
+      "source": 70,
+      "target": 229,
+      "type": "marriage"
+    },
+    {
+      "source": 232,
+      "target": 233,
+      "type": "marriage"
+    },
+    {
+      "source": 139,
+      "target": 234,
+      "type": "marriage"
+    },
+    {
+      "source": 72,
+      "target": 235,
+      "type": "marriage"
+    },
+    {
+      "source": 236,
+      "target": 237,
+      "type": "marriage"
+    },
+    {
+      "source": 239,
+      "target": 240,
+      "type": "marriage"
+    },
+    {
+      "source": 188,
+      "target": 241,
+      "type": "marriage"
+    },
+    {
+      "source": 236,
+      "target": 243,
+      "type": "marriage"
+    },
+    {
+      "source": 263,
+      "target": 264,
+      "type": "marriage"
+    },
+    {
+      "source": 266,
+      "target": 267,
+      "type": "marriage"
+    },
+    {
+      "source": 268,
+      "target": 269,
+      "type": "marriage"
+    },
+    {
+      "source": 270,
+      "target": 271,
+      "type": "marriage"
+    },
+    {
+      "source": 238,
+      "target": 272,
+      "type": "marriage"
+    },
+    {
+      "source": 273,
+      "target": 274,
+      "type": "marriage"
+    },
+    {
+      "source": 180,
+      "target": 275,
+      "type": "marriage"
+    },
+    {
+      "source": 104,
+      "target": 276,
+      "type": "marriage"
+    },
+    {
+      "source": 151,
+      "target": 277,
+      "type": "marriage"
+    },
+    {
+      "source": 141,
+      "target": 278,
+      "type": "marriage"
+    },
+    {
+      "source": 280,
+      "target": 281,
+      "type": "marriage"
+    },
+    {
+      "source": 285,
+      "target": 286,
+      "type": "marriage"
+    },
+    {
+      "source": 108,
+      "target": 287,
+      "type": "marriage"
+    },
+    {
+      "source": 70,
+      "target": 288,
+      "type": "marriage"
+    },
+    {
+      "source": 168,
+      "target": 292,
+      "type": "marriage"
+    },
+    {
+      "source": 293,
+      "target": 294,
+      "type": "marriage"
+    },
+    {
+      "source": 295,
+      "target": 296,
+      "type": "marriage"
+    },
+    {
+      "source": 200,
+      "target": 297,
+      "type": "marriage"
+    },
+    {
+      "source": 70,
+      "target": 298,
+      "type": "marriage"
+    },
+    {
+      "source": 303,
+      "target": 304,
+      "type": "marriage"
+    },
+    {
+      "source": 200,
+      "target": 305,
+      "type": "marriage"
+    }
+  ],
+  "metadata": {
+    "total_members": 309,
+    "csv_based_relationships": true,
+    "arabic_names_included": true,
+    "note": "Hierarchical parent-child relationships from HTML table need manual mapping for older generations"
+  }
+}

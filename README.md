@@ -142,8 +142,16 @@ src/
 │   └── graph.ts                  # Graph data structures
 ├── App.tsx                       # Route definitions
 └── main.tsx                      # Application entry point
-supabase-policies.sql             # RLS policies and helper functions
-supabase-seed.sql                 # Sample family tree data
+supabase/
+│   ├── migrations/               # Schema, RLS, functions (run in order)
+│   ├── seed/                     # Seed data (run in SQL Editor)
+│   │   ├── bulk-upload-1-seed.sql     # Base family tree data
+│   │   ├── bulk-upload-2-badran.sql    # Additional Badran nodes 75–309
+│   │   ├── bulk-upload-2-badran.json   # Source JSON for Badran additions
+│   │   └── bulk-upload-2-badran-undo.sql  # Revert Badran additions
+│   └── reference/                # Reference SQL (not run directly)
+│       ├── policies.sql          # RLS policies
+│       └── public-metrics.sql    # get_public_metrics RPC
 ```
 
 ## Getting Started
@@ -188,8 +196,8 @@ npm run dev
 1. Apply migrations and seed data in your Supabase SQL Editor (or via Supabase CLI):
 
    - Run migrations in `supabase/migrations/` in order (schema, RLS policies, indexes, etc.)
-   - See `supabase-policies.sql` for policy reference (policies are applied via migrations)
-   - Optionally run `supabase-seed.sql` for sample family tree data
+   - See `supabase/reference/policies.sql` for policy reference (policies are applied via migrations)
+   - Optionally run `supabase/seed/bulk-upload-1-seed.sql` for sample family tree data
 
 2. Configure Google OAuth in Supabase Dashboard:
    - Navigate to Authentication > Providers
