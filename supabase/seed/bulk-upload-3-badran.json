@@ -662,7 +662,7 @@
     },
     {
       "id": 133,
-      "name": "ممحد",
+      "name": "محمد",
       "familyCluster": "Badran"
     },
     {
@@ -2118,11 +2118,6 @@
       "type": "parent"
     },
     {
-      "source": 11,
-      "target": 16,
-      "type": "parent"
-    },
-    {
       "source": 14,
       "target": 17,
       "type": "parent"
@@ -2160,11 +2155,6 @@
     {
       "source": 15,
       "target": 24,
-      "type": "parent"
-    },
-    {
-      "source": 11,
-      "target": 25,
       "type": "parent"
     },
     {
@@ -2438,13 +2428,8 @@
       "type": "parent"
     },
     {
-      "source": 11,
+      "source": 79,
       "target": 80,
-      "type": "parent"
-    },
-    {
-      "source": 11,
-      "target": 81,
       "type": "parent"
     },
     {
@@ -2503,11 +2488,6 @@
       "type": "parent"
     },
     {
-      "source": 11,
-      "target": 93,
-      "type": "parent"
-    },
-    {
       "source": 85,
       "target": 94,
       "type": "parent"
@@ -2558,21 +2538,6 @@
       "type": "parent"
     },
     {
-      "source": 11,
-      "target": 104,
-      "type": "parent"
-    },
-    {
-      "source": 11,
-      "target": 105,
-      "type": "parent"
-    },
-    {
-      "source": 11,
-      "target": 106,
-      "type": "parent"
-    },
-    {
       "source": 84,
       "target": 107,
       "type": "parent"
@@ -2593,8 +2558,18 @@
       "type": "parent"
     },
     {
-      "source": 11,
-      "target": 111,
+      "source": 84,
+      "target": 104,
+      "type": "parent"
+    },
+    {
+      "source": 84,
+      "target": 105,
+      "type": "parent"
+    },
+    {
+      "source": 84,
+      "target": 106,
       "type": "parent"
     },
     {
@@ -2698,7 +2673,7 @@
       "type": "parent"
     },
     {
-      "source": 124,
+      "source": 11,
       "target": 132,
       "type": "parent"
     },
@@ -2750,11 +2725,6 @@
     {
       "source": 139,
       "target": 142,
-      "type": "parent"
-    },
-    {
-      "source": 131,
-      "target": 143,
       "type": "parent"
     },
     {
@@ -2913,16 +2883,6 @@
       "type": "parent"
     },
     {
-      "source": 131,
-      "target": 175,
-      "type": "parent"
-    },
-    {
-      "source": 131,
-      "target": 176,
-      "type": "parent"
-    },
-    {
       "source": 145,
       "target": 177,
       "type": "parent"
@@ -2945,6 +2905,26 @@
     {
       "source": 145,
       "target": 181,
+      "type": "parent"
+    },
+    {
+      "source": 145,
+      "target": 143,
+      "type": "parent"
+    },
+    {
+      "source": 145,
+      "target": 175,
+      "type": "parent"
+    },
+    {
+      "source": 145,
+      "target": 176,
+      "type": "parent"
+    },
+    {
+      "source": 145,
+      "target": 221,
       "type": "parent"
     },
     {
@@ -3140,11 +3120,6 @@
     {
       "source": 209,
       "target": 220,
-      "type": "parent"
-    },
-    {
-      "source": 131,
-      "target": 221,
       "type": "parent"
     },
     {
@@ -3910,6 +3885,11 @@
     {
       "source": 145,
       "target": 378,
+      "type": "marriage"
+    },
+    {
+      "source": 85,
+      "target": 356,
       "type": "marriage"
     },
     {

@@ -16,6 +16,7 @@ import { isMobile } from '../utils/device';
 import { getTexturePath } from '../utils/imageFormat';
 import { getClusterColor } from '../utils/familyColors';
 import { getNodeId } from '../utils/getNodeId';
+import { TreeSearchBar } from './TreeSearchBar';
 
 // V3 Shared Assets - paths resolved at runtime for WebP when supported
 const planetTexturePaths = [
@@ -166,6 +167,17 @@ interface FamilyTree3DProps {
   isAddModalOpen?: boolean;
   isEditModalOpen?: boolean;
   isBulkInviteOpen?: boolean;
+  searchHighlightedNodeId?: string | null;
+  searchQuery?: string;
+  onSearchQueryChange?: (q: string) => void;
+  searchMatches?: FamilyNode[];
+  searchIndex?: number;
+  onSearchPrev?: () => void;
+  onSearchNext?: () => void;
+  onSearchClose?: () => void;
+  searchOpenRequested?: number;
+  searchNavigateTrigger?: number;
+  searchDisabled?: boolean;
 }
 
 export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
@@ -180,6 +192,17 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   isAddModalOpen = false,
   isEditModalOpen = false,
   isBulkInviteOpen = false,
+  searchHighlightedNodeId = null,
+  searchQuery = '',
+  onSearchQueryChange,
+  searchMatches = [],
+  searchIndex = 0,
+  onSearchPrev,
+  onSearchNext,
+  onSearchClose,
+  searchOpenRequested = 0,
+  searchNavigateTrigger = 0,
+  searchDisabled = false,
 }) => {
   const ForceGraph3DAny = ForceGraph3D as unknown as React.ComponentType<any>;
   const { userProfile } = useAuth();
@@ -295,8 +318,11 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
     }
   }, [graphData, effectiveCollapsedNodes]);
 
-  // Focus Logic
-  const handleNodeClick = useCallback((node: FamilyNode) => {
+  // Focus Logic (duration in ms; search navigation uses 2x for slower travel)
+  const FOCUS_DURATION = 1665;
+  const SEARCH_FOCUS_DURATION = 3330;
+
+  const handleNodeClick = useCallback((node: FamilyNode, durationMs = FOCUS_DURATION) => {
     if (!fgRef.current) return;
     
     const nodeData = node as any;
@@ -325,7 +351,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       z: z + direction.z * distance
     };
 
-    fgRef.current.cameraPosition(targetPos, nodePos, 1665);
+    fgRef.current.cameraPosition(targetPos, nodePos, durationMs);
   }, [onNodeSelect]);
 
   // Reset View functionality
@@ -382,9 +408,9 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   }, [initialCameraPos, graphData, onBackgroundClick]);
 
   // Preset Focus Logic
-  const focusNodeById = useCallback((nodeId: string) => {
+  const focusNodeById = useCallback((nodeId: string, durationMs = FOCUS_DURATION) => {
     const node = graphData?.nodes?.find(n => n.id === nodeId);
-    if (node) handleNodeClick(node);
+    if (node) handleNodeClick(node, durationMs);
   }, [graphData, handleNodeClick]);
 
   const calculateGenerationLevels = useCallback((clusterName: string) => {
@@ -831,6 +857,10 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
           group.add(aura);
           group.add(glow);
         }
+        if (searchHighlightedNodeId === node.id) {
+          const searchGlow = new THREE.Mesh(geometries.glow, new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.55 }));
+          group.add(searchGlow);
+        }
       }
 
       if (showNames) {
@@ -863,11 +893,29 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       console.error('[FamilyTree3D] Error in nodeThreeObject:', err);
       return new THREE.Group();
     }
-  }, [selectedNode, showNames, nodeTexture, geometries, rotationRef]);
+  }, [selectedNode, showNames, nodeTexture, geometries, rotationRef, searchHighlightedNodeId]);
 
   useEffect(() => {
     if (fgRef.current?.refresh) fgRef.current.refresh();
-  }, [nodeTexture, selectedNode?.id]);
+  }, [nodeTexture, selectedNode?.id, searchHighlightedNodeId]);
+
+  // Expand settings when Ctrl+F opens search
+  useEffect(() => {
+    if (searchOpenRequested > 0) {
+      setShowControls(true);
+    }
+  }, [searchOpenRequested]);
+
+  // Navigate only when arrow is clicked or Enter pressed (not when typing)
+  const prevSearchNavigateTrigger = useRef(0);
+  useEffect(() => {
+    if (searchNavigateTrigger > prevSearchNavigateTrigger.current) {
+      prevSearchNavigateTrigger.current = searchNavigateTrigger;
+      if (searchHighlightedNodeId) {
+        focusNodeById(searchHighlightedNodeId, SEARCH_FOCUS_DURATION);
+      }
+    }
+  }, [searchNavigateTrigger, searchHighlightedNodeId, focusNodeById]);
 
   const linkThreeObject = useCallback((link: any) => {
     if (activePreset && link.type === 'parent') {
@@ -1111,6 +1159,33 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
               label="Arrows"
               sx={{ color: 'text.primary', '& .MuiFormControlLabel-label': { fontSize: '0.75rem' } }}
             />
+
+            {onSearchQueryChange && onSearchPrev && onSearchNext && onSearchClose && (
+              <div style={{
+                marginTop: '8px',
+                marginBottom: '8px',
+                padding: '12px',
+                backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                borderRadius: '8px',
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#888', marginBottom: '8px' }}>
+                  Search
+                </div>
+                <TreeSearchBar
+                  query={searchQuery}
+                  onQueryChange={onSearchQueryChange}
+                  matches={searchMatches}
+                  currentIndex={searchIndex}
+                  onPrev={onSearchPrev}
+                  onNext={onSearchNext}
+                  onClose={onSearchClose}
+                  disabled={searchDisabled}
+                  embedded
+                  focusTrigger={searchOpenRequested}
+                />
+              </div>
+            )}
 
             <Button
               variant="contained"
