@@ -1,8 +1,11 @@
 import { useRef } from 'react';
 import { useScroll, motion, useTransform, useReducedMotion } from 'motion/react';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 import { HangarTransition } from './HangarTransition';
 import { MeetOsraHero } from './MeetOsraHero';
 import { HowItWorks } from './HowItWorks';
+import { MetricsSection } from './MetricsSection';
 import styles from './LandingPage.module.css';
 import './landingTokens.css';
 
@@ -76,13 +79,15 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
         </section>
       </div>
 
-      {/* Breathing space */}
-      <div className={styles.sectionSpacer} />
+      {/* Breathing space — metrics mid-way between hero and HowItWorks */}
+      <div className={styles.sectionSpacerSmall} />
+      <MetricsSection />
+      <div className={styles.sectionSpacerSmall} />
 
       {/* How It Works */}
       <HowItWorks />
 
-      <div className={styles.sectionSpacer} />
+      <div className={styles.sectionSpacerSmall} />
 
       {/* CTA */}
       <section className={styles.hangarLayer}>
@@ -90,12 +95,41 @@ export function LandingPage({ onSignIn }: LandingPageProps) {
       </section>
 
       {/* Footer */}
-      <footer className={styles.footer}>
-        <p className={styles.footerMain}>
+      <Box
+        component="footer"
+        sx={{
+          position: 'relative',
+          padding: '60px 20px',
+          textAlign: 'center',
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          background: 'var(--landing-bg)',
+          zIndex: 40,
+        }}
+      >
+        <Typography
+          variant="body2"
+          sx={{
+            color: '#fff',
+            fontSize: '0.9rem',
+            opacity: 0.8,
+            fontFamily: '"Lora", Georgia, serif',
+          }}
+        >
           Osra 3D Family Tree © {new Date().getFullYear()} — Invite Only
-        </p>
-        <p className={styles.footerSignature}>Created by FB</p>
-      </footer>
+        </Typography>
+        <Typography
+          sx={{
+            marginTop: '16px',
+            fontFamily: 'inherit',
+            fontSize: '1.4rem',
+            color: '#a5b4ff',
+            fontStyle: 'normal',
+            textShadow: '0 0 15px rgba(165, 180, 255, 0.4)',
+          }}
+        >
+          Created by FB
+        </Typography>
+      </Box>
     </div>
   );
 }

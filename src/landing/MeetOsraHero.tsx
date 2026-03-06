@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { type MotionValue } from 'motion/react';
+import Button from '@mui/material/Button';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
@@ -540,7 +541,30 @@ export function MeetOsraHero({ onSignIn, scrollYProgress }: MeetOsraHeroProps) {
           <span className={styles.nodeCount}>—</span>
           <span className={styles.scrollHint} style={{ opacity: 0.22 }}>scroll to explore</span>
         </div>
-        <button onClick={onSignIn} className={styles.signInButton}>Sign in</button>
+        <Button
+          onClick={onSignIn}
+          sx={{
+            position: 'absolute',
+            top: 14,
+            right: 14,
+            zIndex: 24,
+            border: '1px solid rgba(255, 255, 255, 0.33)',
+            borderRadius: 999,
+            background: 'rgba(12, 10, 20, 0.44)',
+            color: '#ede9fe',
+            fontFamily: '"Lora", Georgia, serif',
+            fontSize: 'clamp(0.68rem, 1.7vw, 0.8rem)',
+            letterSpacing: '0.03em',
+            padding: '6px 12px',
+            backdropFilter: 'blur(4px)',
+            '&:hover': {
+              background: 'rgba(25, 18, 44, 0.68)',
+              borderColor: 'rgba(255, 255, 255, 0.54)',
+            },
+          }}
+        >
+          Sign in
+        </Button>
         <div className={`${styles.welcomeTitle} ${styles.visible}`}>Welcome to Osra</div>
         <div className={styles.heroTitle}>Meet Osra</div>
         <div className={styles.heroBody}>
@@ -561,9 +585,30 @@ export function MeetOsraHero({ onSignIn, scrollYProgress }: MeetOsraHeroProps) {
         <span ref={scrollHintRef} className={styles.scrollHint} style={{ opacity: 0.22 }}>scroll to travel</span>
       </div>
 
-      <button onClick={onSignIn} className={styles.signInButton}>
+      <Button
+        onClick={onSignIn}
+        sx={{
+          position: 'absolute',
+          top: 14,
+          right: 14,
+          zIndex: 24,
+          border: '1px solid rgba(255, 255, 255, 0.33)',
+          borderRadius: 999,
+          background: 'rgba(12, 10, 20, 0.44)',
+          color: '#ede9fe',
+          fontFamily: '"Lora", Georgia, serif',
+          fontSize: 'clamp(0.68rem, 1.7vw, 0.8rem)',
+          letterSpacing: '0.03em',
+          padding: '6px 12px',
+          backdropFilter: 'blur(4px)',
+          '&:hover': {
+            background: 'rgba(25, 18, 44, 0.68)',
+            borderColor: 'rgba(255, 255, 255, 0.54)',
+          },
+        }}
+      >
         Sign in
-      </button>
+      </Button>
 
       {/* Welcome — visible on load, fades as scroll begins */}
       <div ref={welcomeRef} className={`${styles.welcomeTitle} ${styles.visible}`}>
