@@ -97,7 +97,7 @@ Each solution unlocked the next challenge, building from a simple graph visualiz
 - **Vite**: Fast development server and optimized builds
 
 ### AI & LLM
-- **OpenRouter**: Cloud-based LLM access (Gemini 2.5 Flash)
+- **OpenRouter**: Cloud-based LLM access (Gemini 3 Flash)
 - **Ollama**: Local LLM support (Qwen 2.5 Coder / Mistral)
 - **Custom Reasoning Engine**: Person-centric context generation from graph data
 
