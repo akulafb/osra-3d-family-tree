@@ -1,3 +1,6 @@
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
+
 const STEPS = [
   {
     number: '01',
@@ -18,72 +21,88 @@ const STEPS = [
 
 export function HowItWorks() {
   return (
-    <section
-      style={{
+    <Box
+      component="section"
+      sx={{
         background: '#07030f',
-        padding: '120px 6vw 140px',
+        padding: { xs: '80px 6vw 100px', md: '120px 6vw 140px' },
         position: 'relative',
         zIndex: 20,
       }}
     >
-      <div
-        className="how-it-works-grid"
-        style={{ display: 'grid', gap: '80px 48px', maxWidth: '1200px', margin: '0 auto' }}
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+          gap: { xs: '80px 0', md: '80px 48px' },
+          maxWidth: 1200,
+          margin: '0 auto',
+        }}
       >
-        <style>{`
-          .how-it-works-grid { grid-template-columns: repeat(3, 1fr); }
-          @media (max-width: 1024px) { .how-it-works-grid { grid-template-columns: 1fr; } }
-        `}</style>
-
         {STEPS.map((step) => (
-          <div key={step.number} style={{ position: 'relative', paddingTop: '32px' }}>
+          <Box key={step.number} sx={{ position: 'relative', paddingTop: '32px' }}>
             {/* Rule */}
-            <div style={{
-              position: 'absolute', top: 0, left: 0, right: 0,
-              height: '1px', background: 'rgba(124,58,237,0.25)',
-            }} />
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: '1px',
+                background: 'rgba(124,58,237,0.25)',
+              }}
+            />
 
             {/* Number + Content side-by-side */}
-            <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
-              <div style={{
-                fontSize: '64px',
-                fontFamily: 'Lora, Georgia, serif',
-                fontWeight: 700,
-                color: '#2d1b69',
-                opacity: 0.55,
-                lineHeight: 1,
-                userSelect: 'none',
-                marginTop: '-4px',
-                flexShrink: 0,
-              }}>
-                {step.number}
-              </div>
-
-              <div style={{ flex: 1 }}>
-                <h3 style={{
-                  fontSize: '22px',
-                  fontFamily: 'Lora, Georgia, serif',
+            <Box sx={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+              <Typography
+                component="div"
+                sx={{
+                  fontSize: 64,
+                  fontFamily: '"Lora", Georgia, serif',
                   fontWeight: 700,
-                  color: '#ede9fe',
-                  marginBottom: '12px',
-                  lineHeight: 1.3,
-                }}>
+                  color: '#2d1b69',
+                  opacity: 0.55,
+                  lineHeight: 1,
+                  userSelect: 'none',
+                  marginTop: '-4px',
+                  flexShrink: 0,
+                }}
+              >
+                {step.number}
+              </Typography>
+
+              <Box sx={{ flex: 1 }}>
+                <Typography
+                  component="h3"
+                  variant="h6"
+                  sx={{
+                    fontSize: 22,
+                    fontFamily: '"Lora", Georgia, serif',
+                    fontWeight: 700,
+                    color: '#ede9fe',
+                    marginBottom: '12px',
+                    lineHeight: 1.3,
+                  }}
+                >
                   {step.title}
-                </h3>
-                <p style={{
-                  fontSize: '15.5px',
-                  fontFamily: 'Lora, Georgia, serif',
-                  fontWeight: 400,
-                  color: '#7c5cbf',
-                  lineHeight: 1.7,
-                }}>
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: '15.5px',
+                    fontFamily: '"Lora", Georgia, serif',
+                    fontWeight: 400,
+                    color: '#7c5cbf',
+                    lineHeight: 1.7,
+                  }}
+                >
                   {step.description}
-                </p>
-              </div>
-            </div>
-          </div>
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
         ))}
-      </div>
-    </section>
+      </Box>
+    </Box>
   );
 }

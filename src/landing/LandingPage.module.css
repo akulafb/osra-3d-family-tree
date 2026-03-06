@@ -49,6 +49,14 @@
   z-index: 10;
 }
 
+/* Smaller spacer between HowItWorks and CTA */
+.sectionSpacerSmall {
+  height: 15vh;
+  background: var(--landing-bg);
+  position: relative;
+  z-index: 10;
+}
+
 /* CTA section */
 .hangarLayer {
   position: relative;
