@@ -11,7 +11,7 @@ Introduce a new `'divorce'` link type to the family tree to represent divorced c
 
 ## Database Changes
 - SQL Migration script to update the `links` table `type` check constraint.
-- Update `supabase-seed.sql` to reflect the change for Hisham & Hala.
+- Update `supabase/seed/bulk-upload-1-seed.sql` to reflect the change for Hisham & Hala.
 
 ## Backend/Type Changes
 - Update `src/types/database.ts` to include `'divorce'` in the `links` table type definition.

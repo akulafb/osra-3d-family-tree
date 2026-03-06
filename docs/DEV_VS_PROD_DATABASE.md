@@ -29,7 +29,7 @@ To populate the dev database with sample family tree data:
 
 1. Open [Supabase Dashboard](https://supabase.com/dashboard) → **Osra 3D Family Tree - DEV**
 2. Go to **SQL Editor**
-3. Run the contents of `supabase-seed.sql`
+3. Run the contents of `supabase/seed/bulk-upload-1-seed.sql`
 
 **Note:** After sign-in, claim an invite (e.g. test-invite-fahd-2026) to create your user record and bind to a node. To make yourself admin, run in SQL Editor (replace with your auth user ID from Auth → Users):
 

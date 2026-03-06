@@ -259,11 +259,19 @@ export const FamilyTree: React.FC = () => {
               color: '#888',
               textTransform: 'uppercase',
               letterSpacing: '1px',
-              marginBottom: '12px',
+              marginBottom: '4px',
             }}>
               {selectedNode.familyCluster} Family
             </div>
           )}
+          <div style={{
+            fontSize: '0.75rem',
+            color: '#666',
+            fontFamily: 'monospace',
+            marginBottom: selectedNode.familyCluster ? '12px' : '8px',
+          }}>
+            {selectedNode.id}
+          </div>
 
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
             {canEditSelected && (
