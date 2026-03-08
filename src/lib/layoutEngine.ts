@@ -11,6 +11,125 @@ const DEFAULT_CONFIG: LayoutConfig = {
   marriageGap: 20,
 };
 
+function getParentPreferenceScore(
+  parentNode: FamilyNode | undefined,
+  childNode: FamilyNode | undefined,
+  link: FamilyLink | undefined
+): number {
+  if (!parentNode || !childNode) return 100;
+
+  if (link?.parentRole === 'father') return 0;
+  if (parentNode.familyCluster && childNode.familyCluster && parentNode.familyCluster === childNode.familyCluster) {
+    return 1;
+  }
+  if (!link?.parentRole) return 2;
+  if (link.parentRole === 'mother') return 3;
+  return 4;
+}
+
+function shouldPreferLayoutParent(
+  currentParentId: string | undefined,
+  candidateParentId: string,
+  childNode: FamilyNode | undefined,
+  nodesById: Map<string, FamilyNode>,
+  currentLink: FamilyLink | undefined,
+  candidateLink: FamilyLink | undefined
+): boolean {
+  if (!currentParentId) return true;
+
+  const currentParentNode = nodesById.get(currentParentId);
+  const candidateParentNode = nodesById.get(candidateParentId);
+
+  const currentScore = getParentPreferenceScore(currentParentNode, childNode, currentLink);
+  const candidateScore = getParentPreferenceScore(candidateParentNode, childNode, candidateLink);
+
+  if (candidateScore !== currentScore) {
+    return candidateScore < currentScore;
+  }
+
+  return candidateParentId < currentParentId;
+}
+
+function getRelationshipKey(
+  sourceId: string,
+  targetId: string,
+  type: FamilyLink['type']
+): string {
+  if (type === 'marriage' || type === 'divorce') {
+    return sourceId < targetId
+      ? `${sourceId}|${targetId}|${type}`
+      : `${targetId}|${sourceId}|${type}`;
+  }
+
+  return `${sourceId}|${targetId}|${type}`;
+}
+
+function buildMarriageLaneMap(
+  links: FamilyLink[],
+  positionedNodes: Map<string, Node2D>
+): Map<string, number> {
+  type MarriageSegment = {
+    key: string;
+    rowKey: number;
+    start: number;
+    end: number;
+  };
+
+  const marriageLaneByKey = new Map<string, number>();
+  const segmentsByRow = new Map<number, MarriageSegment[]>();
+
+  links.forEach((link) => {
+    if (link.type !== 'marriage' && link.type !== 'divorce') return;
+
+    const sourceId = getNodeId(link.source);
+    const targetId = getNodeId(link.target);
+    if (!sourceId || !targetId) return;
+    if (!positionedNodes.has(sourceId) || !positionedNodes.has(targetId)) return;
+
+    const source = positionedNodes.get(sourceId)!;
+    const target = positionedNodes.get(targetId)!;
+
+    const segment: MarriageSegment = {
+      key: getRelationshipKey(sourceId, targetId, link.type),
+      rowKey: Math.round((source.y + target.y) / 2),
+      start: Math.min(source.x, target.x),
+      end: Math.max(source.x, target.x),
+    };
+
+    const rowSegments = segmentsByRow.get(segment.rowKey) || [];
+    rowSegments.push(segment);
+    segmentsByRow.set(segment.rowKey, rowSegments);
+  });
+
+  segmentsByRow.forEach((segments) => {
+    const occupiedByLane: Array<Array<{ start: number; end: number }>> = [];
+
+    segments
+      .sort((a, b) => (a.start - b.start) || (a.end - b.end))
+      .forEach((segment) => {
+        let laneIndex = 0;
+        const minGap = 32;
+
+        while (laneIndex < occupiedByLane.length) {
+          const overlaps = occupiedByLane[laneIndex].some((placed) =>
+            !(segment.end < placed.start - minGap || segment.start > placed.end + minGap)
+          );
+          if (!overlaps) break;
+          laneIndex += 1;
+        }
+
+        if (!occupiedByLane[laneIndex]) {
+          occupiedByLane[laneIndex] = [];
+        }
+
+        occupiedByLane[laneIndex].push({ start: segment.start, end: segment.end });
+        marriageLaneByKey.set(segment.key, laneIndex);
+      });
+  });
+
+  return marriageLaneByKey;
+}
+
 // Build a hierarchy from flat nodes and links
 function buildHierarchy(
   nodes: FamilyNode[],
@@ -25,16 +144,23 @@ function buildHierarchy(
     : nodes;
 
   const nodeIdsInScope = new Set(nodesInScope.map(n => n.id));
+  const nodesById = new Map(nodesInScope.map((n) => [n.id, n]));
 
   // Find roots (nodes with no parents in scope)
   const childrenOf = new Map<string, string[]>();
   const parentsOf = new Map<string, string[]>();
+  const layoutChildrenOf = new Map<string, string[]>();
+  const layoutParentsOf = new Map<string, string[]>();
+  const canonicalParentOf = new Map<string, string>();
+  const canonicalParentLinkOf = new Map<string, FamilyLink>();
   const marriages = new Map<string, string>(); // node -> spouse
 
   // Initialize maps
   nodesInScope.forEach(n => {
     childrenOf.set(n.id, []);
     parentsOf.set(n.id, []);
+    layoutChildrenOf.set(n.id, []);
+    layoutParentsOf.set(n.id, []);
   });
 
   // Process links
@@ -43,6 +169,7 @@ function buildHierarchy(
     const targetId = getNodeId(link.target);
 
     if (!sourceId || !targetId) return;
+    if (!nodeIdsInScope.has(sourceId) || !nodeIdsInScope.has(targetId)) return;
 
     if (link.type === 'parent') {
       const children = childrenOf.get(sourceId) || [];
@@ -52,15 +179,43 @@ function buildHierarchy(
       const parents = parentsOf.get(targetId) || [];
       parents.push(sourceId);
       parentsOf.set(targetId, parents);
+
+      const childNode = nodesById.get(targetId);
+      const currentParentId = canonicalParentOf.get(targetId);
+      const currentParentLink = canonicalParentLinkOf.get(targetId);
+
+      if (
+        shouldPreferLayoutParent(
+          currentParentId,
+          sourceId,
+          childNode,
+          nodesById,
+          currentParentLink,
+          link
+        )
+      ) {
+        canonicalParentOf.set(targetId, sourceId);
+        canonicalParentLinkOf.set(targetId, link);
+      }
     } else if (link.type === 'marriage' || link.type === 'divorce') {
       marriages.set(sourceId, targetId);
       marriages.set(targetId, sourceId);
     }
   });
 
-  // Find roots (nodes with no parents in scope)
+  canonicalParentOf.forEach((parentId, childId) => {
+    const layoutChildren = layoutChildrenOf.get(parentId) || [];
+    layoutChildren.push(childId);
+    layoutChildrenOf.set(parentId, layoutChildren);
+
+    const layoutParents = layoutParentsOf.get(childId) || [];
+    layoutParents.push(parentId);
+    layoutParentsOf.set(childId, layoutParents);
+  });
+
+  // Find roots (nodes with no layout parent in scope)
   const roots = nodesInScope.filter(n => {
-    const parents = parentsOf.get(n.id) || [];
+    const parents = layoutParentsOf.get(n.id) || [];
     return parents.length === 0;
   });
 
@@ -71,6 +226,9 @@ function buildHierarchy(
     rootNodes,
     childrenOf,
     parentsOf,
+    layoutChildrenOf,
+    layoutParentsOf,
+    canonicalParentOf,
     marriages,
     nodeIdsInScope,
   };
@@ -80,7 +238,6 @@ function buildHierarchy(
 function createHierarchyData(
   rootId: string,
   childrenOf: Map<string, string[]>,
-  marriages: Map<string, string>,
   nodes: FamilyNode[],
   visited: Set<string> = new Set()
 ): any {
@@ -91,30 +248,13 @@ function createHierarchyData(
   if (!node) return null;
 
   const children = (childrenOf.get(rootId) || [])
-    .map(childId => createHierarchyData(childId, childrenOf, marriages, nodes, visited))
+    .map(childId => createHierarchyData(childId, childrenOf, nodes, visited))
     .filter(Boolean);
-
-  // Handle spouse and their children
-  const spouseId = marriages.get(rootId);
-  let spouseChildren: any[] = [];
-
-  if (spouseId && !visited.has(spouseId)) {
-    // Get children of spouse that aren't already listed
-    const spouseChildIds = (childrenOf.get(spouseId) || [])
-      .filter(id => !visited.has(id));
-
-    spouseChildren = spouseChildIds
-      .map(childId => createHierarchyData(childId, childrenOf, marriages, nodes, visited))
-      .filter(Boolean);
-  }
-
-  const allChildren = [...children, ...spouseChildren];
 
   return {
     id: rootId,
     data: node,
-    children: allChildren,
-    spouseId,
+    children,
   };
 }
 
@@ -126,7 +266,7 @@ export function calculateTreeLayout(
   config: Partial<LayoutConfig> = {}
 ): { nodes: Node2D[]; links: Link2D[] } {
   const fullConfig = { ...DEFAULT_CONFIG, ...config };
-  const { rootNodes, childrenOf, marriages } = buildHierarchy(
+  const { rootNodes, layoutChildrenOf, canonicalParentOf } = buildHierarchy(
     nodes,
     links,
     clusterName
@@ -141,8 +281,7 @@ export function calculateTreeLayout(
   rootNodes.forEach((rootNode) => {
     const hierarchyData = createHierarchyData(
       rootNode.id,
-      childrenOf,
-      marriages,
+      layoutChildrenOf,
       nodes
     );
 
@@ -185,6 +324,7 @@ export function calculateTreeLayout(
 
   // Generate links between positioned nodes
   const nodeArray = Array.from(positionedNodes.values());
+  const marriageLaneByKey = buildMarriageLaneMap(links, positionedNodes);
 
   links.forEach(link => {
     const sourceId = getNodeId(link.source);
@@ -192,12 +332,15 @@ export function calculateTreeLayout(
 
     if (!sourceId || !targetId) return;
     if (!positionedNodes.has(sourceId) || !positionedNodes.has(targetId)) return;
+    if (link.type === 'parent' && canonicalParentOf.get(targetId) !== sourceId) return;
 
     const source = positionedNodes.get(sourceId)!;
     const target = positionedNodes.get(targetId)!;
+    const relationshipKey = getRelationshipKey(sourceId, targetId, link.type);
+    const laneIndex = marriageLaneByKey.get(relationshipKey) ?? 0;
 
     // Generate orthogonal path
-    const path = generateOrthogonalPath(source, target, link.type, fullConfig);
+    const path = generateOrthogonalPath(source, target, link.type, fullConfig, laneIndex);
 
     positionedLinks.push({
       source,
@@ -221,7 +364,7 @@ export function calculateClusterLayout(
   config: Partial<LayoutConfig> = {}
 ): { nodes: Node2D[]; links: Link2D[] } {
   const fullConfig = { ...DEFAULT_CONFIG, ...config };
-  const { rootNodes, childrenOf, marriages } = buildHierarchy(
+  const { rootNodes, layoutChildrenOf, canonicalParentOf } = buildHierarchy(
     nodes,
     links,
     clusterName
@@ -235,8 +378,7 @@ export function calculateClusterLayout(
   rootNodes.forEach((rootNode) => {
     const hierarchyData = createHierarchyData(
       rootNode.id,
-      childrenOf,
-      marriages,
+      layoutChildrenOf,
       nodes
     );
 
@@ -274,6 +416,7 @@ export function calculateClusterLayout(
 
   // Generate links
   const nodeArray = Array.from(positionedNodes.values());
+  const marriageLaneByKey = buildMarriageLaneMap(links, positionedNodes);
 
   links.forEach(link => {
     const sourceId = getNodeId(link.source);
@@ -281,10 +424,13 @@ export function calculateClusterLayout(
 
     if (!sourceId || !targetId) return;
     if (!positionedNodes.has(sourceId) || !positionedNodes.has(targetId)) return;
+    if (link.type === 'parent' && canonicalParentOf.get(targetId) !== sourceId) return;
 
     const source = positionedNodes.get(sourceId)!;
     const target = positionedNodes.get(targetId)!;
-    const path = generateOrthogonalPath(source, target, link.type, fullConfig);
+    const relationshipKey = getRelationshipKey(sourceId, targetId, link.type);
+    const laneIndex = marriageLaneByKey.get(relationshipKey) ?? 0;
+    const path = generateOrthogonalPath(source, target, link.type, fullConfig, laneIndex);
 
     positionedLinks.push({
       source,
@@ -308,7 +454,7 @@ export function calculateRadialLayout(
   config: Partial<LayoutConfig> = {}
 ): { nodes: Node2D[]; links: Link2D[] } {
   const fullConfig = { ...DEFAULT_CONFIG, ...config };
-  const { rootNodes, childrenOf, marriages } = buildHierarchy(nodes, links, clusterName);
+  const { rootNodes, layoutChildrenOf, canonicalParentOf } = buildHierarchy(nodes, links, clusterName);
 
   const positionedNodes = new Map<string, Node2D>();
   const positionedLinks: Link2D[] = [];
@@ -320,8 +466,7 @@ export function calculateRadialLayout(
   rootNodes.forEach((rootNode) => {
     const hierarchyData = createHierarchyData(
       rootNode.id,
-      childrenOf,
-      marriages,
+      layoutChildrenOf,
       nodes
     );
 
@@ -355,6 +500,7 @@ export function calculateRadialLayout(
 
   // Generate links (curved for radial)
   const nodeArray = Array.from(positionedNodes.values());
+  const marriageLaneByKey = buildMarriageLaneMap(links, positionedNodes);
 
   links.forEach(link => {
     const sourceId = getNodeId(link.source);
@@ -362,12 +508,16 @@ export function calculateRadialLayout(
 
     if (!sourceId || !targetId) return;
     if (!positionedNodes.has(sourceId) || !positionedNodes.has(targetId)) return;
+    if (link.type === 'parent' && canonicalParentOf.get(targetId) !== sourceId) return;
 
     const source = positionedNodes.get(sourceId)!;
     const target = positionedNodes.get(targetId)!;
 
-    // Curved path for radial layout
-    const path = generateCurvedPath(source, target);
+    const relationshipKey = getRelationshipKey(sourceId, targetId, link.type);
+    const laneIndex = marriageLaneByKey.get(relationshipKey) ?? 0;
+    const path = link.type === 'marriage' || link.type === 'divorce'
+      ? generateOrthogonalPath(source, target, link.type, fullConfig, laneIndex)
+      : generateCurvedPath(source, target);
 
     positionedLinks.push({
       source,
@@ -388,15 +538,18 @@ function generateOrthogonalPath(
   source: Node2D,
   target: Node2D,
   type: 'parent' | 'marriage' | 'divorce',
-  _config: LayoutConfig
+  _config: LayoutConfig,
+  laneIndex = 0
 ): string {
   if (type === 'marriage' || type === 'divorce') {
-    // Horizontal connection between spouses
-    const sourceRight = source.x + source.width / 2;
-    const targetLeft = target.x - target.width / 2;
-    const y = source.y + source.height / 2;
+    // Route marriage links in dedicated lanes above the generation row
+    const sourceX = source.x;
+    const targetX = target.x;
+    const sourceTop = source.y;
+    const targetTop = target.y;
+    const laneY = Math.min(sourceTop, targetTop) - 22 - laneIndex * 18;
 
-    return `M ${sourceRight} ${y} L ${targetLeft} ${y}`;
+    return `M ${sourceX} ${sourceTop} L ${sourceX} ${laneY} L ${targetX} ${laneY} L ${targetX} ${targetTop}`;
   }
 
   // Parent-child: vertical with elbow

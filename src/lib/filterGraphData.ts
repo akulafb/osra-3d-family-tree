@@ -13,15 +13,25 @@ export function filterGraphData(
   let nodes = graphData.nodes;
   let links = graphData.links;
 
+  const getLinkKey = (sourceId: string, targetId: string, type: string) =>
+    `${sourceId}|${targetId}|${type}`;
+
   if (activePreset) {
     nodes = nodes.filter(
       (n) => n.familyCluster === activePreset || n.maternalFamilyCluster === activePreset
     );
     const nodeIds = new Set(nodes.map((n) => n.id));
+    const visibleLinkKeys = new Set<string>();
+
     links = links.filter((l) => {
       const sourceId = getNodeId(l.source);
       const targetId = getNodeId(l.target);
-      return nodeIds.has(sourceId) && nodeIds.has(targetId);
+      if (!nodeIds.has(sourceId) || !nodeIds.has(targetId)) return false;
+
+      const key = getLinkKey(sourceId, targetId, l.type);
+      if (visibleLinkKeys.has(key)) return false;
+      visibleLinkKeys.add(key);
+      return true;
     });
 
     const maternalOnlyIds = new Set(
@@ -48,7 +58,11 @@ export function filterGraphData(
       if (nodeIds.has(fatherId)) return;
       const motherId = marriageByNode.get(fatherId);
       if (motherId && nodeIds.has(motherId)) {
-        links.push({ source: motherId, target: childId, type: 'parent' });
+        const key = getLinkKey(motherId, childId, 'parent');
+        if (!visibleLinkKeys.has(key)) {
+          visibleLinkKeys.add(key);
+          links.push({ source: motherId, target: childId, type: 'parent' });
+        }
       }
     });
   }
