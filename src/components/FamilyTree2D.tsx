@@ -86,6 +86,8 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
   searchNavigateTrigger = 0,
   searchDisabled = false,
 }) => {
+  const presetBackground = 'linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%)';
+  const emptyBackground = 'linear-gradient(180deg, #f4f7fb 0%, #e7eef8 100%)';
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
   const zoomBehaviorRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
@@ -158,11 +160,12 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
     const rect = svg.getBoundingClientRect();
 
     // Calculate center position
-    const scale = Math.min(
+    const fittedScale = Math.min(
       rect.width / (bounds.width + 100),
       rect.height / (bounds.height + 100),
-      1.5 // Max initial zoom
+      1.2
     );
+    const scale = Math.max(0.35, fittedScale);
 
     const centerX = rect.width / 2 - (bounds.minX + bounds.width / 2) * scale;
     const centerY = rect.height / 2 - (bounds.minY + bounds.height / 2) * scale;
@@ -338,7 +341,7 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
   }, [graphData.links, onNodeDoubleClick, onToggleCollapse, onSetCollapsedNodes, collapsedNodes]);
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', background: !activePreset ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)' : '#0a0a0a' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', background: activePreset ? presetBackground : emptyBackground }}>
       {!activePreset ? (
         <div style={{
           display: 'flex',
@@ -346,7 +349,7 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
           justifyContent: 'center',
           width: '100%',
           height: '100%',
-          color: '#fff',
+          color: '#1f2937',
           fontSize: '1rem',
           textAlign: 'center',
           padding: '24px',
@@ -359,7 +362,7 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
                   Select a family above to explore, or try the <strong>3D view</strong>.
                 </div>
                 {isMobileViewport && (
-                  <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.5 }}>
+                  <div style={{ fontSize: '0.9rem', color: '#475569', lineHeight: 1.5 }}>
                     Visit on desktop for the full immersive experience.
                   </div>
                 )}
@@ -375,7 +378,7 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
           width="100%"
           height="100%"
           style={{
-            background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+            background: activePreset ? presetBackground : emptyBackground,
             cursor: isDragging ? 'grabbing' : 'grab',
           }}
           onClick={handleBackgroundClick}
@@ -412,8 +415,8 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
 
           {/* Zoom controls overlay */}
           <g style={{ pointerEvents: 'none' }}>
-            <rect x="10" y="10" width="120" height="40" rx="8" fill="rgba(0,0,0,0.5)" />
-            <text x="20" y="35" fill="#888" fontSize={12}>
+            <rect x="10" y="10" width="120" height="40" rx="8" fill="rgba(255,255,255,0.85)" />
+            <text x="20" y="35" fill="#334155" fontSize={12}>
               Zoom: {(transform.k * 100).toFixed(0)}%
             </text>
           </g>
