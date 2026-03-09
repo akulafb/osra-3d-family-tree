@@ -677,10 +677,8 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
 
     fgRef.current.d3ReheatSimulation();
 
-    // Find a good representative for the cluster
-    const rep = (clusterName === 'Badran') 
-      ? graphData.nodes.find(n => n.name === 'Basel Badran')
-      : graphData.nodes.find(n => n.familyCluster === clusterName);
+    // Find a good representative for the cluster (first node in cluster)
+    const rep = graphData.nodes.find(n => n.familyCluster === clusterName);
     
     if (rep) focusNodeById(rep.id);
   }, [graphData, calculateGenerationLevels, resetView, focusNodeById, userProfile]);
