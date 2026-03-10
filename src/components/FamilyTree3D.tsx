@@ -336,6 +336,8 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
     const distance = 120;
     
     const camera = fgRef.current.camera();
+    if (!camera) return;
+    
     const currentPos = camera.position;
     
     let direction = new THREE.Vector3(currentPos.x - x, currentPos.y - y, currentPos.z - z);
@@ -344,6 +346,9 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
     } else {
       direction.normalize();
     }
+    
+    // Ensure direction doesn't have NaN
+    if (isNaN(direction.x)) direction.set(0, 0, 1);
     
     const targetPos = {
       x: x + direction.x * distance,
@@ -361,7 +366,10 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       targetPos.z *= scale;
     }
 
-    fgRef.current.cameraPosition(targetPos, nodePos, durationMs);
+    // More safety checks before camera move
+    if (!isNaN(targetPos.x) && !isNaN(targetPos.y) && !isNaN(targetPos.z)) {
+      fgRef.current.cameraPosition(targetPos, nodePos, durationMs);
+    }
   }, [onNodeSelect]);
 
   // Reset View functionality
