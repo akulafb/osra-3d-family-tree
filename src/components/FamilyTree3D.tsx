@@ -328,20 +328,18 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
     const nodeData = node as any;
     onNodeSelect(node);
     
-    const x = (typeof nodeData.x === 'number' && Number.isFinite(nodeData.x)) ? nodeData.x : 0;
-    const y = (typeof nodeData.y === 'number' && Number.isFinite(nodeData.y)) ? nodeData.y : 0;
-    const z = (typeof nodeData.z === 'number' && Number.isFinite(nodeData.z)) ? nodeData.z : 0;
+    const x = (typeof nodeData.x === 'number' && !isNaN(nodeData.x)) ? nodeData.x : 0;
+    const y = (typeof nodeData.y === 'number' && !isNaN(nodeData.y)) ? nodeData.y : 0;
+    const z = (typeof nodeData.z === 'number' && !isNaN(nodeData.z)) ? nodeData.z : 0;
     
     const nodePos = { x, y, z };
     const distance = 120;
     
     const camera = fgRef.current.camera();
-    if (!camera) return;
-    
     const currentPos = camera.position;
     
-    const direction = new THREE.Vector3(currentPos.x - x, currentPos.y - y, currentPos.z - z);
-    if (!Number.isFinite(direction.x) || !Number.isFinite(direction.y) || !Number.isFinite(direction.z) || direction.lengthSq() < 0.0001) {
+    let direction = new THREE.Vector3(currentPos.x - x, currentPos.y - y, currentPos.z - z);
+    if (isNaN(direction.x) || isNaN(direction.y) || isNaN(direction.z) || direction.lengthSq() < 0.0001) {
       direction.set(0, 0, 1);
     } else {
       direction.normalize();
@@ -353,75 +351,60 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       z: z + direction.z * distance
     };
 
-    // Safety check for target position
-    if (!Number.isFinite(targetPos.x) || !Number.isFinite(targetPos.y) || !Number.isFinite(targetPos.z)) {
-      console.warn('[FamilyTree3D] Invalid target position calculated. Aborting jump.');
-      return;
-    }
-
-    // Teleport instead of animate if the distance is massive to prevent precision crashes
-    const jumpDistanceSq = (targetPos.x - currentPos.x)**2 + (targetPos.y - currentPos.y)**2 + (targetPos.z - currentPos.z)**2;
-    const isMassiveJump = jumpDistanceSq > 100000**2; // 100k units
-
-    fgRef.current.cameraPosition(targetPos, nodePos, isMassiveJump ? 0 : durationMs);
+    fgRef.current.cameraPosition(targetPos, nodePos, durationMs);
   }, [onNodeSelect]);
 
   // Reset View functionality
   const resetView = useCallback(() => {
     if (!fgRef.current || !initialCameraPos || !graphData) return;
     
-    const camera = fgRef.current.camera();
-    const controls = fgRef.current.controls();
-    if (!camera || !controls) return;
-
-    // 1. Sanitize Graph Data: Forcibly reset any node that has exploded to Infinity
+    // Clear all fixed positions
     graphData.nodes.forEach((node: any) => {
-      if (!Number.isFinite(node.x) || !Number.isFinite(node.y) || !Number.isFinite(node.z)) {
-        node.x = (Math.random() - 0.5) * 100;
-        node.y = (Math.random() - 0.5) * 100;
-        node.z = (Math.random() - 0.5) * 100;
-      }
       node.fx = undefined;
       node.fy = undefined;
       node.fz = undefined;
     });
-
-    // 2. Detect Camera Panic (NaN or Infinity state)
-    const isCrashed = 
-      !Number.isFinite(camera.position.x) || !Number.isFinite(camera.position.y) || !Number.isFinite(camera.position.z) ||
-      !Number.isFinite(controls.target.x) || !Number.isFinite(controls.target.y) || !Number.isFinite(controls.target.z);
-
-    if (isCrashed) {
-      console.warn('[FamilyTree3D] Camera crashed (NaN/Inf). Performing atomic hard reset.');
-      // Immediate teleport reset (no animation)
-      camera.up.set(0, 1, 0); // Restore world up
-      camera.position.set(initialCameraPos.x, initialCameraPos.y, initialCameraPos.z);
-      controls.target.set(0, 0, 0);
-      camera.lookAt(0, 0, 0);
-      controls.update();
-      
-      fgRef.current.cameraPosition(
-        { x: initialCameraPos.x, y: initialCameraPos.y, z: initialCameraPos.z },
-        { x: 0, y: 0, z: 0 },
-        0
-      );
-      
-      fgRef.current.d3ReheatSimulation();
-      return;
-    }
-    
-    // 3. Normal Reset Path
     fgRef.current.d3ReheatSimulation();
-    camera.up.set(0, 1, 0);
+
+    const camera = fgRef.current.camera();
+    const controls = fgRef.current.controls();
+    if (!camera || !controls) return;
+    
     setActivePreset(null);
     onBackgroundClick?.();
 
-    // Use fgRef.current.cameraPosition for smooth, synced reset animation
-    fgRef.current.cameraPosition(
-      { x: initialCameraPos.x, y: initialCameraPos.y, z: initialCameraPos.z },
-      { x: 0, y: 0, z: 0 },
-      1500
-    );
+    const duration = 1500;
+    const startTime = Date.now();
+    const startPos = camera.position.clone();
+    const startTarget = controls.target.clone();
+
+    const animate = () => {
+      const progress = Math.min((Date.now() - startTime) / duration, 1);
+      const eased = progress < 0.5 
+        ? 2 * progress * progress 
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+      camera.position.lerpVectors(
+        startPos, 
+        new THREE.Vector3(initialCameraPos.x, initialCameraPos.y, initialCameraPos.z), 
+        eased
+      );
+      
+      controls.target.lerpVectors(
+        startTarget, 
+        new THREE.Vector3(0, 0, 0), 
+        eased
+      );
+      
+      camera.lookAt(controls.target);
+      camera.updateProjectionMatrix();
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+    
+    animate();
   }, [initialCameraPos, graphData, onBackgroundClick]);
 
   // Preset Focus Logic
@@ -770,11 +753,8 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
             controls.target.add(moveVec);
           }
           
-          // Safety: only update controls if everything is finite
-          if (Number.isFinite(camera.position.x) && Number.isFinite(controls.target.x)) {
-            controls.update();
-            camera.updateProjectionMatrix();
-          }
+          controls.update();
+          camera.updateProjectionMatrix();
         }
       }
       frameId = requestAnimationFrame(update);
@@ -1012,7 +992,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
 
       if (scene && !starfieldRef.current) {
         if (camera) {
-          camera.far = 2000000; // Increased even further to prevent clipping
+          camera.far = 100000;
           camera.updateProjectionMatrix();
         }
 
@@ -1025,9 +1005,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
         const starfieldResult = createStarfield(scene, isMob);
         starfieldRef.current = starfieldResult.group;
         nebulaeRef.current = starfieldResult.nebulae;
-        
-        // Disable fog permanently to avoid "black screen" when flying to far nodes
-        scene.fog = null;
+        scene.fog = new THREE.Fog(0x020205, 5000, 20000);
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
         scene.add(ambientLight);
