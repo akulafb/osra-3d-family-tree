@@ -358,6 +358,28 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   const resetView = useCallback(() => {
     if (!fgRef.current || !initialCameraPos || !graphData) return;
     
+    const camera = fgRef.current.camera();
+    const controls = fgRef.current.controls();
+    if (!camera || !controls) return;
+
+    // Detect Camera Panic (NaN state)
+    const isCrashed = isNaN(camera.position.x) || isNaN(camera.position.y) || isNaN(camera.position.z);
+
+    if (isCrashed) {
+      console.warn('[FamilyTree3D] Camera crashed (NaN). Performing hard teleport reset.');
+      // Immediate teleport reset (no animation)
+      camera.position.set(initialCameraPos.x, initialCameraPos.y, initialCameraPos.z);
+      controls.target.set(0, 0, 0);
+      camera.lookAt(0, 0, 0);
+      controls.update();
+      fgRef.current.cameraPosition(
+        { x: initialCameraPos.x, y: initialCameraPos.y, z: initialCameraPos.z },
+        { x: 0, y: 0, z: 0 },
+        0
+      );
+      return;
+    }
+    
     // Clear all fixed positions
     graphData.nodes.forEach((node: any) => {
       node.fx = undefined;
@@ -1050,6 +1072,9 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
         linkDistance={(l: any) => activePreset ? ((l.type === 'marriage' || l.type === 'divorce') ? 450 : 250) : ((l.type === 'marriage' || l.type === 'divorce') ? 250 : 120)}
         linkStrength={(l: any) => activePreset ? 0.1 : ((l.type === 'marriage' || l.type === 'divorce') ? 0.3 : 0.8)}
         ref={fgRef}
+        warmupTicks={160}
+        d3AlphaDecay={0.01}
+        d3VelocityDecay={0.1}
         cooldownTicks={activePreset ? 1000 : 1000}
         onEngineStop={() => setIsSimulationLoading(false)}
         onNodeClick={handleNodeClick}
