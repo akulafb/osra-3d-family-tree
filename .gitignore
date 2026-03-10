@@ -15,6 +15,7 @@ dist-ssr
 .env.local
 
 # Editor directories and files
+.cursor
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -26,6 +27,7 @@ dist-ssr
 *.sw?
 .vercel
 AGENTS.md
+FB-Notes-ai.md
 
 # Confidential scripts
 supabase/scripts/
