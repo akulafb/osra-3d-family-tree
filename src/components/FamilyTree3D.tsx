@@ -982,14 +982,12 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   }, [activePreset]);
 
   useEffect(() => {
-    if (fgRef.current && !initialCameraPos) {
-      const camera = fgRef.current.camera();
-      if (camera) {
-        camera.position.set(0, 0, 30000);
-        setInitialCameraPos({ x: 0, y: 0, z: 650 });
-      }
+    if (fgRef.current && !initialCameraPos && graphData?.nodes?.length) {
+      setInitialCameraPos({ x: 0, y: 0, z: 650 });
+      // Set initial "Space" position
+      fgRef.current.cameraPosition({ x: 0, y: 0, z: 30000 }, { x: 0, y: 0, z: 0 }, 0);
     }
-  }, [initialCameraPos]);
+  }, [initialCameraPos, graphData]);
 
   useEffect(() => {
     if (!isSimulationLoading && fgRef.current && !hasIntroPlayed.current && graphData?.nodes?.length) {
