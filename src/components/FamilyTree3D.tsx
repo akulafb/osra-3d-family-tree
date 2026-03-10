@@ -350,8 +350,37 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       y: y + direction.y * distance,
       z: z + direction.z * distance
     };
+    const controls = fgRef.current.controls();
 
-    fgRef.current.cameraPosition(targetPos, nodePos, durationMs);
+    if (!controls) return;
+    const focusDuration = typeof durationMs === 'number' && Number.isFinite(durationMs)
+      ? durationMs
+      : FOCUS_DURATION;
+    const startTime = Date.now();
+    const startPos = camera.position.clone();
+    const startTarget = controls.target.clone();
+    const endPos = new THREE.Vector3(targetPos.x, targetPos.y, targetPos.z);
+    const endTarget = new THREE.Vector3(nodePos.x, nodePos.y, nodePos.z);
+
+    const animate = () => {
+      if (!fgRef.current) return;
+      const cam = fgRef.current.camera();
+      const ctrl = fgRef.current.controls();
+      if (!cam || !ctrl) return;
+
+      const progress = Math.min((Date.now() - startTime) / focusDuration, 1);
+      const eased = progress < 0.5
+        ? 2 * progress * progress
+        : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+
+      cam.position.lerpVectors(startPos, endPos, eased);
+      ctrl.target.lerpVectors(startTarget, endTarget, eased);
+      cam.lookAt(ctrl.target);
+      cam.updateProjectionMatrix();
+
+      if (progress < 1) requestAnimationFrame(animate);
+    };
+    animate();
   }, [onNodeSelect]);
 
   // Reset View functionality
@@ -1052,7 +1081,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
         ref={fgRef}
         cooldownTicks={activePreset ? 1000 : 1000}
         onEngineStop={() => setIsSimulationLoading(false)}
-        onNodeClick={handleNodeClick}
+        onNodeClick={(node: FamilyNode) => handleNodeClick(node)}
         onNodeDoubleClick={(node: any) => {
           const nodeId = getNodeId(node);
           if (!nodeId) return;
