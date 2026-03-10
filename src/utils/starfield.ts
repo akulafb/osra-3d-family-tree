@@ -247,6 +247,7 @@ function createVolumetricNebula(
       blending: THREE.AdditiveBlending,
       depthWrite: false,
       side: THREE.DoubleSide,
+      fog: false,
     });
     
     const cloud = new THREE.Mesh(geometry, material);
@@ -331,6 +332,7 @@ export function createStarfield(scene: THREE.Scene, isMobileDevice: boolean = fa
     depthWrite: false,
     sizeAttenuation: true,
     toneMapped: false,
+    fog: false,
   });
   
   const stars = new THREE.Points(starGeometry, starMaterial);
