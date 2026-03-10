@@ -351,6 +351,16 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       z: z + direction.z * distance
     };
 
+    // Clamp camera position to prevent flying into infinity
+    const MAX_DIST = 150000;
+    const currentDist = Math.sqrt(targetPos.x**2 + targetPos.y**2 + targetPos.z**2);
+    if (currentDist > MAX_DIST) {
+      const scale = MAX_DIST / currentDist;
+      targetPos.x *= scale;
+      targetPos.y *= scale;
+      targetPos.z *= scale;
+    }
+
     fgRef.current.cameraPosition(targetPos, nodePos, durationMs);
   }, [onNodeSelect]);
 
