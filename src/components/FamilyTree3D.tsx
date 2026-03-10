@@ -960,14 +960,12 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   }, [activePreset]);
 
   useEffect(() => {
-    if (fgRef.current && !initialCameraPos) {
-      const camera = fgRef.current.camera();
-      if (camera) {
-        camera.position.set(0, 0, 30000);
-        setInitialCameraPos({ x: 0, y: 0, z: 650 });
-      }
+    if (fgRef.current && !initialCameraPos && graphData?.nodes?.length) {
+      setInitialCameraPos({ x: 0, y: 0, z: 650 });
+      // Set initial "Space" position
+      fgRef.current.cameraPosition({ x: 0, y: 0, z: 30000 }, { x: 0, y: 0, z: 0 }, 0);
     }
-  }, [initialCameraPos]);
+  }, [initialCameraPos, graphData]);
 
   useEffect(() => {
     if (!isSimulationLoading && fgRef.current && !hasIntroPlayed.current && graphData?.nodes?.length) {
@@ -1050,6 +1048,9 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
         linkDistance={(l: any) => activePreset ? ((l.type === 'marriage' || l.type === 'divorce') ? 450 : 250) : ((l.type === 'marriage' || l.type === 'divorce') ? 250 : 120)}
         linkStrength={(l: any) => activePreset ? 0.1 : ((l.type === 'marriage' || l.type === 'divorce') ? 0.3 : 0.8)}
         ref={fgRef}
+        warmupTicks={160}
+        d3AlphaDecay={0.01}
+        d3VelocityDecay={0.1}
         cooldownTicks={activePreset ? 1000 : 1000}
         onEngineStop={() => setIsSimulationLoading(false)}
         onNodeClick={handleNodeClick}
