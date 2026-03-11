@@ -10,6 +10,7 @@ interface BulkInviteModalProps {
   allNodes: FamilyNode[];
   allLinks: FamilyLink[];
   userNodeId: string;
+  inviteForNodeId?: string;
   onSuccess: () => void;
 }
 
@@ -27,6 +28,7 @@ export default function BulkInviteModal({
   allNodes,
   allLinks,
   userNodeId,
+  inviteForNodeId,
   onSuccess,
 }: BulkInviteModalProps) {
   const { user, session } = useAuth();
@@ -36,26 +38,42 @@ export default function BulkInviteModal({
   const [step, setStep] = useState<'select' | 'review'>('select');
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
-  // Get 1-degree relatives on mount
+  // Get relatives on mount: single node (admin) or 1-degree (own node)
   useEffect(() => {
-    if (!isOpen || !userNodeId || !allNodes.length) return;
+    if (!isOpen || !allNodes.length) return;
+    setStep('select');
+    setError(null);
 
     try {
+      if (inviteForNodeId) {
+        const node = allNodes.find(n => n.id === inviteForNodeId);
+        if (!node) {
+          setRelatives([]);
+          return;
+        }
+        const relativesData: RelativeWithInvite[] = [{ node, relationship: 'Family', existingInvites: 0, selected: true }];
+        setRelatives(relativesData);
+        fetchExistingInvites(relativesData);
+        return;
+      }
+
+      if (!userNodeId) return;
+
       const linksCopy = Array.isArray(allLinks) ? [...allLinks] : [];
       const oneDegreeIds = get1DegreeNodesSync(userNodeId, allNodes, linksCopy);
       const relativeIds = oneDegreeIds.filter(id => id !== userNodeId);
-      
+
       const relativesData = relativeIds.map(nodeId => {
         const node = allNodes.find(n => n.id === nodeId);
         if (!node) return null;
-        
+
         let relationship = 'Family';
         const link = linksCopy.find((l: any) => {
           const s = typeof l.source === 'object' ? l.source.id : l.source;
           const t = typeof l.target === 'object' ? l.target.id : l.target;
           return (s === userNodeId && t === nodeId) || (t === userNodeId && s === nodeId);
         }) as any;
-        
+
         if (link) {
           if (link.type === 'marriage' || link.type === 'divorce') relationship = 'Spouse';
           else if (link.type === 'parent') {
@@ -63,7 +81,6 @@ export default function BulkInviteModal({
             relationship = sourceId === nodeId ? 'Parent' : 'Child';
           }
         } else {
-          // Sibling check
           const userParents = linksCopy.filter((l: any) => {
             const t = typeof l.target === 'object' ? l.target.id : l.target;
             return t === userNodeId && l.type === 'parent';
@@ -73,11 +90,10 @@ export default function BulkInviteModal({
             const t = typeof l.target === 'object' ? l.target.id : l.target;
             return t === nodeId && l.type === 'parent';
           }).map((l: any) => typeof l.source === 'object' ? l.source.id : l.source);
-          
+
           if (userParents.some(p => theirParents.includes(p))) relationship = 'Sibling';
           else {
-            // Parent's Spouse check (Step-parent or other biological parent)
-            const isParentsSpouse = userParents.some(parentId => 
+            const isParentsSpouse = userParents.some(parentId =>
               linksCopy.some((l: any) => {
                 const s = typeof l.source === 'object' ? l.source.id : l.source;
                 const t = typeof l.target === 'object' ? l.target.id : l.target;
@@ -86,13 +102,12 @@ export default function BulkInviteModal({
             );
             if (isParentsSpouse) relationship = 'Parent';
             else {
-              // Child's other parent check
               const userChildren = linksCopy.filter((l: any) => {
                 const s = typeof l.source === 'object' ? l.source.id : l.source;
                 return s === userNodeId && l.type === 'parent';
               }).map((l: any) => typeof l.target === 'object' ? l.target.id : l.target);
 
-              const isChildsParent = userChildren.some(childId => 
+              const isChildsParent = userChildren.some(childId =>
                 linksCopy.some((l: any) => {
                   const s = typeof l.source === 'object' ? l.source.id : l.source;
                   const t = typeof l.target === 'object' ? l.target.id : l.target;
@@ -121,7 +136,7 @@ export default function BulkInviteModal({
       console.error('[BulkInvite] Error initializing:', err);
       setError('Failed to initialize relatives list.');
     }
-  }, [isOpen, userNodeId, allNodes, allLinks]);
+  }, [isOpen, userNodeId, inviteForNodeId, allNodes, allLinks]);
 
   const fetchExistingInvites = async (relativesData: RelativeWithInvite[]) => {
     if (!relativesData.length) return;
@@ -266,14 +281,26 @@ export default function BulkInviteModal({
   return (
     <div style={modalOverlayStyle}>
       <div style={modalContentStyle}>
-        <h2 style={{ marginTop: 0, color: 'white' }}>{step === 'select' ? 'Send Invites to Your Family' : 'Generated Invites'}</h2>
+        <h2 style={{ marginTop: 0, color: 'white' }}>
+          {step === 'select'
+            ? inviteForNodeId
+              ? `Generate Invite for ${allNodes.find(n => n.id === inviteForNodeId)?.name ?? 'this person'}`
+              : 'Send Invites to Your Family'
+            : 'Generated Invites'}
+        </h2>
         {step === 'select' ? (
           <>
-            <p style={{ color: '#aaa', marginBottom: '20px', lineHeight: '1.5' }}>Select family members to invite. Links expire in 7 days.</p>
+            <p style={{ color: '#aaa', marginBottom: '20px', lineHeight: '1.5' }}>
+              {inviteForNodeId
+                ? 'Create a link so this person can claim their profile. Link expires in 7 days.'
+                : 'Select family members to invite. Links expire in 7 days.'}
+            </p>
             {error && <div style={errorStyle}>{error}</div>}
             <div style={listContainerStyle}>
               {Object.keys(groupedRelatives).length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>No family members found to invite.</div>
+                <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+                  {inviteForNodeId ? 'Node not found.' : 'No family members found to invite.'}
+                </div>
               ) : (
                 Object.entries(groupedRelatives).map(([relationship, items]) => (
                   <div key={relationship} style={groupStyle}>
@@ -295,7 +322,7 @@ export default function BulkInviteModal({
             <div style={actionsStyle}>
               <Button variant="outlined" onClick={onClose}>Cancel</Button>
               <Button variant="contained" color="primary" onClick={generateInvites} disabled={!relatives.some(r => r.selected) || isGenerating}>
-                {isGenerating ? 'Generating...' : `Generate ${relatives.filter(r => r.selected).length} Invites`}
+                {isGenerating ? 'Generating...' : `Generate ${relatives.filter(r => r.selected).length} Invite${relatives.filter(r => r.selected).length === 1 ? '' : 's'}`}
               </Button>
             </div>
           </>

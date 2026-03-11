@@ -6,7 +6,7 @@ import { useViewMode } from '../hooks/useViewMode';
 import { useFamilyData } from '../hooks/useFamilyData';
 import { FamilyNode, FamilyLink } from '../types/graph';
 import { useAuth } from '../contexts/AuthContext';
-import { canEdit } from '../lib/permissions';
+import { canEdit, canManageInvites } from '../lib/permissions';
 import { filterGraphData, getVisibleNodes3D } from '../lib/filterGraphData';
 import { searchNodes } from '../utils/treeSearch';
 import AddRelativeModal from './modals/AddRelativeModal';
@@ -282,7 +282,7 @@ export const FamilyTree: React.FC = () => {
                 <Button variant="contained" color="primary" size="small" onClick={() => setIsAddModalOpen(true)}>
                   + Add
                 </Button>
-                {selectedNode.id === userProfile?.node_id && (
+                {canManageInvites(selectedNode.id, userProfile?.node_id, userProfile?.role === 'admin', (graphData?.links ?? []) as FamilyLink[]) && (
                   <Button variant="contained" color="success" size="small" onClick={() => setIsBulkInviteOpen(true)}>
                     Invite
                   </Button>
@@ -322,6 +322,7 @@ export const FamilyTree: React.FC = () => {
           allNodes={graphData?.nodes || []} 
           allLinks={graphData?.links ? [...graphData.links] : []} 
           userNodeId={userProfile.node_id} 
+          inviteForNodeId={userProfile?.role === 'admin' && selectedNode && selectedNode.id !== userProfile.node_id ? selectedNode.id : undefined}
           onSuccess={() => {}} 
         />
       )}
