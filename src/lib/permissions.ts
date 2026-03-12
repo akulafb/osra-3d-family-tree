@@ -105,6 +105,27 @@ export function isWithin1Degree(
   );
   if (isChildsParent) return true;
 
+  // NEW: Spouse's child (e.g. child of my spouse who isn't explicitly linked to me)
+  const userSpouses = links.filter((link: any) => {
+    const s = getSafeId(link.source);
+    const t = getSafeId(link.target);
+    return (link.type === 'marriage' || link.type === 'divorce') && 
+           (s === userNodeId || t === userNodeId);
+  }).map((link: any) => {
+    const s = getSafeId(link.source);
+    const t = getSafeId(link.target);
+    return s === userNodeId ? t : s;
+  });
+
+  const isSpousesChild = userSpouses.some(spouseId => 
+    spouseId && links.some((link: any) => {
+      const s = getSafeId(link.source);
+      const t = getSafeId(link.target);
+      return link.type === 'parent' && s === spouseId && t === targetNodeId;
+    })
+  );
+  if (isSpousesChild) return true;
+
   return false;
 }
 
@@ -178,6 +199,24 @@ export function get1DegreeNodesSync(
         if (t === childId && s && s !== userNodeId) oneDegreeIds.add(s);
       }
     });
+  });
+
+  // NEW: Spouse's children
+  const userSpouses = links.filter((link: any) => {
+    const s = getSafeId(link.source);
+    const t = getSafeId(link.target);
+    return (link.type === 'marriage' || link.type === 'divorce') && 
+           (s === userNodeId || t === userNodeId);
+  }).map((link: any) => {
+    const s = getSafeId(link.source);
+    const t = getSafeId(link.target);
+    return s === userNodeId ? t : s;
+  });
+
+  userSpouses.forEach(spouseId => {
+    if (!spouseId) return;
+    const spouseChildren = getChildren(spouseId, links);
+    spouseChildren.forEach(id => oneDegreeIds.add(id));
   });
 
   return Array.from(oneDegreeIds);
