@@ -322,7 +322,7 @@ export const FamilyTree: React.FC = () => {
           allNodes={graphData?.nodes || []} 
           allLinks={graphData?.links ? [...graphData.links] : []} 
           userNodeId={userProfile.node_id} 
-          inviteForNodeId={userProfile?.role === 'admin' && selectedNode && selectedNode.id !== userProfile.node_id ? selectedNode.id : undefined}
+          inviteForNodeId={selectedNode && selectedNode.id !== userProfile.node_id && canManageInvites(selectedNode.id, userProfile.node_id, userProfile.role === 'admin', (graphData?.links ?? []) as FamilyLink[]) ? selectedNode.id : undefined}
           onSuccess={() => {}} 
         />
       )}
