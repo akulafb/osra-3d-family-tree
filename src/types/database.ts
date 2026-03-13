@@ -17,18 +17,21 @@ export interface Database {
           id: string; // UUID from auth.users
           node_id: string | null; // UUID - bound family node
           role: 'admin' | 'user';
+          full_name: string | null;
           created_at: string;
         };
         Insert: {
           id: string;
           node_id?: string | null;
           role?: 'admin' | 'user';
+          full_name?: string | null;
           created_at?: string;
         };
         Update: {
           id?: string;
           node_id?: string | null;
           role?: 'admin' | 'user';
+          full_name?: string | null;
           created_at?: string;
         };
       };
