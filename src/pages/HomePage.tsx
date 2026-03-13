@@ -8,6 +8,10 @@ const LandingPage = lazy(() => import('../landing/LandingPage'));
 export default function HomePage() {
   const { user, isLoading, signInWithGoogle, signOut, isBound } = useAuth();
 
+  // #region agent log
+  fetch('http://127.0.0.1:7735/ingest/e2ae643e-1184-40a1-9f61-75bc5e06ec80',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9ceeb1'},body:JSON.stringify({sessionId:'9ceeb1',runId:'loading-stuck',hypothesisId:'L4',location:'HomePage.tsx:10',message:'HomePage render',data:{hasUser:!!user,isLoading,isBound},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
+
   if (isLoading) {
     return (
       <div

@@ -13,12 +13,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Create Supabase client with realtime explicitly disabled
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: true,
-    autoRefreshToken: true,
+    persistSession: false,
+    autoRefreshToken: false,
   },
   realtime: {
     // Disable realtime heartbeat and connection pooling
-    // @ts-ignore - params might not be in types but is supported
     params: {
       eventsPerSecond: 0,
     },

@@ -112,11 +112,10 @@ export default function InvitePage() {
         } catch {
           // Non-fatal if sessionStorage is unavailable
         }
-      } catch (err) {
-        if (cancelled) return;
-        setInviteStatus('error');
-        setErrorMessage('Failed to validate invite');
-      }
+    } catch {
+      setInviteStatus('error');
+      setErrorMessage('Failed to validate invite');
+    }
     };
 
     validateInvite();
@@ -142,7 +141,7 @@ export default function InvitePage() {
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
       // Use authenticated session token
-      const authToken = session?.access_token || supabaseKey;
+      const authToken = session?.accessToken || supabaseKey;
       
       // Call the secure RPC function that handles the entire claim flow atomically
       const response = await fetch(
@@ -156,7 +155,6 @@ export default function InvitePage() {
           },
           body: JSON.stringify({
             invite_token: token,
-            claiming_user_id: user.id,
           }),
         }
       );
@@ -203,7 +201,7 @@ export default function InvitePage() {
       // Success! Redirect with hard reload to ensure fresh auth context
       window.location.href = '/';
       
-    } catch (error) {
+    } catch {
       setInviteStatus('error');
       setErrorMessage('Failed to claim invite. Please try again.');
     }
