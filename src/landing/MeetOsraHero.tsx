@@ -5,6 +5,7 @@ import Button from '@mui/material/Button';
 import { Line2 } from 'three/examples/jsm/lines/Line2.js';
 import { LineGeometry } from 'three/examples/jsm/lines/LineGeometry.js';
 import { LineMaterial } from 'three/examples/jsm/lines/LineMaterial.js';
+import { landingHeroCopy } from './content';
 import styles from './MeetOsraHero.module.css';
 
 interface MeetOsraHeroProps {
@@ -563,7 +564,7 @@ export function MeetOsraHero({ onSignIn, scrollYProgress }: MeetOsraHeroProps) {
             },
           }}
         >
-          Sign in
+          {landingHeroCopy.returningSignInLabel}
         </Button>
         <div className={`${styles.welcomeTitle} ${styles.visible}`}>Welcome to Osra</div>
         <div className={styles.heroTitle}>Meet Osra</div>
@@ -607,7 +608,7 @@ export function MeetOsraHero({ onSignIn, scrollYProgress }: MeetOsraHeroProps) {
           },
         }}
       >
-        Sign in
+        {landingHeroCopy.returningSignInLabel}
       </Button>
 
       {/* Welcome — visible on load, fades as scroll begins */}
