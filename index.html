@@ -11,6 +11,41 @@
   </head>
   <body>
     <div id="root" style="min-height: 100vh"></div>
+    <script>
+      // #region agent log
+      (function () {
+        const log = (message, data) => {
+          fetch('http://127.0.0.1:7735/ingest/e2ae643e-1184-40a1-9f61-75bc5e06ec80', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Debug-Session-Id': '9ceeb1',
+            },
+            body: JSON.stringify({
+              sessionId: '9ceeb1',
+              runId: 'vercel-black-screen-html',
+              hypothesisId: 'H0',
+              location: 'index.html:14',
+              message,
+              data,
+              timestamp: Date.now(),
+            }),
+          }).catch(() => {});
+        };
+        log('html boot', { href: window.location.href, origin: window.location.origin });
+        window.addEventListener('error', (event) => {
+          log('window error', {
+            message: event.message,
+            filename: event.filename,
+            tagName: event.target && event.target.tagName ? event.target.tagName : null,
+          });
+        }, true);
+        window.addEventListener('unhandledrejection', (event) => {
+          log('unhandled rejection', { reason: String(event.reason) });
+        });
+      })();
+      // #endregion
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
