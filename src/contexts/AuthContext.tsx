@@ -135,6 +135,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithGoogle = useCallback(async () => {
     // Open Clerk's built-in sign-in modal
+    // #region agent log
+    fetch('http://127.0.0.1:7735/ingest/e2ae643e-1184-40a1-9f61-75bc5e06ec80',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'9ceeb1'},body:JSON.stringify({sessionId:'9ceeb1',runId:'vercel-supabase-redirect',hypothesisId:'S1',location:'AuthContext.tsx:137',message:'signInWithGoogle invoked',data:{origin:window.location.origin,pathname:window.location.pathname},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
     openSignIn();
   }, [openSignIn]);
 
