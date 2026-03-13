@@ -1,17 +1,19 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import { useUser, useSession, useAuth as useClerkAuth, useClerk } from '@clerk/clerk-react';
+import { createClerkSupabaseClient } from '../lib/supabase';
 import { Database } from '../types/database';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 type UserProfile = Database['public']['Tables']['users']['Row'];
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: any; 
+  session: any;
   userProfile: UserProfile | null;
   isLoading: boolean;
   isAdmin: boolean;
   isBound: boolean; // User has a node_id binding
+  authSupabase: SupabaseClient<Database> | null;
   signInWithGoogle: (redirectTo?: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
@@ -20,10 +22,40 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const { isLoaded: isClerkLoaded, user: clerkUser } = useUser();
+  const { session: clerkSession } = useSession();
+  const { signOut: clerkSignOut } = useClerkAuth();
+  const { openSignIn } = useClerk();
+  
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [supabaseToken, setSupabaseToken] = useState<string | null>(null);
+
+  // Authenticated Supabase client
+  const authSupabase = useMemo(() => {
+    if (supabaseToken) {
+      return createClerkSupabaseClient(supabaseToken);
+    }
+    return null;
+  }, [supabaseToken]);
+
+  // Sync Supabase token from Clerk session
+  useEffect(() => {
+    async function updateToken() {
+      if (clerkSession) {
+        try {
+          const token = await clerkSession.getToken({ template: 'supabase' });
+          setSupabaseToken(token);
+        } catch (error) {
+          console.error('[AuthContext] Error getting Supabase token:', error);
+          setSupabaseToken(null);
+        }
+      } else {
+        setSupabaseToken(null);
+      }
+    }
+    updateToken();
+  }, [clerkSession]);
 
   // Fetch user profile from the users table using raw fetch (avoid websocket hang)
   const fetchUserProfile = async (userId: string, authToken?: string) => {
@@ -56,100 +88,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         setUserProfile(null);
       }
-      
-      // Done loading after profile fetch completes
-      setIsLoading(false);
     } catch (error) {
       console.error('[AuthContext] Error fetching user profile:', error);
       setUserProfile(null);
-      setIsLoading(false);
+    } finally {
+      setIsProfileLoading(false);
     }
   };
 
   // Initialize auth state
   useEffect(() => {
-    let isSubscribed = true;
-    
-    // Get initial session - use supabase.auth which is separate from REST API
-    // Note: auth.getSession() doesn't rely on the problematic websocket
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!isSubscribed) return;
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchUserProfile(session.user.id, session.access_token);
-      } else {
-        setIsLoading(false);
-      }
-    }).catch((error) => {
-      console.error('[AuthContext] CRITICAL: Error getting initial session:', error);
-      setIsLoading(false);
-    });
+    if (!isClerkLoaded) return;
 
-    // Listen for auth changes - but debounce to prevent loops
-    let lastUserId: string | null = null;
-    
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
-      if (!isSubscribed) return;
-      
-      // Only update if user actually changed or signed out
-      const newUserId = newSession?.user?.id ?? null;
-      
-      if (newUserId === lastUserId && _event === 'SIGNED_IN') {
-        return;
-      }
-      
-      lastUserId = newUserId;
-      setSession(newSession);
-      setUser(newSession?.user ?? null);
-      
-      if (newSession?.user) {
-        await fetchUserProfile(newSession.user.id, newSession.access_token);
-      } else {
-        setUserProfile(null);
-        setIsLoading(false);
-      }
-    });
-
-    return () => {
-      isSubscribed = false;
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  const signInWithGoogle = async (customRedirect?: string) => {
-    try {
-      // Ensure customRedirect is a string (prevents issues if passed directly to onClick)
-      const redirectUrl = typeof customRedirect === 'string' ? customRedirect : window.location.origin;
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: redirectUrl,
-          queryParams: {
-            prompt: 'select_account',
-          },
-        },
-      });
-      if (error) throw error;
-    } catch (error) {
-      console.error('Error signing in with Google:', error);
-      throw error;
+    if (clerkUser && supabaseToken) {
+      fetchUserProfile(clerkUser.id, supabaseToken);
+    } else if (!clerkUser) {
+      setUserProfile(null);
+      setIsProfileLoading(false);
     }
+  }, [isClerkLoaded, clerkUser, supabaseToken]);
+
+  const signInWithGoogle = async () => {
+    // Open Clerk's built-in sign-in modal
+    openSignIn();
   };
 
   const signOut = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
-      // Explicitly clear all states for immediate UI reaction
-      setUser(null);
-      setSession(null);
+      await clerkSignOut();
       setUserProfile(null);
-      
-      // Force a clean state by redirecting to home
       window.location.href = '/';
     } catch (error) {
       console.error('Error signing out:', error);
@@ -158,18 +125,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshUserProfile = async () => {
-    if (user && session) {
-      await fetchUserProfile(user.id, session.access_token);
+    if (clerkUser && supabaseToken) {
+      await fetchUserProfile(clerkUser.id, supabaseToken);
     }
   };
 
   const value: AuthContextType = {
-    user,
-    session,
+    user: clerkUser ? {
+      ...clerkUser,
+      id: clerkUser.id,
+      email: clerkUser.primaryEmailAddress?.emailAddress
+    } : null,
+    session: clerkSession ? {
+      ...clerkSession,
+      access_token: supabaseToken
+    } : null,
     userProfile,
-    isLoading,
+    isLoading: !isClerkLoaded || (!!clerkUser && isProfileLoading),
     isAdmin: userProfile?.role === 'admin',
     isBound: !!userProfile?.node_id,
+    authSupabase,
     signInWithGoogle,
     signOut,
     refreshUserProfile,

@@ -13,8 +13,8 @@ if (!supabaseUrl || !supabaseAnonKey) {
 // Create Supabase client with realtime explicitly disabled
 export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: true,
-    autoRefreshToken: true,
+    persistSession: false,
+    autoRefreshToken: false,
   },
   realtime: {
     // Disable realtime heartbeat and connection pooling
@@ -27,3 +27,28 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     schema: 'public',
   },
 });
+
+/**
+ * Creates a Supabase client that uses a Clerk JWT for authentication.
+ */
+export function createClerkSupabaseClient(clerkToken: string) {
+  return createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    global: {
+      headers: {
+        Authorization: `Bearer ${clerkToken}`,
+      },
+    },
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+    realtime: {
+      params: {
+        eventsPerSecond: 0,
+      },
+    },
+    db: {
+      schema: 'public',
+    },
+  });
+}
