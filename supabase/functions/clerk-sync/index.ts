@@ -47,29 +47,70 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
     if (type === 'user.created' || type === 'user.updated') {
-      const { id, first_name, last_name, email_addresses } = data
-      const email = email_addresses?.[0]?.email_address
-      const full_name = [first_name, last_name].filter(Boolean).join(' ').trim() || null
+      const clerkId = data.id
+      const email = data.email_addresses?.[0]?.email_address
+      const full_name = [data.first_name, data.last_name].filter(Boolean).join(' ').trim() || null
 
-      console.log(`[Clerk Webhook] Upserting user: ${id}, email: ${email}, name: ${full_name}`)
+      console.log(`[Clerk Webhook] Processing user: ${clerkId}, email: ${email}, name: ${full_name}`)
 
-      const { error } = await supabase
-        .from('users')
-        .upsert({
-          id,
-          full_name,
-          email,
-        })
-
-      if (error) {
-        console.error('[Clerk Webhook] Error upserting user in Supabase:', error)
-        return new Response(JSON.stringify({ error: 'Database error', details: error }), { 
-          status: 400,
-          headers: { 'Content-Type': 'application/json' }
-        })
+      if (!email) {
+        console.warn('[Clerk Webhook] No email for user, skipping')
+        return new Response(JSON.stringify({ success: true }), { status: 200, headers: { 'Content-Type': 'application/json' } })
       }
-      
-      console.log(`[Clerk Webhook] Successfully processed ${type} for user ${id}`)
+
+      // Check for existing user with same email but old UUID id (Supabase auth migration)
+      const { data: existingRows } = await supabase
+        .from('users')
+        .select('id, node_id, role')
+        .eq('email', email)
+
+      const isOldId = (uid: string) => !uid.startsWith('user_') && uid.includes('-')
+      const existingByEmail = Array.isArray(existingRows)
+        ? existingRows.find((r) => isOldId(r.id) && r.node_id != null) ?? existingRows.find((r) => isOldId(r.id))
+        : null
+
+      if (existingByEmail && existingByEmail.id !== clerkId && isOldId(existingByEmail.id)) {
+        const oldId = existingByEmail.id
+        console.log(`[Clerk Webhook] Migrating existing user ${oldId} -> ${clerkId} (email: ${email})`)
+
+        // Delete duplicate row first if webhook previously created one (avoids PK conflict)
+        await supabase.from('users').delete().eq('id', clerkId).is('node_id', null)
+
+        // Update FKs in child tables, then update users.id
+        await supabase.from('node_invites').update({ claimed_by_user_id: clerkId }).eq('claimed_by_user_id', oldId)
+        await supabase.from('node_invites').update({ created_by_user_id: clerkId }).eq('created_by_user_id', oldId)
+        await supabase.from('nodes').update({ created_by_user_id: clerkId }).eq('created_by_user_id', oldId)
+        await supabase.from('audit_log').update({ actor_user_id: clerkId }).eq('actor_user_id', oldId)
+
+        const { error: updateErr } = await supabase
+          .from('users')
+          .update({ id: clerkId, full_name, email })
+          .eq('id', oldId)
+
+        if (updateErr) {
+          console.error('[Clerk Webhook] Migration update failed:', updateErr)
+          return new Response(JSON.stringify({ error: 'Migration failed', details: updateErr }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        }
+
+        console.log(`[Clerk Webhook] Migrated user ${oldId} -> ${clerkId}`)
+      } else {
+        // New user or already migrated: upsert
+        const { error } = await supabase
+          .from('users')
+          .upsert({ id: clerkId, full_name, email }, { onConflict: 'id' })
+
+        if (error) {
+          console.error('[Clerk Webhook] Error upserting user:', error)
+          return new Response(JSON.stringify({ error: 'Database error', details: error }), {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        }
+        console.log(`[Clerk Webhook] Successfully processed ${type} for user ${clerkId}`)
+      }
     } else if (type === 'user.deleted') {
       // Handle user deletion if needed
       console.log(`[Clerk Webhook] User deletion event received for ${data.id} - no action taken yet`)

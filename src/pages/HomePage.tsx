@@ -58,6 +58,12 @@ export default function HomePage() {
         <p style={{ color: 'white', fontSize: '1.2rem', textAlign: 'center', maxWidth: '600px' }}>
           You need an invite link to access the family tree. Please ask a family member to send you an invite.
         </p>
+        <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', fontFamily: 'monospace' }}>
+          Clerk ID: {user.id}{' '}
+          <Button size="small" variant="outlined" sx={{ color: 'rgba(255,255,255,0.9)', borderColor: 'rgba(255,255,255,0.6)' }} onClick={() => navigator.clipboard.writeText(user.id)}>
+            Copy
+          </Button>
+        </p>
         <Button variant="outlined" onClick={signOut} sx={{ border: '2px solid white', color: 'white', fontWeight: 'bold' }}>
           Sign Out
         </Button>
