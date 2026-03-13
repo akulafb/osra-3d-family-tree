@@ -14,21 +14,21 @@ export interface Database {
     Tables: {
       users: {
         Row: {
-          id: string; // UUID from auth.users
+          id: string; // Clerk User ID
           node_id: string | null; // UUID - bound family node
           role: 'admin' | 'user';
           full_name: string | null;
           created_at: string;
         };
         Insert: {
-          id: string;
+          id: string; // Clerk User ID
           node_id?: string | null;
           role?: 'admin' | 'user';
           full_name?: string | null;
           created_at?: string;
         };
         Update: {
-          id?: string;
+          id?: string; // Clerk User ID
           node_id?: string | null;
           role?: 'admin' | 'user';
           full_name?: string | null;
@@ -41,7 +41,7 @@ export interface Database {
           name: string;
           paternal_family_cluster: string | null;
           maternal_family_cluster: string | null;
-          created_by_user_id: string; // UUID
+          created_by_user_id: string | null; // Clerk User ID
           created_at: string;
         };
         Insert: {
@@ -49,7 +49,7 @@ export interface Database {
           name: string;
           paternal_family_cluster?: string | null;
           maternal_family_cluster?: string | null;
-          created_by_user_id: string;
+          created_by_user_id?: string | null; // Clerk User ID
           created_at?: string;
         };
         Update: {
@@ -57,7 +57,7 @@ export interface Database {
           name?: string;
           paternal_family_cluster?: string | null;
           maternal_family_cluster?: string | null;
-          created_by_user_id?: string;
+          created_by_user_id?: string | null; // Clerk User ID
           created_at?: string;
         };
       };
@@ -68,7 +68,7 @@ export interface Database {
           target_node_id: string; // UUID
           type: 'parent' | 'marriage' | 'divorce';
           parent_role: 'mother' | 'father' | null;
-          created_by_user_id: string; // UUID
+          created_by_user_id: string | null; // Clerk User ID
           created_at: string;
         };
         Insert: {
@@ -77,7 +77,7 @@ export interface Database {
           target_node_id: string;
           type: 'parent' | 'marriage' | 'divorce';
           parent_role?: 'mother' | 'father' | null;
-          created_by_user_id: string;
+          created_by_user_id?: string | null; // Clerk User ID
           created_at?: string;
         };
         Update: {
@@ -86,7 +86,7 @@ export interface Database {
           target_node_id?: string;
           type?: 'parent' | 'marriage' | 'divorce';
           parent_role?: 'mother' | 'father' | null;
-          created_by_user_id?: string;
+          created_by_user_id?: string | null; // Clerk User ID
           created_at?: string;
         };
       };
@@ -96,8 +96,8 @@ export interface Database {
           node_id: string; // UUID
           token: string; // Unique invite token
           expires_at: string;
-          claimed_by_user_id: string | null; // UUID
-          created_by_user_id: string; // UUID
+          claimed_by_user_id: string | null; // Clerk User ID
+          created_by_user_id: string | null; // Clerk User ID
           created_at: string;
         };
         Insert: {
@@ -105,8 +105,8 @@ export interface Database {
           node_id: string;
           token: string;
           expires_at: string;
-          claimed_by_user_id?: string | null;
-          created_by_user_id: string;
+          claimed_by_user_id?: string | null; // Clerk User ID
+          created_by_user_id?: string | null; // Clerk User ID
           created_at?: string;
         };
         Update: {
@@ -114,8 +114,31 @@ export interface Database {
           node_id?: string;
           token?: string;
           expires_at?: string;
-          claimed_by_user_id?: string | null;
-          created_by_user_id?: string;
+          claimed_by_user_id?: string | null; // Clerk User ID
+          created_by_user_id?: string | null; // Clerk User ID
+          created_at?: string;
+        };
+      };
+      audit_log: {
+        Row: {
+          id: string; // UUID
+          actor_user_id: string | null; // Clerk User ID
+          action: string;
+          target_node_id: string | null; // UUID
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          actor_user_id?: string | null; // Clerk User ID
+          action: string;
+          target_node_id?: string | null; // UUID
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          actor_user_id?: string | null; // Clerk User ID
+          action?: string;
+          target_node_id?: string | null; // UUID
           created_at?: string;
         };
       };
@@ -149,7 +172,7 @@ export interface Database {
       claim_invite_secure: {
         Args: {
           invite_token: string;
-          claiming_user_id: string;
+          claiming_user_id: string; // Clerk User ID
         };
         Returns: {
           success: boolean;
@@ -163,7 +186,7 @@ export interface Database {
           new_node_name: string;
           rel_type: string;
           target_node_id: string;
-          creator_id: string;
+          creator_id: string; // Clerk User ID
           p_parent_role?: string | null;
         };
         Returns: {
