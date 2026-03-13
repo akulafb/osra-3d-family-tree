@@ -14,7 +14,7 @@ export interface Database {
     Tables: {
       users: {
         Row: {
-          id: string; // Clerk User ID
+          id: string; // UUID from auth.users
           node_id: string | null; // UUID - bound family node
           role: 'admin' | 'user';
           full_name: string | null;
@@ -22,7 +22,7 @@ export interface Database {
           created_at: string;
         };
         Insert: {
-          id: string; // Clerk User ID
+          id: string; // UUID from auth.users
           node_id?: string | null;
           role?: 'admin' | 'user';
           full_name?: string | null;
@@ -30,7 +30,7 @@ export interface Database {
           created_at?: string;
         };
         Update: {
-          id?: string; // Clerk User ID
+          id?: string; // UUID from auth.users
           node_id?: string | null;
           role?: 'admin' | 'user';
           full_name?: string | null;
@@ -44,7 +44,7 @@ export interface Database {
           name: string;
           paternal_family_cluster: string | null;
           maternal_family_cluster: string | null;
-          created_by_user_id: string | null; // Clerk User ID
+          created_by_user_id: string | null; // UUID from auth.users
           created_at: string;
         };
         Insert: {
@@ -52,7 +52,7 @@ export interface Database {
           name: string;
           paternal_family_cluster?: string | null;
           maternal_family_cluster?: string | null;
-          created_by_user_id?: string | null; // Clerk User ID
+          created_by_user_id?: string | null; // UUID from auth.users
           created_at?: string;
         };
         Update: {
@@ -60,7 +60,7 @@ export interface Database {
           name?: string;
           paternal_family_cluster?: string | null;
           maternal_family_cluster?: string | null;
-          created_by_user_id?: string | null; // Clerk User ID
+          created_by_user_id?: string | null; // UUID from auth.users
           created_at?: string;
         };
       };
@@ -71,7 +71,7 @@ export interface Database {
           target_node_id: string; // UUID
           type: 'parent' | 'marriage' | 'divorce';
           parent_role: 'mother' | 'father' | null;
-          created_by_user_id: string | null; // Clerk User ID
+          created_by_user_id: string | null; // UUID from auth.users
           created_at: string;
         };
         Insert: {
@@ -80,7 +80,7 @@ export interface Database {
           target_node_id: string;
           type: 'parent' | 'marriage' | 'divorce';
           parent_role?: 'mother' | 'father' | null;
-          created_by_user_id?: string | null; // Clerk User ID
+          created_by_user_id?: string | null; // UUID from auth.users
           created_at?: string;
         };
         Update: {
@@ -89,7 +89,7 @@ export interface Database {
           target_node_id?: string;
           type?: 'parent' | 'marriage' | 'divorce';
           parent_role?: 'mother' | 'father' | null;
-          created_by_user_id?: string | null; // Clerk User ID
+          created_by_user_id?: string | null; // UUID from auth.users
           created_at?: string;
         };
       };
@@ -99,8 +99,8 @@ export interface Database {
           node_id: string; // UUID
           token: string; // Unique invite token
           expires_at: string;
-          claimed_by_user_id: string | null; // Clerk User ID
-          created_by_user_id: string | null; // Clerk User ID
+          claimed_by_user_id: string | null; // UUID from auth.users
+          created_by_user_id: string | null; // UUID from auth.users
           created_at: string;
         };
         Insert: {
@@ -108,8 +108,8 @@ export interface Database {
           node_id: string;
           token: string;
           expires_at: string;
-          claimed_by_user_id?: string | null; // Clerk User ID
-          created_by_user_id?: string | null; // Clerk User ID
+          claimed_by_user_id?: string | null; // UUID from auth.users
+          created_by_user_id?: string | null; // UUID from auth.users
           created_at?: string;
         };
         Update: {
@@ -117,29 +117,29 @@ export interface Database {
           node_id?: string;
           token?: string;
           expires_at?: string;
-          claimed_by_user_id?: string | null; // Clerk User ID
-          created_by_user_id?: string | null; // Clerk User ID
+          claimed_by_user_id?: string | null; // UUID from auth.users
+          created_by_user_id?: string | null; // UUID from auth.users
           created_at?: string;
         };
       };
       audit_log: {
         Row: {
           id: string; // UUID
-          actor_user_id: string | null; // Clerk User ID
+          actor_user_id: string | null; // UUID from auth.users
           action: string;
           target_node_id: string | null; // UUID
           created_at: string;
         };
         Insert: {
           id?: string;
-          actor_user_id?: string | null; // Clerk User ID
+          actor_user_id?: string | null; // UUID from auth.users
           action: string;
           target_node_id?: string | null; // UUID
           created_at?: string;
         };
         Update: {
           id?: string;
-          actor_user_id?: string | null; // Clerk User ID
+          actor_user_id?: string | null; // UUID from auth.users
           action?: string;
           target_node_id?: string | null; // UUID
           created_at?: string;

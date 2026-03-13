@@ -141,7 +141,7 @@ export default function InvitePage() {
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
       // Use authenticated session token
-      const authToken = session?.accessToken || supabaseKey;
+      const authToken = session?.access_token || supabaseKey;
       
       // Call the secure RPC function that handles the entire claim flow atomically
       const response = await fetch(
@@ -155,6 +155,7 @@ export default function InvitePage() {
           },
           body: JSON.stringify({
             invite_token: token,
+            claiming_user_id: user.id,
           }),
         }
       );

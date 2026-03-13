@@ -76,7 +76,7 @@ export default function EditNodeModal({
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      const authToken = session?.accessToken || supabaseKey;
+      const authToken = session?.access_token || supabaseKey;
 
       const updateData: {
         name: string;

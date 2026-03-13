@@ -65,7 +65,7 @@ export default function AddRelativeModal({
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-      const authToken = session?.accessToken || supabaseKey;
+      const authToken = session?.access_token || supabaseKey;
       const response = await fetch(`${supabaseUrl}/rest/v1/rpc/create_relative_secure`, {
         method: 'POST',
         headers: {
@@ -77,6 +77,7 @@ export default function AddRelativeModal({
           new_node_name: sanitizedName,
           rel_type: relationship,
           target_node_id: targetNode.id,
+          creator_id: user.id,
           ...(relationship === 'child' && parentRole && { p_parent_role: parentRole }),
         })
       });
