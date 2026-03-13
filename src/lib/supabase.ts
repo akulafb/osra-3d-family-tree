@@ -18,7 +18,6 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
   },
   realtime: {
     // Disable realtime heartbeat and connection pooling
-    // @ts-ignore - params might not be in types but is supported
     params: {
       eventsPerSecond: 0,
     },

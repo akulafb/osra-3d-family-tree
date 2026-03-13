@@ -124,10 +124,11 @@ BEGIN
 END;
 $$;
 
--- 4. RPC Function: claim_invite_secure(invite_token text, claiming_user_id text)
--- Drop the old version first
+-- 4. RPC Function: claim_invite_secure(invite_token text)
+-- Drop the old versions first
 DROP FUNCTION IF EXISTS public.claim_invite_secure(text, uuid);
-CREATE OR REPLACE FUNCTION public.claim_invite_secure(invite_token text, claiming_user_id text)
+DROP FUNCTION IF EXISTS public.claim_invite_secure(text, text);
+CREATE OR REPLACE FUNCTION public.claim_invite_secure(invite_token text)
 RETURNS json
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -136,7 +137,12 @@ AS $$
 DECLARE
   invite_record public.node_invites%ROWTYPE;
   existing_user_node_id UUID;
+  v_claiming_user_id TEXT := (select auth.uid())::TEXT;
 BEGIN
+  IF v_claiming_user_id IS NULL THEN
+    RETURN json_build_object('success', false, 'error', 'unauthorized', 'message', 'You must be signed in');
+  END IF;
+
   SELECT * INTO invite_record FROM public.node_invites WHERE token = invite_token;
   IF NOT FOUND THEN
     RETURN json_build_object('success', false, 'error', 'invalid_invite', 'message', 'This invite link is not valid');
@@ -146,32 +152,33 @@ BEGIN
     RETURN json_build_object('success', false, 'error', 'already_claimed', 'message', 'This invite has already been claimed');
   END IF;
 
-  SELECT node_id INTO existing_user_node_id FROM public.users WHERE id = claiming_user_id;
+  SELECT node_id INTO existing_user_node_id FROM public.users WHERE id = v_claiming_user_id;
   IF existing_user_node_id IS NOT NULL THEN
     RETURN json_build_object('success', false, 'error', 'already_bound', 'message', 'You are already bound to a node in the family tree');
   END IF;
 
   INSERT INTO public.users (id, node_id, role)
-  VALUES (claiming_user_id, invite_record.node_id, 'user')
+  VALUES (v_claiming_user_id, invite_record.node_id, 'user')
   ON CONFLICT (id) DO UPDATE SET node_id = EXCLUDED.node_id;
 
-  UPDATE public.node_invites SET claimed_by_user_id = claiming_user_id WHERE token = invite_token;
+  UPDATE public.node_invites SET claimed_by_user_id = v_claiming_user_id WHERE token = invite_token;
 
   RETURN json_build_object('success', true, 'node_id', invite_record.node_id);
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.claim_invite_secure(text, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.claim_invite_secure(text) TO authenticated;
 
--- 5. RPC Function: create_relative_secure(new_node_name text, rel_type text, target_node_id uuid, creator_id text, p_parent_role text)
--- Includes logic for maternal clusters and parent roles from 20260304_fix_create_relative_ambiguous_column.sql
+-- 5. RPC Function: create_relative_secure(new_node_name text, rel_type text, target_node_id uuid, p_parent_role text)
+-- Includes logic for maternal clusters and parent roles
 DROP FUNCTION IF EXISTS public.create_relative_secure(text, text, uuid, uuid);
 DROP FUNCTION IF EXISTS public.create_relative_secure(text, text, uuid, uuid, text);
+DROP FUNCTION IF EXISTS public.create_relative_secure(text, text, uuid, text, text);
+DROP FUNCTION IF EXISTS public.create_relative_secure(text, text, uuid, text);
 CREATE OR REPLACE FUNCTION public.create_relative_secure(
   new_node_name text,
   rel_type text,
   target_node_id uuid,
-  creator_id text,
   p_parent_role text DEFAULT NULL
 )
 RETURNS json
@@ -189,7 +196,17 @@ DECLARE
   paternal_cluster TEXT;
   maternal_cluster TEXT;
   v_target uuid := target_node_id;
+  v_creator_id TEXT := (select auth.uid())::TEXT;
 BEGIN
+  IF v_creator_id IS NULL THEN
+    RETURN json_build_object('success', false, 'message', 'Unauthorized: You must be signed in');
+  END IF;
+
+  -- Verify the user is bound to a node or is an admin
+  IF NOT (SELECT is_admin()) AND NOT EXISTS (SELECT 1 FROM public.users WHERE id = v_creator_id AND node_id IS NOT NULL) THEN
+    RETURN json_build_object('success', false, 'message', 'Unauthorized: You must be bound to the tree to add relatives');
+  END IF;
+
   SELECT paternal_family_cluster INTO target_cluster FROM public.nodes WHERE id = v_target;
 
   IF rel_type = 'child' AND p_parent_role IS NOT NULL THEN
@@ -228,20 +245,20 @@ BEGIN
   END IF;
 
   INSERT INTO public.nodes (name, paternal_family_cluster, maternal_family_cluster, created_by_user_id)
-  VALUES (new_node_name, paternal_cluster, maternal_cluster, creator_id)
+  VALUES (new_node_name, paternal_cluster, maternal_cluster, v_creator_id)
   RETURNING id INTO new_id;
 
   IF rel_type = 'parent' THEN
     INSERT INTO public.links (source_node_id, target_node_id, type, parent_role, created_by_user_id)
-    VALUES (new_id, v_target, 'parent', NULL, creator_id);
+    VALUES (new_id, v_target, 'parent', NULL, v_creator_id);
 
   ELSIF rel_type = 'child' THEN
     INSERT INTO public.links (source_node_id, target_node_id, type, parent_role, created_by_user_id)
-    VALUES (v_target, new_id, 'parent', p_parent_role, creator_id);
+    VALUES (v_target, new_id, 'parent', p_parent_role, v_creator_id);
 
   ELSIF rel_type = 'spouse' THEN
     INSERT INTO public.links (source_node_id, target_node_id, type, created_by_user_id)
-    VALUES (v_target, new_id, 'marriage', creator_id);
+    VALUES (v_target, new_id, 'marriage', v_creator_id);
 
   ELSIF rel_type = 'sibling' THEN
     FOR parent_id IN
@@ -249,7 +266,7 @@ BEGIN
       WHERE l.target_node_id = v_target AND l.type = 'parent'
     LOOP
       INSERT INTO public.links (source_node_id, target_node_id, type, parent_role, created_by_user_id)
-      VALUES (parent_id, new_id, 'parent', NULL, creator_id);
+      VALUES (parent_id, new_id, 'parent', NULL, v_creator_id);
       parent_count := parent_count + 1;
     END LOOP;
 
@@ -268,7 +285,7 @@ EXCEPTION WHEN OTHERS THEN
 END;
 $$;
 
-GRANT EXECUTE ON FUNCTION public.create_relative_secure(text, text, uuid, text, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.create_relative_secure(text, text, uuid, text) TO authenticated;
 
 -- 6. Update RLS Policies to handle TEXT-based IDs
 

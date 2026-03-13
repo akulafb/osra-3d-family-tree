@@ -142,7 +142,7 @@ export default function BulkInviteModal({
     if (!relativesData.length) return;
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    const authToken = session?.access_token || supabaseKey;
+    const authToken = session?.accessToken || supabaseKey;
 
     try {
       const nodeIds = relativesData.map(r => r.node.id).join(',');
@@ -174,7 +174,7 @@ export default function BulkInviteModal({
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-    const authToken = session?.access_token;
+    const authToken = session?.accessToken;
 
     if (!authToken) {
       setError('You must be signed in to generate invites.');

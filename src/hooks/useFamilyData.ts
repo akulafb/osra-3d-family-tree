@@ -23,7 +23,7 @@ export function useFamilyData() {
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
       // Use authenticated session token to pass RLS policies
-      const authToken = session?.access_token || supabaseKey;
+      const authToken = session?.accessToken || supabaseKey;
 
       // Fetch nodes using raw fetch (avoid Supabase client websocket hang)
       const nodesResponse = await fetch(
@@ -85,7 +85,7 @@ export function useFamilyData() {
             claimedNodeIds = new Set(claimed.filter(Boolean).map(String));
           }
         }
-      } catch (_) {
+      } catch (err) {
         // Non-fatal: tree still works without claim indicators
       }
 

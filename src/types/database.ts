@@ -175,7 +175,6 @@ export interface Database {
       claim_invite_secure: {
         Args: {
           invite_token: string;
-          claiming_user_id: string; // Clerk User ID
         };
         Returns: {
           success: boolean;
@@ -189,7 +188,6 @@ export interface Database {
           new_node_name: string;
           rel_type: string;
           target_node_id: string;
-          creator_id: string; // Clerk User ID
           p_parent_role?: string | null;
         };
         Returns: {
