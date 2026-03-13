@@ -18,6 +18,7 @@ export interface Database {
           node_id: string | null; // UUID - bound family node
           role: 'admin' | 'user';
           full_name: string | null;
+          email: string | null;
           created_at: string;
         };
         Insert: {
@@ -25,6 +26,7 @@ export interface Database {
           node_id?: string | null;
           role?: 'admin' | 'user';
           full_name?: string | null;
+          email?: string | null;
           created_at?: string;
         };
         Update: {
@@ -32,6 +34,7 @@ export interface Database {
           node_id?: string | null;
           role?: 'admin' | 'user';
           full_name?: string | null;
+          email?: string | null;
           created_at?: string;
         };
       };
