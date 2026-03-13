@@ -1,19 +1,29 @@
-import React, { createContext, useContext, useEffect, useState, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useState, useMemo, useCallback } from 'react';
 import { useUser, useSession, useAuth as useClerkAuth, useClerk } from '@clerk/clerk-react';
-import { createClerkSupabaseClient } from '../lib/supabase';
 import { Database } from '../types/database';
-import type { SupabaseClient } from '@supabase/supabase-js';
 
 type UserProfile = Database['public']['Tables']['users']['Row'];
 
+interface AuthUser {
+  id: string;
+  email?: string;
+  fullName: string | null;
+  imageUrl: string;
+  username: string | null;
+}
+
+interface AuthSession {
+  id: string;
+  accessToken: string | null;
+}
+
 interface AuthContextType {
-  user: any; 
-  session: any;
+  user: AuthUser | null;
+  session: AuthSession | null;
   userProfile: UserProfile | null;
   isLoading: boolean;
   isAdmin: boolean;
   isBound: boolean; // User has a node_id binding
-  authSupabase: SupabaseClient<Database> | null;
   signInWithGoogle: (redirectTo?: string) => Promise<void>;
   signOut: () => Promise<void>;
   refreshUserProfile: () => Promise<void>;
@@ -30,14 +40,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [supabaseToken, setSupabaseToken] = useState<string | null>(null);
-
-  // Authenticated Supabase client
-  const authSupabase = useMemo(() => {
-    if (supabaseToken) {
-      return createClerkSupabaseClient(supabaseToken);
-    }
-    return null;
-  }, [supabaseToken]);
 
   // Sync Supabase token from Clerk session
   useEffect(() => {
@@ -58,7 +60,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [clerkSession]);
 
   // Fetch user profile from the users table using raw fetch (avoid websocket hang)
-  const fetchUserProfile = async (userId: string, authToken?: string) => {
+  const fetchUserProfile = useCallback(async (userId: string, authToken?: string) => {
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -94,7 +96,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsProfileLoading(false);
     }
-  };
+  }, []);
 
   // Initialize auth state
   useEffect(() => {
@@ -106,14 +108,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUserProfile(null);
       setIsProfileLoading(false);
     }
-  }, [isClerkLoaded, clerkUser, supabaseToken]);
+  }, [isClerkLoaded, clerkUser, supabaseToken, fetchUserProfile]);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = useCallback(async () => {
     // Open Clerk's built-in sign-in modal
     openSignIn();
-  };
+  }, [openSignIn]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       await clerkSignOut();
       setUserProfile(null);
@@ -122,33 +124,54 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.error('Error signing out:', error);
       throw error;
     }
-  };
+  }, [clerkSignOut]);
 
-  const refreshUserProfile = async () => {
+  const refreshUserProfile = useCallback(async () => {
     if (clerkUser && supabaseToken) {
       await fetchUserProfile(clerkUser.id, supabaseToken);
     }
-  };
+  }, [clerkUser, supabaseToken, fetchUserProfile]);
 
-  const value: AuthContextType = {
-    user: clerkUser ? {
-      ...clerkUser,
+  const value = useMemo(() => {
+    const authUser: AuthUser | null = clerkUser ? {
       id: clerkUser.id,
-      email: clerkUser.primaryEmailAddress?.emailAddress
-    } : null,
-    session: clerkSession ? {
-      ...clerkSession,
-      access_token: supabaseToken
-    } : null,
+      email: clerkUser.primaryEmailAddress?.emailAddress,
+      fullName: clerkUser.fullName ?? null,
+      imageUrl: clerkUser.imageUrl,
+      username: clerkUser.username ?? null,
+    } : null;
+
+    const authSession: AuthSession | null = clerkSession ? {
+      id: clerkSession.id,
+      accessToken: supabaseToken
+    } : null;
+
+    const isLoading = !isClerkLoaded || (!!clerkUser && isProfileLoading);
+    const isAdmin = userProfile?.role === 'admin';
+    const isBound = !!userProfile?.node_id;
+
+    return {
+      user: authUser,
+      session: authSession,
+      userProfile,
+      isLoading,
+      isAdmin,
+      isBound,
+      signInWithGoogle,
+      signOut,
+      refreshUserProfile,
+    };
+  }, [
+    clerkUser,
+    clerkSession,
+    supabaseToken,
     userProfile,
-    isLoading: !isClerkLoaded || (!!clerkUser && isProfileLoading),
-    isAdmin: userProfile?.role === 'admin',
-    isBound: !!userProfile?.node_id,
-    authSupabase,
+    isClerkLoaded,
+    isProfileLoading,
     signInWithGoogle,
     signOut,
     refreshUserProfile,
-  };
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
