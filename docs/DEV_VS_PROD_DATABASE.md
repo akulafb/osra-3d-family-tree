@@ -14,6 +14,10 @@
 
 **Important:** `.env.local` and `.env.production` are gitignored. Never commit them.
 
+## First-time setup
+
+For a new Supabase project, apply the schema with one command: `npx supabase db push` (after linking via `npx supabase link --project-ref YOUR_REF`). See the [README Database Setup](../README.md#database-setup) for full steps.
+
 ## Schema Applied to Dev
 
 The dev database has been set up with:

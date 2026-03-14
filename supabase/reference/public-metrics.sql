@@ -5,7 +5,7 @@
 -- for the landing page. It bypasses RLS by using SECURITY DEFINER.
 -- ============================================================================
 
-CREATE OR REPLACE FUNCTION get_public_metrics()
+CREATE OR REPLACE FUNCTION public.get_public_metrics()
 RETURNS JSON
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -17,12 +17,12 @@ DECLARE
 BEGIN
   -- Count total nodes (individuals)
   SELECT COUNT(*) INTO individual_count
-  FROM nodes;
+  FROM public.nodes;
 
   -- Count unique family clusters (families)
-  SELECT COUNT(DISTINCT family_cluster) INTO family_count
-  FROM nodes
-  WHERE family_cluster IS NOT NULL AND family_cluster != '';
+  SELECT COUNT(DISTINCT paternal_family_cluster) INTO family_count
+  FROM public.nodes
+  WHERE paternal_family_cluster IS NOT NULL AND paternal_family_cluster != '';
 
   -- Return as JSON
   RETURN json_build_object(
@@ -33,4 +33,4 @@ END;
 $$;
 
 -- Grant execute permission to anon role (public access)
-GRANT EXECUTE ON FUNCTION get_public_metrics() TO anon;
+GRANT EXECUTE ON FUNCTION public.get_public_metrics() TO anon;
