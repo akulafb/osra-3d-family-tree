@@ -8,11 +8,14 @@ import * as THREE from 'three';
 import Button from '@mui/material/Button';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import { FamilyGraph, FamilyNode } from '../types/graph';
 import { useAuth } from '../contexts/AuthContext';
 import { FamilyLink } from '../lib/permissions';
 import { createStarfield, type NebulaData } from '../utils/starfield';
 import { isMobile } from '../utils/device';
+import type { BackgroundTheme } from '../hooks/useBackgroundTheme';
 import { getTexturePath } from '../utils/imageFormat';
 import { getClusterColor } from '../utils/familyColors';
 import { getNodeId } from '../utils/getNodeId';
@@ -39,6 +42,19 @@ const planetTexturePaths = [
 
 const textureLoader = new THREE.TextureLoader();
 const planetMaterialCache = new Map<string, THREE.Material>();
+
+const THEME_COLORS_3D: Record<Exclude<BackgroundTheme, 'deep-space'>, number> = {
+  'wax-white': 0xfffef8,
+  'smooth-sepia': 0xe8dcc8,
+  'baby-blue': 0xd4e8f7,
+};
+
+const THEME_LABELS: Record<BackgroundTheme, string> = {
+  'deep-space': 'Deep Space',
+  'wax-white': 'Wax White',
+  'smooth-sepia': 'Smooth Sepia',
+  'baby-blue': 'Baby Blue',
+};
 
 const getPlanetMaterial = (nodeId: string, isMobileDevice: boolean = false) => {
   let hash = 0;
@@ -178,6 +194,8 @@ interface FamilyTree3DProps {
   searchOpenRequested?: number;
   searchNavigateTrigger?: number;
   searchDisabled?: boolean;
+  backgroundTheme?: BackgroundTheme;
+  onBackgroundThemeChange?: (theme: BackgroundTheme) => void;
 }
 
 export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
@@ -203,6 +221,8 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   searchOpenRequested = 0,
   searchNavigateTrigger = 0,
   searchDisabled = false,
+  backgroundTheme = 'deep-space',
+  onBackgroundThemeChange,
 }) => {
   const ForceGraph3DAny = ForceGraph3D as unknown as React.ComponentType<any>;
   const { userProfile } = useAuth();
@@ -223,6 +243,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   const fgRef = useRef<any>();
   const starfieldRef = useRef<THREE.Group | null>(null);
   const nebulaeRef = useRef<NebulaData[]>([]);
+  const envInitializedRef = useRef(false);
   const hasIntroPlayed = useRef(false);
   const rotationRef = useRef(0);
 
@@ -242,6 +263,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   const textureRef = useRef<HTMLDivElement>(null);
   const [isTextureMenuOpen, setIsTextureMenuOpen] = useState(false);
   const [isAmbienceOn, setIsAmbienceOn] = useState(false);
+  const [isStarfieldLoading, setIsStarfieldLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [showNavControls, setShowNavControls] = useState(false);
 
@@ -1019,53 +1041,84 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       const camera = fgRef.current.camera();
       const renderer = fgRef.current.renderer();
 
-      if (scene && !starfieldRef.current) {
-        if (camera) {
-          camera.far = 100000;
-          camera.updateProjectionMatrix();
-        }
+      if (!scene) return;
 
-        if (renderer) {
-          renderer.shadowMap.enabled = !isMobile(); // Disable shadows on mobile
-          renderer.setClearColor(0x0a0a0a, 1);
-        }
+      if (camera) {
+        camera.far = 100000;
+        camera.updateProjectionMatrix();
+      }
 
-        const isMob = isMobile();
-        const starfieldResult = createStarfield(scene, isMob);
-        starfieldRef.current = starfieldResult.group;
-        nebulaeRef.current = starfieldResult.nebulae;
+      if (renderer) {
+        renderer.shadowMap.enabled = !isMobile();
+        renderer.setClearColor(0x0a0a0a, 1);
+      }
+
+      if (!envInitializedRef.current) {
         scene.fog = new THREE.Fog(0x020205, 5000, 20000);
-
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
-        scene.add(ambientLight);
-
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
         const mainLight = new THREE.PointLight(0xffffff, 3.5);
         mainLight.position.set(1000, 1000, 1000);
         scene.add(mainLight);
-
         const fillLight = new THREE.PointLight(0x0066ff, 2.5);
         fillLight.position.set(-1000, -1000, 1000);
         scene.add(fillLight);
-
         const backLight = new THREE.PointLight(0xff00ff, 1.5);
         backLight.position.set(0, 0, -1000);
         scene.add(backLight);
+        envInitializedRef.current = true;
+      }
+
+      if (backgroundTheme === 'deep-space') {
+        if (!starfieldRef.current) {
+          setIsStarfieldLoading(true);
+          const isMob = isMobile();
+          const starfieldResult = createStarfield(scene, {
+            isMobileDevice: isMob,
+            onBackgroundLoaded: () => setIsStarfieldLoading(false),
+          });
+          starfieldRef.current = starfieldResult.group;
+          nebulaeRef.current = starfieldResult.nebulae;
+        }
+      } else {
+        setIsStarfieldLoading(false);
+        if (starfieldRef.current) {
+          scene.remove(starfieldRef.current);
+          starfieldRef.current = null;
+          nebulaeRef.current = [];
+        }
+        scene.background = new THREE.Color(THEME_COLORS_3D[backgroundTheme]);
+        scene.environment = null;
       }
     };
 
     const interval = setInterval(initEnvironment, 500);
     return () => clearInterval(interval);
-  }, []);
+  }, [backgroundTheme]);
+
+  // Show loader immediately when user selects deep-space (before interval runs)
+  useEffect(() => {
+    if (backgroundTheme === 'deep-space' && !starfieldRef.current) {
+      setIsStarfieldLoading(true);
+    }
+  }, [backgroundTheme]);
+
+  const containerBg = backgroundTheme === 'deep-space' ? '#0a0a0a' : backgroundTheme === 'wax-white' ? '#fffef8' : backgroundTheme === 'smooth-sepia' ? '#e8dcc8' : '#d4e8f7';
 
   // Render
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', background: '#0a0a0a' }}>
+    <div style={{ position: 'relative', width: '100%', height: '100%', background: containerBg }}>
       {isSimulationLoading && graphData && (
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.7)', zIndex: 1000, color: '#fff', fontSize: '18px', pointerEvents: 'none' }}>
           <div style={{ textAlign: 'center' }}>
             <div>Loading <span style={{ fontFamily: 'cursive', fontWeight: 'bold' }}>Osra</span> 3D Family Tree...</div>
             <div style={{ width: '40px', height: '40px', border: '4px solid rgba(255,255,255,0.3)', borderTop: '4px solid #fff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '10px auto' }} />
           </div>
+        </div>
+      )}
+      {isStarfieldLoading && (
+        <div style={{ position: 'absolute', bottom: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 1000, display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', background: 'rgba(0,0,0,0.6)', borderRadius: '8px', color: '#fff', fontSize: '0.9rem', pointerEvents: 'none', boxShadow: '0 4px 12px rgba(0,0,0,0.4)' }}>
+          <div style={{ width: 20, height: 20, border: '2px solid rgba(255,255,255,0.3)', borderTop: '2px solid #fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+          Loading background…
         </div>
       )}
       
@@ -1125,7 +1178,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       />
 
       {/* Settings Controls - Top Right */}
-      <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 10, alignItems: 'flex-end' }}>
+      <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 1000, alignItems: 'flex-end' }}>
         {/* Settings Toggle - First */}
         <Button
           variant="contained"
@@ -1171,6 +1224,40 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
             <Button variant="contained" color="success" size="small" onClick={resetView}>
               Reset View
             </Button>
+
+            {onBackgroundThemeChange && (
+              <div style={{ marginBottom: '4px' }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#888', marginBottom: '6px' }}>
+                  Background
+                </div>
+                <Select
+                  value={backgroundTheme}
+                  onChange={(e) => onBackgroundThemeChange(e.target.value as BackgroundTheme)}
+                  size="small"
+                  fullWidth
+                  sx={{
+                    fontSize: '0.75rem',
+                    '& .MuiSelect-select': { py: 0.75, display: 'flex', alignItems: 'center', gap: 1 },
+                  }}
+                >
+                  {(['deep-space', 'wax-white', 'smooth-sepia', 'baby-blue'] as const).map((t) => (
+                    <MenuItem key={t} value={t} sx={{ fontSize: '0.75rem' }}>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          width: 12,
+                          height: 12,
+                          borderRadius: 2,
+                          marginRight: 8,
+                          backgroundColor: t === 'deep-space' ? '#1a1a2e' : t === 'wax-white' ? '#fffef8' : t === 'smooth-sepia' ? '#e8dcc8' : '#d4e8f7',
+                        }}
+                      />
+                      {THEME_LABELS[t]}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </div>
+            )}
 
             <FormControlLabel
               control={<Switch checked={showNames} onChange={() => setShowNames(!showNames)} color="primary" size="small" />}
@@ -1281,7 +1368,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       </div>
 
       {/* Nav Controls - Bottom Right (Collapsible) */}
-      <div style={{ position: 'absolute', bottom: '20px', right: '20px', zIndex: 10 }}>
+      <div style={{ position: 'absolute', bottom: '20px', right: '20px', zIndex: 1000 }}>
         <Button
           variant="outlined"
           onClick={() => setShowNavControls(!showNavControls)}

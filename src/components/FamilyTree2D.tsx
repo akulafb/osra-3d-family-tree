@@ -5,6 +5,8 @@ import { zoom, zoomIdentity, ZoomBehavior } from 'd3-zoom';
 import type { D3ZoomEvent } from 'd3-zoom';
 import 'd3-transition'; // Import for transition support
 import Button from '@mui/material/Button';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
 import { FamilyGraph, FamilyNode, Node2D, LayoutType } from '../types/graph';
 import { calculateLayout, calculateBounds } from '../lib/layoutEngine';
 import { NodeCard } from './NodeCard';
@@ -13,6 +15,29 @@ import { getNodeId } from '../utils/getNodeId';
 import { getClusterColor } from '../utils/familyColors';
 import { filterGraphData } from '../lib/filterGraphData';
 import { TreeSearchBar } from './TreeSearchBar';
+import type { BackgroundTheme } from '../hooks/useBackgroundTheme';
+
+function getBackgroundForTheme(theme: BackgroundTheme): string {
+  switch (theme) {
+    case 'deep-space':
+      return 'linear-gradient(180deg, #0a0a0a 0%, #1a1a2e 100%)';
+    case 'wax-white':
+      return '#fffef8';
+    case 'smooth-sepia':
+      return '#e8dcc8';
+    case 'baby-blue':
+      return '#d4e8f7';
+    default:
+      return 'linear-gradient(180deg, #0a0a0a 0%, #1a1a2e 100%)';
+  }
+}
+
+const THEME_LABELS: Record<BackgroundTheme, string> = {
+  'deep-space': 'Deep Space',
+  'wax-white': 'Wax White',
+  'smooth-sepia': 'Smooth Sepia',
+  'baby-blue': 'Baby Blue',
+};
 
 interface FamilyTree2DProps {
   graphData: FamilyGraph;
@@ -42,6 +67,8 @@ interface FamilyTree2DProps {
   searchOpenRequested?: number;
   searchNavigateTrigger?: number;
   searchDisabled?: boolean;
+  backgroundTheme?: BackgroundTheme;
+  onBackgroundThemeChange?: (theme: BackgroundTheme) => void;
 }
 
 function ExpandableSpring({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) {
@@ -85,9 +112,11 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
   searchOpenRequested = 0,
   searchNavigateTrigger = 0,
   searchDisabled = false,
+  backgroundTheme = 'deep-space',
+  onBackgroundThemeChange,
 }) => {
-  const presetBackground = 'linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%)';
-  const emptyBackground = 'linear-gradient(180deg, #f4f7fb 0%, #e7eef8 100%)';
+  const presetBackground = getBackgroundForTheme(backgroundTheme);
+  const emptyBackground = getBackgroundForTheme(backgroundTheme);
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
   const zoomBehaviorRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null);
@@ -432,10 +461,133 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
-        zIndex: 10,
+        zIndex: 1000,
         alignItems: 'flex-end',
       }}>
-        {/* Family Preset Selector */}
+        {/* Settings Toggle - First */}
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={() => setShowControls(!showControls)}
+          sx={{ width: '180px', minWidth: '180px' }}
+        >
+          Settings ⚙️ {showControls ? '▴' : '▾'}
+        </Button>
+
+        <ExpandableSpring isOpen={showControls}>
+          <div style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+            width: '180px',
+            backgroundColor: 'rgba(30, 30, 40, 0.95)',
+            padding: '12px',
+            borderRadius: '8px',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }}>
+            {userNodeId && (
+              <Button variant="contained" color="success" size="small" onClick={handleFindMe}>
+                Find me!
+              </Button>
+            )}
+
+            {onModeChange && (
+              <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
+                <Button variant="outlined" size="small" onClick={() => onModeChange('3D')} sx={{ flex: 1 }}>
+                  🌌 3D
+                </Button>
+                <Button variant="contained" color="primary" size="small" onClick={() => onModeChange('2D')} sx={{ flex: 1 }}>
+                  🌳 2D
+                </Button>
+              </div>
+            )}
+
+            {onBackgroundThemeChange && (
+              <div style={{ marginBottom: '4px' }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#888', marginBottom: '6px' }}>
+                  Background
+                </div>
+                <Select
+                  value={backgroundTheme}
+                  onChange={(e) => onBackgroundThemeChange(e.target.value as BackgroundTheme)}
+                  size="small"
+                  fullWidth
+                  sx={{
+                    fontSize: '0.75rem',
+                    '& .MuiSelect-select': { py: 0.75, display: 'flex', alignItems: 'center', gap: 1 },
+                  }}
+                >
+                  {(['deep-space', 'wax-white', 'smooth-sepia', 'baby-blue'] as const).map((t) => (
+                    <MenuItem key={t} value={t} sx={{ fontSize: '0.75rem' }}>
+                      <span
+                        style={{
+                          display: 'inline-block',
+                          width: 12,
+                          height: 12,
+                          borderRadius: 2,
+                          marginRight: 8,
+                          backgroundColor: t === 'deep-space' ? '#1a1a2e' : t === 'wax-white' ? '#fffef8' : t === 'smooth-sepia' ? '#e8dcc8' : '#d4e8f7',
+                        }}
+                      />
+                      {THEME_LABELS[t]}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </div>
+            )}
+
+            {onSearchQueryChange && onSearchPrev && onSearchNext && onSearchClose && (
+              <div style={{
+                marginTop: '8px',
+                marginBottom: '8px',
+                padding: '12px',
+                backgroundColor: 'rgba(0, 0, 0, 0.25)',
+                borderRadius: '8px',
+                border: '1px solid rgba(255,255,255,0.12)',
+              }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#888', marginBottom: '8px' }}>
+                  Search
+                </div>
+                <TreeSearchBar
+                  query={searchQuery}
+                  onQueryChange={onSearchQueryChange}
+                  matches={searchMatches}
+                  currentIndex={searchIndex}
+                  onPrev={onSearchPrev}
+                  onNext={onSearchNext}
+                  onClose={onSearchClose}
+                  disabled={searchDisabled}
+                  embedded
+                  focusTrigger={searchOpenRequested}
+                />
+              </div>
+            )}
+
+            <Button
+              variant="contained"
+              color="error"
+              size="small"
+              onClick={() => {
+                if (collapsedNodes.size > 0) {
+                  onSetCollapsedNodes?.(new Set());
+                } else {
+                  const parents = new Set<string>();
+                  graphData?.links.forEach(l => {
+                    if (l.type === 'parent') {
+                      const sId = getNodeId(l.source);
+                      parents.add(sId);
+                    }
+                  });
+                  onSetCollapsedNodes?.(parents);
+                }
+              }}
+            >
+              {collapsedNodes.size > 0 ? 'Expand All' : 'Collapse All'}
+            </Button>
+          </div>
+        </ExpandableSpring>
+
+        {/* Family Preset Selector - Below Settings */}
         {uniqueClusters.length > 0 && (
           <div style={{ width: '180px' }}>
             <Button
@@ -496,95 +648,6 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
             </ExpandableSpring>
           </div>
         )}
-
-        {/* Settings Toggle */}
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => setShowControls(!showControls)}
-          sx={{ width: '180px', minWidth: '180px' }}
-        >
-          Settings ⚙️ {showControls ? '▴' : '▾'}
-        </Button>
-
-        <ExpandableSpring isOpen={showControls}>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-            width: '180px',
-            backgroundColor: 'rgba(30, 30, 40, 0.95)',
-            padding: '12px',
-            borderRadius: '8px',
-            border: '1px solid rgba(255,255,255,0.1)',
-          }}>
-            {userNodeId && (
-              <Button variant="contained" color="success" size="small" onClick={handleFindMe}>
-                Find me!
-              </Button>
-            )}
-
-            {onModeChange && (
-              <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
-                <Button variant="outlined" size="small" onClick={() => onModeChange('3D')} sx={{ flex: 1 }}>
-                  🌌 3D
-                </Button>
-                <Button variant="contained" color="primary" size="small" onClick={() => onModeChange('2D')} sx={{ flex: 1 }}>
-                  🌳 2D
-                </Button>
-              </div>
-            )}
-
-            {onSearchQueryChange && onSearchPrev && onSearchNext && onSearchClose && (
-              <div style={{
-                marginTop: '8px',
-                marginBottom: '8px',
-                padding: '12px',
-                backgroundColor: 'rgba(0, 0, 0, 0.25)',
-                borderRadius: '8px',
-                border: '1px solid rgba(255,255,255,0.12)',
-              }}>
-                <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#888', marginBottom: '8px' }}>
-                  Search
-                </div>
-                <TreeSearchBar
-                  query={searchQuery}
-                  onQueryChange={onSearchQueryChange}
-                  matches={searchMatches}
-                  currentIndex={searchIndex}
-                  onPrev={onSearchPrev}
-                  onNext={onSearchNext}
-                  onClose={onSearchClose}
-                  disabled={searchDisabled}
-                  embedded
-                  focusTrigger={searchOpenRequested}
-                />
-              </div>
-            )}
-
-            <Button
-              variant="contained"
-              color="error"
-              size="small"
-              onClick={() => {
-                if (collapsedNodes.size > 0) {
-                  onSetCollapsedNodes?.(new Set());
-                } else {
-                  const parents = new Set<string>();
-                  graphData?.links.forEach(l => {
-                    if (l.type === 'parent') {
-                      const sId = getNodeId(l.source);
-                      parents.add(sId);
-                    }
-                  });
-                  onSetCollapsedNodes?.(parents);
-                }
-              }}
-            >
-              {collapsedNodes.size > 0 ? 'Expand All' : 'Collapse All'}
-            </Button>
-          </div>
-        </ExpandableSpring>
       </div>
     </div>
   );
