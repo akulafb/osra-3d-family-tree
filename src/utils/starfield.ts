@@ -269,7 +269,22 @@ function createVolumetricNebula(
   return { group, clouds };
 }
 
-export function createStarfield(scene: THREE.Scene, isMobileDevice: boolean = false): StarfieldResult {
+export interface CreateStarfieldOptions {
+  isMobileDevice?: boolean;
+  onBackgroundLoaded?: () => void;
+}
+
+export function createStarfield(
+  scene: THREE.Scene,
+  isMobileDeviceOrOptions: boolean | CreateStarfieldOptions = false
+): StarfieldResult {
+  const opts: CreateStarfieldOptions =
+    typeof isMobileDeviceOrOptions === 'boolean'
+      ? { isMobileDevice: isMobileDeviceOrOptions }
+      : isMobileDeviceOrOptions;
+  const isMobileDevice = opts.isMobileDevice ?? false;
+  const onBackgroundLoaded = opts.onBackgroundLoaded;
+
   const starfieldGroup = new THREE.Group();
   const textureLoader = new THREE.TextureLoader();
 
@@ -278,20 +293,24 @@ export function createStarfield(scene: THREE.Scene, isMobileDevice: boolean = fa
     ? '/planet-textures/stars.jpg'
     : '/planet-textures/8K Stars Texture.jpg';
 
-  textureLoader.load(starTexturePath, (texture) => {
-    texture.colorSpace = THREE.SRGBColorSpace;
-    texture.mapping = THREE.EquirectangularReflectionMapping; 
-    texture.anisotropy = isMobileDevice ? 2 : 16;
-    texture.minFilter = THREE.LinearMipmapLinearFilter;
-    
-    // Set as scene background
-    scene.background = texture;
-    
-    // Set as environment map for planet reflections
-    scene.environment = texture;
-  }, undefined, (err) => {
-    console.error('Error loading stars texture:', err);
-  });
+  textureLoader.load(
+    starTexturePath,
+    (texture) => {
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.mapping = THREE.EquirectangularReflectionMapping;
+      texture.anisotropy = isMobileDevice ? 2 : 16;
+      texture.minFilter = THREE.LinearMipmapLinearFilter;
+
+      scene.background = texture;
+      scene.environment = texture;
+      onBackgroundLoaded?.();
+    },
+    undefined,
+    (err) => {
+      console.error('Error loading stars texture:', err);
+      onBackgroundLoaded?.();
+    }
+  );
 
   // 2. Stars (Foreground Points for Parallax)
   const starCount = isMobileDevice ? 1500 : 5000;

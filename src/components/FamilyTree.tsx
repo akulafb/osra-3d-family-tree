@@ -3,6 +3,7 @@ import Button from '@mui/material/Button';
 import FamilyTree3D from './FamilyTree3D';
 import { FamilyTree2D } from './FamilyTree2D';
 import { useViewMode } from '../hooks/useViewMode';
+import { useBackgroundTheme } from '../hooks/useBackgroundTheme';
 import { useFamilyData } from '../hooks/useFamilyData';
 import { FamilyNode, FamilyLink } from '../types/graph';
 import { useAuth } from '../contexts/AuthContext';
@@ -18,6 +19,7 @@ import { isMobile } from '../utils/device';
 export const FamilyTree: React.FC = () => {
   const { user, userProfile } = useAuth();
   const { mode, switchMode, isHydrated } = useViewMode();
+  const { theme: backgroundTheme, setTheme: setBackgroundTheme } = useBackgroundTheme();
   const { graphData, isLoading, error, refetch } = useFamilyData();
 
   const [selectedNode, setSelectedNode] = useState<FamilyNode | null>(null);
@@ -337,6 +339,8 @@ export const FamilyTree: React.FC = () => {
             graphData={graphData}
             selectedNode={selectedNode}
             onNodeSelect={handleNodeSelect}
+            backgroundTheme={backgroundTheme}
+            onBackgroundThemeChange={setBackgroundTheme}
             onBackgroundClick={handleBackgroundClick}
             collapsedNodes={collapsedNodes}
             onToggleCollapse={handleToggleCollapse}
@@ -362,6 +366,8 @@ export const FamilyTree: React.FC = () => {
             graphData={graphData}
             layoutType="tree"
             activePreset={activePreset}
+            backgroundTheme={backgroundTheme}
+            onBackgroundThemeChange={setBackgroundTheme}
             isMobile={isMobile()}
             selectedNodeId={selectedNode?.id || null}
             onNodeSelect={handleNodeSelect}
