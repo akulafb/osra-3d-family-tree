@@ -166,7 +166,7 @@ src/
 ├── App.tsx                       # Route definitions
 └── main.tsx                      # Application entry point
 supabase/
-│   ├── migrations/               # Schema, RLS, functions (run in order)
+│   ├── migrations/               # Single schema migration
 │   ├── seed/                     # Seed data (run in SQL Editor)
 │   └── reference/                # Reference SQL (not run directly)
 │       ├── policies.sql          # RLS policies
@@ -213,16 +213,25 @@ npm run dev
 
 ### Database Setup
 
-1. Apply migrations and seed data in your Supabase SQL Editor (or via Supabase CLI):
-   - Run migrations in `supabase/migrations/` in order (schema, RLS policies, indexes, etc.)
-   - See `supabase/reference/policies.sql` for policy reference (policies are applied via migrations)
-   - Optionally run seed scripts in `supabase/seed/` for sample family tree data
+1. Create a Supabase project at [supabase.com](https://supabase.com) (or use an existing one).
 
-2. Configure Google OAuth in Supabase Dashboard:
-   - Navigate to Authentication > Providers
-   - Enable Google provider
-   - Add your OAuth credentials
-   - Set redirect URL to your app domain
+2. Link the project (requires [Supabase CLI](https://supabase.com/docs/guides/cli)):
+
+   ```bash
+   npx supabase link --project-ref YOUR_PROJECT_REF
+   ```
+
+3. Apply the schema (one command):
+
+   ```bash
+   npx supabase db push
+   ```
+
+4. Configure Google OAuth in Supabase Dashboard:
+   - Authentication → Providers → Google → Enable and add OAuth credentials
+   - Add redirect URLs: `http://localhost:5173`, `http://127.0.0.1:5173`
+
+**Alternative:** Run `supabase/migrations/20260101_initial_schema.sql` in the Supabase SQL Editor if you prefer not to use the CLI.
 
 ## Development Workflow
 
