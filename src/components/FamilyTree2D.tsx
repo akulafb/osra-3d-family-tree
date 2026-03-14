@@ -230,8 +230,9 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
     const svg = svgRef.current;
     const rect = svg.getBoundingClientRect();
 
+    // D3 zoom: point (px, py) → (x + px*k, y + py*k). To center node at viewport:
     const targetTransform = zoomIdentity
-      .translate(rect.width / 2 - node.x, rect.height / 2 - node.y)
+      .translate(rect.width / 2 - node.x * scale, rect.height / 2 - node.y * scale)
       .scale(scale);
 
     select(svg)
