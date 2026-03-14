@@ -125,23 +125,27 @@ export default function InvitePage() {
     };
   }, [token]);
 
-  // Auto-claim when user logs in
+  // Auto-claim when user logs in (must have session token - anon key returns 401)
   useEffect(() => {
-    if (user && inviteStatus === 'valid' && inviteData && confirmedIdentity) {
+    if (user && session?.access_token && inviteStatus === 'valid' && inviteData && confirmedIdentity) {
       claimInvite();
     }
-  }, [user, inviteStatus, inviteData, confirmedIdentity]);
+  }, [user, session?.access_token, inviteStatus, inviteData, confirmedIdentity]);
 
   const claimInvite = async () => {
     if (!user || !inviteData || !token) return;
+    if (!session?.access_token) {
+      setInviteStatus('error');
+      setErrorMessage('Session not ready. Please wait a moment and try again.');
+      return;
+    }
     setInviteStatus('claiming');
 
     try {
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
       const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
       
-      // Use authenticated session token
-      const authToken = session?.access_token || supabaseKey;
+      const authToken = session.access_token;
       
       // Call the secure RPC function that handles the entire claim flow atomically
       const response = await fetch(
@@ -161,8 +165,15 @@ export default function InvitePage() {
       );
 
       if (!response.ok) {
-        await response.text();
-        throw new Error('Failed to claim invite');
+        const body = await response.text();
+        let parsed: { message?: string; error?: string } | null = null;
+        try {
+          parsed = body ? JSON.parse(body) : null;
+        } catch {
+          // Ignore parse errors
+        }
+        const msg = parsed?.message ?? parsed?.error ?? (response.status === 401 ? 'Please sign in again.' : `Request failed (${response.status}).`);
+        throw new Error(msg);
       }
 
       const result = await response.json();
@@ -183,6 +194,12 @@ export default function InvitePage() {
           case 'already_bound':
             setErrorMessage('You are already bound to a node in the family tree.');
             break;
+          case 'auth_not_found':
+            setErrorMessage(result.message || 'Unable to retrieve your profile. Please sign out and try again.');
+            break;
+          case 'unauthorized':
+            setErrorMessage('You must be signed in to claim this invite.');
+            break;
           default:
             setErrorMessage(result.message || 'Failed to claim invite. Please try again.');
         }
@@ -202,9 +219,10 @@ export default function InvitePage() {
       // Success! Redirect with hard reload to ensure fresh auth context
       window.location.href = '/';
       
-    } catch {
+    } catch (err) {
       setInviteStatus('error');
-      setErrorMessage('Failed to claim invite. Please try again.');
+      const msg = err instanceof Error ? err.message : 'Failed to claim invite. Please try again.';
+      setErrorMessage(msg);
     }
   };
 
