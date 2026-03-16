@@ -219,17 +219,19 @@ BEGIN
     RETURN json_build_object('success', false, 'error', 'auth_not_found', 'message', 'Unable to retrieve profile');
   END IF;
 
-  INSERT INTO public.users (id, node_id, role, full_name)
+  INSERT INTO public.users (id, node_id, role, full_name, email)
   SELECT
     claiming_user_id,
     invite_record.node_id,
     'user',
-    COALESCE(au.raw_user_meta_data->>'full_name', au.raw_user_meta_data->>'name')
+    COALESCE(au.raw_user_meta_data->>'full_name', au.raw_user_meta_data->>'name'),
+    au.email
   FROM auth.users au
   WHERE au.id = claiming_user_id
   ON CONFLICT (id) DO UPDATE SET
     node_id = EXCLUDED.node_id,
-    full_name = COALESCE(EXCLUDED.full_name, public.users.full_name);
+    full_name = COALESCE(EXCLUDED.full_name, public.users.full_name),
+    email = COALESCE(EXCLUDED.email, public.users.email);
 
   UPDATE public.node_invites SET claimed_by_user_id = claiming_user_id WHERE token = invite_token;
 
