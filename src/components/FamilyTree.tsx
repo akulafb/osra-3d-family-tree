@@ -5,6 +5,7 @@ import { FamilyTree2D } from './FamilyTree2D';
 import { useViewMode } from '../hooks/useViewMode';
 import { useBackgroundTheme } from '../hooks/useBackgroundTheme';
 import { useFamilyData } from '../hooks/useFamilyData';
+import { useNewNodesSinceSignIn } from '../hooks/useNewNodesSinceSignIn';
 import { FamilyNode, FamilyLink } from '../types/graph';
 import { useAuth } from '../contexts/AuthContext';
 import { canEdit, canManageInvites } from '../lib/permissions';
@@ -14,6 +15,7 @@ import AddRelativeModal from './modals/AddRelativeModal';
 import EditNodeModal from './modals/EditNodeModal';
 import BulkInviteModal from './modals/BulkInviteModal';
 import { FamilyChat } from './FamilyChat';
+import { NewMembersModal } from './NewMembersModal';
 import { isMobile } from '../utils/device';
 
 export const FamilyTree: React.FC = () => {
@@ -21,8 +23,14 @@ export const FamilyTree: React.FC = () => {
   const { mode, switchMode, isHydrated } = useViewMode();
   const { theme: backgroundTheme, setTheme: setBackgroundTheme } = useBackgroundTheme();
   const { graphData, isLoading, error, refetch } = useFamilyData();
+  const {
+    newMembers,
+    showSeeWhosNewButton,
+    buttonGlowActive,
+  } = useNewNodesSinceSignIn(user?.id, graphData);
 
   const [selectedNode, setSelectedNode] = useState<FamilyNode | null>(null);
+  const [newMembersModalOpen, setNewMembersModalOpen] = useState(false);
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
   const [activePreset, setActivePreset] = useState<string | null>(null);
   
@@ -110,6 +118,21 @@ export const FamilyTree: React.FC = () => {
   );
 
   const searchHighlightedNodeId = searchMatches[searchIndex]?.id ?? null;
+
+  const seeWhosNewButtonSx = {
+    fontWeight: 700,
+    ...(buttonGlowActive && {
+      '@keyframes seeWhosNewGlow': {
+        '0%, 100%': {
+          boxShadow: '0 0 14px rgba(168, 85, 247, 0.65)',
+        },
+        '50%': {
+          boxShadow: '0 0 28px rgba(236, 72, 153, 0.9)',
+        },
+      },
+      animation: 'seeWhosNewGlow 1.15s ease-in-out infinite',
+    }),
+  } as const;
 
   const handleSearchPrev = useCallback(() => {
     setSearchIndex((i) => (i <= 0 ? searchMatches.length - 1 : i - 1));
@@ -231,6 +254,35 @@ export const FamilyTree: React.FC = () => {
       overflow: 'hidden',
       background: '#0a0a0a',
     }}>
+      {mode === '2D' && showSeeWhosNewButton && newMembers.length > 0 && (
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 20,
+            right: 20,
+            zIndex: 1010,
+            minWidth: 180,
+            width: 'min(92vw, 260px)',
+          }}
+        >
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={() => setNewMembersModalOpen(true)}
+            fullWidth
+            sx={seeWhosNewButtonSx}
+          >
+            See who&apos;s new!
+          </Button>
+        </div>
+      )}
+
+      <NewMembersModal
+        open={newMembersModalOpen}
+        onClose={() => setNewMembersModalOpen(false)}
+        members={newMembers}
+      />
+
       {/* Selected Node Info - Bottom Center */}
       {selectedNode && (
         <div style={{
@@ -360,6 +412,19 @@ export const FamilyTree: React.FC = () => {
             searchOpenRequested={searchOpenRequested}
             searchNavigateTrigger={searchNavigateTrigger}
             searchDisabled={false}
+            seeWhosNewButtonSlot={
+              showSeeWhosNewButton && newMembers.length > 0 ? (
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  onClick={() => setNewMembersModalOpen(true)}
+                  fullWidth
+                  sx={seeWhosNewButtonSx}
+                >
+                  See who&apos;s new!
+                </Button>
+              ) : null
+            }
           />
         ) : (
           <FamilyTree2D
