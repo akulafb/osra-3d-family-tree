@@ -196,6 +196,8 @@ interface FamilyTree3DProps {
   searchDisabled?: boolean;
   backgroundTheme?: BackgroundTheme;
   onBackgroundThemeChange?: (theme: BackgroundTheme) => void;
+  /** Optional "See who's new!" control; rendered above NAV CONTROLS, same column */
+  seeWhosNewButtonSlot?: React.ReactNode;
 }
 
 export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
@@ -223,6 +225,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   searchDisabled = false,
   backgroundTheme = 'deep-space',
   onBackgroundThemeChange,
+  seeWhosNewButtonSlot,
 }) => {
   const ForceGraph3DAny = ForceGraph3D as unknown as React.ComponentType<any>;
   const { userProfile } = useAuth();
@@ -1367,8 +1370,21 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
         </SettingsPanelSpring>
       </div>
 
-      {/* Nav Controls - Bottom Right (Collapsible) */}
-      <div style={{ position: 'absolute', bottom: '20px', right: '20px', zIndex: 1000 }}>
+      {/* Nav Controls - Bottom Right (Collapsible); optional "See who's new!" stacked above */}
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '20px',
+          right: '20px',
+          zIndex: 1000,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'stretch',
+          gap: '8px',
+          minWidth: '180px',
+        }}
+      >
+        {seeWhosNewButtonSlot}
         <Button
           variant="outlined"
           onClick={() => setShowNavControls(!showNavControls)}

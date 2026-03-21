@@ -3,6 +3,8 @@
 export interface FamilyNode {
   id: string;  // UUID from Supabase
   name: string;
+  /** ISO timestamp from Supabase `created_at` */
+  createdAt?: string;
   birthDate?: string;
   birthPlace?: string;
   familyCluster?: string;  // paternal (display)
