@@ -69,6 +69,8 @@ interface FamilyTree2DProps {
   searchDisabled?: boolean;
   backgroundTheme?: BackgroundTheme;
   onBackgroundThemeChange?: (theme: BackgroundTheme) => void;
+  /** Dashed preview edge while Add Relative connect-to-existing is focused */
+  pendingLinkPreview?: { anchorId: string; existingId: string } | null;
 }
 
 function ExpandableSpring({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) {
@@ -114,6 +116,7 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
   searchDisabled = false,
   backgroundTheme = 'deep-space',
   onBackgroundThemeChange,
+  pendingLinkPreview = null,
 }) => {
   const presetBackground = getBackgroundForTheme(backgroundTheme);
   const emptyBackground = getBackgroundForTheme(backgroundTheme);
@@ -269,6 +272,41 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
       .duration(durationMs)
       .call(zoomBehaviorRef.current.transform as any, targetTransform);
   }, [nodes]);
+
+  const framePreviewLinkEndpoints = useCallback(() => {
+    if (!pendingLinkPreview || !svgRef.current || !zoomBehaviorRef.current) return;
+    const a = nodes.find((n) => n.id === pendingLinkPreview.anchorId);
+    const b = nodes.find((n) => n.id === pendingLinkPreview.existingId);
+    if (!a || !b) return;
+
+    const minX = Math.min(a.x, b.x);
+    const maxX = Math.max(a.x + a.width, b.x + b.width);
+    const minY = Math.min(a.y, b.y);
+    const maxY = Math.max(a.y + a.height, b.y + b.height);
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    const w = Math.max(maxX - minX, 40) + 180;
+    const h = Math.max(maxY - minY, 40) + 180;
+
+    const svg = svgRef.current;
+    const rect = svg.getBoundingClientRect();
+    const scale = Math.min(rect.width / w, rect.height / h, 1.4);
+    const k = Math.max(0.28, Math.min(scale, 2));
+    const tx = rect.width / 2 - centerX * k;
+    const ty = rect.height / 2 - centerY * k;
+    const targetTransform = zoomIdentity.translate(tx, ty).scale(k);
+
+    select(svg)
+      .transition()
+      .duration(750)
+      .call(zoomBehaviorRef.current.transform as any, targetTransform);
+  }, [pendingLinkPreview, nodes]);
+
+  useEffect(() => {
+    if (!pendingLinkPreview) return;
+    const id = window.setTimeout(() => framePreviewLinkEndpoints(), 80);
+    return () => clearTimeout(id);
+  }, [pendingLinkPreview?.anchorId, pendingLinkPreview?.existingId, framePreviewLinkEndpoints]);
 
   // Handle "Find me!" click: switch preset if needed, pan/zoom, temporary glow
   const handleFindMe = useCallback(() => {
@@ -427,6 +465,32 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
           >
             {/* Render links first (behind nodes) */}
             <OrthogonalLinks links={links} activePreset={activePreset} />
+
+            {pendingLinkPreview &&
+              (() => {
+                const a = nodes.find((n) => n.id === pendingLinkPreview.anchorId);
+                const b = nodes.find((n) => n.id === pendingLinkPreview.existingId);
+                if (!a || !b) return null;
+                const x1 = a.x + a.width / 2;
+                const y1 = a.y + a.height / 2;
+                const x2 = b.x + b.width / 2;
+                const y2 = b.y + b.height / 2;
+                return (
+                  <line
+                    key="pending-link-preview"
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke="#22d3ee"
+                    strokeWidth={2.5}
+                    strokeDasharray="6 4"
+                    opacity={0.95}
+                    fill="none"
+                    pointerEvents="none"
+                  />
+                );
+              })()}
 
             {/* Render nodes */}
             {nodes.map(node => (

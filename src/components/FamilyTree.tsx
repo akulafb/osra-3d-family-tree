@@ -39,6 +39,20 @@ export const FamilyTree: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isBulkInviteOpen, setIsBulkInviteOpen] = useState(false);
   const [canEditSelected, setCanEditSelected] = useState(false);
+  const [pendingConnectExistingId, setPendingConnectExistingId] = useState<string | null>(null);
+
+  const handlePendingConnectTargetChange = useCallback((id: string | null) => {
+    setPendingConnectExistingId(id);
+  }, []);
+
+  useEffect(() => {
+    if (!isAddModalOpen) setPendingConnectExistingId(null);
+  }, [isAddModalOpen]);
+
+  const pendingLinkPreview = useMemo(() => {
+    if (!isAddModalOpen || !selectedNode || !pendingConnectExistingId) return null;
+    return { anchorId: selectedNode.id, existingId: pendingConnectExistingId };
+  }, [isAddModalOpen, selectedNode, pendingConnectExistingId]);
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -357,8 +371,9 @@ export const FamilyTree: React.FC = () => {
             isOpen={isAddModalOpen} 
             onClose={() => setIsAddModalOpen(false)} 
             targetNode={selectedNode} 
-            onSuccess={() => {}} 
+            onSuccess={refetch} 
             existingNodes={graphData?.nodes || []} 
+            onPendingConnectTargetChange={handlePendingConnectTargetChange}
           />
           <EditNodeModal 
             isOpen={isEditModalOpen} 
@@ -425,6 +440,7 @@ export const FamilyTree: React.FC = () => {
                 </Button>
               ) : null
             }
+            pendingLinkPreview={pendingLinkPreview}
           />
         ) : (
           <FamilyTree2D
@@ -456,6 +472,7 @@ export const FamilyTree: React.FC = () => {
             searchOpenRequested={searchOpenRequested}
             searchNavigateTrigger={searchNavigateTrigger}
             searchDisabled={!activePreset}
+            pendingLinkPreview={pendingLinkPreview}
           />
         )}
       </div>

@@ -43,6 +43,11 @@ const planetTexturePaths = [
 const textureLoader = new THREE.TextureLoader();
 const planetMaterialCache = new Map<string, THREE.Material>();
 
+/** Synthetic link while Add Relative “connect to existing” preview is active; removed after success + refetch. */
+function isPreviewLink(l: { type?: string }): boolean {
+  return l.type === 'preview';
+}
+
 const THEME_COLORS_3D: Record<Exclude<BackgroundTheme, 'deep-space'>, number> = {
   'wax-white': 0xfffef8,
   'smooth-sepia': 0xe8dcc8,
@@ -198,6 +203,8 @@ interface FamilyTree3DProps {
   onBackgroundThemeChange?: (theme: BackgroundTheme) => void;
   /** Optional "See who's new!" control; rendered above NAV CONTROLS, same column */
   seeWhosNewButtonSlot?: React.ReactNode;
+  /** Dashed preview edge while Add Relative connect-to-existing is focused */
+  pendingLinkPreview?: { anchorId: string; existingId: string } | null;
 }
 
 export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
@@ -226,6 +233,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   backgroundTheme = 'deep-space',
   onBackgroundThemeChange,
   seeWhosNewButtonSlot,
+  pendingLinkPreview = null,
 }) => {
   const ForceGraph3DAny = ForceGraph3D as unknown as React.ComponentType<any>;
   const { userProfile } = useAuth();
@@ -244,6 +252,8 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   }, []);
 
   const fgRef = useRef<any>();
+  const graphDataRef = useRef(graphData);
+  graphDataRef.current = graphData;
   const starfieldRef = useRef<THREE.Group | null>(null);
   const nebulaeRef = useRef<NebulaData[]>([]);
   const envInitializedRef = useRef(false);
@@ -336,12 +346,25 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
           return !hiddenNodes.has(sourceId) && !hiddenNodes.has(targetId);
         })
       };
+
+      if (pendingLinkPreview) {
+        const { anchorId, existingId } = pendingLinkPreview;
+        const anchorVisible = filtered.nodes.some(n => n.id === anchorId);
+        const existingVisible = filtered.nodes.some(n => n.id === existingId);
+        if (anchorVisible && existingVisible) {
+          filtered.links = [
+            ...filtered.links,
+            { source: anchorId, target: existingId, type: 'preview' },
+          ];
+        }
+      }
+
       return filtered;
     } catch (err) {
       console.error('[FamilyTree3D] Error filtering graph data:', err);
       return { nodes: [], links: [] };
     }
-  }, [graphData, effectiveCollapsedNodes]);
+  }, [graphData, effectiveCollapsedNodes, pendingLinkPreview]);
 
   // Focus Logic (duration in ms; search navigation uses 2x for slower travel)
   const FOCUS_DURATION = 1665;
@@ -746,9 +769,10 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
     const deadzone = 0.15;
 
     const update = () => {
-      if (fgRef.current && 
-          !isAddModalOpen && !isEditModalOpen && !isBulkInviteOpen && 
-          document.activeElement?.tagName !== 'INPUT' && 
+      // Allow WASD/steering while Add Relative is open (preview); block only when typing in a field.
+      if (fgRef.current &&
+          !isEditModalOpen && !isBulkInviteOpen &&
+          document.activeElement?.tagName !== 'INPUT' &&
           document.activeElement?.tagName !== 'TEXTAREA') {
         
         const camera = fgRef.current.camera();
@@ -816,7 +840,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
 
     frameId = requestAnimationFrame(update);
     return () => cancelAnimationFrame(frameId);
-  }, [isAddModalOpen, isEditModalOpen, isBulkInviteOpen, isSteeringActive]);
+  }, [isEditModalOpen, isBulkInviteOpen, isSteeringActive]);
 
   // Event Listeners for Navigation
   useEffect(() => {
@@ -949,7 +973,82 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
 
   useEffect(() => {
     if (fgRef.current?.refresh) fgRef.current.refresh();
-  }, [nodeTexture, selectedNode?.id, searchHighlightedNodeId]);
+  }, [nodeTexture, selectedNode?.id, searchHighlightedNodeId, pendingLinkPreview?.anchorId, pendingLinkPreview?.existingId]);
+
+  // Preview pair framing: one shot after layout; deps = endpoint ids only (no simulation churn).
+  useEffect(() => {
+    if (!pendingLinkPreview || !fgRef.current) return;
+    const { anchorId, existingId } = pendingLinkPreview;
+    const run = () => {
+      const fg = fgRef.current;
+      if (!fg) return;
+      const gd = graphDataRef.current;
+      if (!gd?.nodes?.length) return;
+      const na = gd.nodes.find((n) => n.id === anchorId);
+      const nb = gd.nodes.find((n) => n.id === existingId);
+      if (!na || !nb) return;
+
+      const read = (n: FamilyNode & { x?: number; y?: number; z?: number }) => ({
+        x: typeof n.x === 'number' && !isNaN(n.x) ? n.x : 0,
+        y: typeof n.y === 'number' && !isNaN(n.y) ? n.y : 0,
+        z: typeof n.z === 'number' && !isNaN(n.z) ? n.z : 0,
+      });
+      const pa = read(na);
+      const pb = read(nb);
+      const mid = new THREE.Vector3((pa.x + pb.x) / 2, (pa.y + pb.y) / 2, (pa.z + pb.z) / 2);
+      const edge = new THREE.Vector3(pb.x - pa.x, pb.y - pa.y, pb.z - pa.z);
+      const len = edge.length();
+      if (len > 1e-6) edge.normalize();
+      else edge.set(0, 0, 1);
+
+      const worldUp = new THREE.Vector3(0, 1, 0);
+      let perp = new THREE.Vector3().crossVectors(edge, worldUp);
+      if (perp.lengthSq() < 1e-6) {
+        perp = new THREE.Vector3().crossVectors(edge, new THREE.Vector3(1, 0, 0));
+      }
+      perp.normalize();
+      const viewDir = new THREE.Vector3()
+        .addVectors(perp, edge.clone().multiplyScalar(-0.35))
+        .normalize();
+
+      const camera = fg.camera();
+      const controls = fg.controls();
+      if (!camera || !controls) return;
+
+      const fovRad = (camera.fov * Math.PI) / 180;
+      const aspect = camera.aspect || 1;
+      const margin = 48;
+      const halfChord = len / 2 + margin;
+      const distH = halfChord / Math.tan(fovRad / 2);
+      const distV = halfChord / (Math.tan(fovRad / 2) * aspect);
+      let dist = Math.max(distH, distV) * 0.65;
+      dist = Math.max(88, Math.min(dist, 380));
+
+      const camPos = mid.clone().add(viewDir.clone().multiplyScalar(dist));
+      const duration = 580;
+      const startTime = Date.now();
+      const startCam = camera.position.clone();
+      const startTarget = controls.target.clone();
+      const endTarget = mid.clone();
+
+      const animate = () => {
+        if (!fgRef.current) return;
+        const cam = fgRef.current.camera();
+        const ctrl = fgRef.current.controls();
+        if (!cam || !ctrl) return;
+        const t = Math.min((Date.now() - startTime) / duration, 1);
+        const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+        cam.position.lerpVectors(startCam, camPos, eased);
+        ctrl.target.lerpVectors(startTarget, endTarget, eased);
+        cam.lookAt(ctrl.target);
+        cam.updateProjectionMatrix();
+        if (t < 1) requestAnimationFrame(animate);
+      };
+      animate();
+    };
+    const t = window.setTimeout(run, 520);
+    return () => clearTimeout(t);
+  }, [pendingLinkPreview?.anchorId, pendingLinkPreview?.existingId]);
 
   // Expand settings when Ctrl+F opens search
   useEffect(() => {
@@ -970,6 +1069,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   }, [searchNavigateTrigger, searchHighlightedNodeId, focusNodeById]);
 
   const linkThreeObject = useCallback((link: any) => {
+    // Preview links must use default rendering so linkColor / linkDashArray / linkWidth apply (custom object bypasses them).
     if (activePreset && link.type === 'parent') {
       const sourceCluster = typeof link.source === 'object' ? link.source.familyCluster : null;
       const targetCluster = typeof link.target === 'object' ? link.target.familyCluster : null;
@@ -1130,8 +1230,14 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
         nodeThreeObject={nodeThreeObject}
         linkThreeObject={linkThreeObject}
         linkPositionUpdate={linkPositionUpdate}
-        linkDistance={(l: any) => activePreset ? ((l.type === 'marriage' || l.type === 'divorce') ? 450 : 250) : ((l.type === 'marriage' || l.type === 'divorce') ? 250 : 120)}
-        linkStrength={(l: any) => activePreset ? 0.1 : ((l.type === 'marriage' || l.type === 'divorce') ? 0.3 : 0.8)}
+        linkDistance={(l: any) =>
+          isPreviewLink(l)
+            ? 0
+            : activePreset
+              ? (l.type === 'marriage' || l.type === 'divorce' ? 450 : 250)
+              : (l.type === 'marriage' || l.type === 'divorce' ? 250 : 120)}
+        linkStrength={(l: any) =>
+          isPreviewLink(l) ? 0 : activePreset ? 0.1 : (l.type === 'marriage' || l.type === 'divorce' ? 0.3 : 0.8)}
         ref={fgRef}
         warmupTicks={160}
         d3AlphaDecay={0.01}
@@ -1154,14 +1260,21 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
         }}
         onBackgroundClick={onBackgroundClick}
         linkColor={(l: any) => {
+          if (isPreviewLink(l)) return '#22d3ee';
           if (l.type === 'marriage') return '#f59e0b';
           if (l.type === 'divorce') return '#9ca3af';
           return '#60a5fa';
         }}
-        linkWidth={(l: any) => (l.type === 'marriage' || l.type === 'divorce') ? 3 : 1.5}
-        linkDashArray={(l: any) => l.type === 'divorce' ? [3, 2] : null}
-        linkOpacity={showLinks ? 0.4 : 0}
+        linkWidth={(l: any) =>
+          isPreviewLink(l) ? 4 : (l.type === 'marriage' || l.type === 'divorce') ? 3 : 1.5}
+        linkDashArray={(l: any) => {
+          if (isPreviewLink(l)) return [6, 5];
+          return l.type === 'divorce' ? [3, 2] : null;
+        }}
+        linkOpacity={(l: any) =>
+          isPreviewLink(l) ? 1 : showLinks ? 0.4 : 0}
         linkCurvature={(l: any) => {
+          if (isPreviewLink(l)) return 0;
           if (!activePreset) return (l.type === 'marriage' || l.type === 'divorce') ? 0.3 : 0;
           
           const sourceCluster = typeof l.source === 'object' ? l.source.familyCluster : null;
@@ -1175,7 +1288,8 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
           // Everything else (marriage links, background families, inter-family links) should be curved/flexible
           return 0.3;
         }}
-        linkDirectionalArrowLength={(l: any) => (showArrows && l.type === 'parent') ? 8 : 0}
+        linkDirectionalArrowLength={(l: any) =>
+          isPreviewLink(l) ? 0 : (showArrows && l.type === 'parent') ? 8 : 0}
         linkDirectionalArrowColor={() => '#60a5fa'}
         showNavInfo={false}
       />
