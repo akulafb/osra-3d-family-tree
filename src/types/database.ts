@@ -188,6 +188,7 @@ export interface Database {
           new_node_name: string;
           rel_type: string;
           target_node_id: string;
+          creator_id: string;
           p_parent_role?: string | null;
         };
         Returns: {
@@ -195,6 +196,22 @@ export interface Database {
           error?: string;
           message?: string;
           new_node_id?: string;
+        };
+      };
+      link_existing_relative_secure: {
+        Args: {
+          existing_node_id: string;
+          rel_type: string;
+          target_node_id: string;
+          creator_id: string;
+          p_parent_role?: string | null;
+        };
+        Returns: {
+          success: boolean;
+          error?: string;
+          message?: string;
+          new_node_id?: string;
+          already_connected?: boolean;
         };
       };
     };

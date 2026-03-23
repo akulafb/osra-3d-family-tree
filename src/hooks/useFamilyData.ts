@@ -14,7 +14,7 @@ export function useFamilyData() {
     }
   }, [session]);
 
-  const fetchFamilyData = async () => {
+  const fetchFamilyData = async (): Promise<void> => {
     try {
       setIsLoading(true);
       setError(null);
@@ -119,9 +119,7 @@ export function useFamilyData() {
     }
   };
 
-  const refetch = () => {
-    fetchFamilyData();
-  };
+  const refetch = (): Promise<void> => fetchFamilyData();
 
   return { graphData, isLoading, error, refetch };
 }

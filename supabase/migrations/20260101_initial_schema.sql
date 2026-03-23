@@ -1,7 +1,8 @@
 -- =============================================================================
--- Osra 3D Family Tree - Initial Schema
--- Single migration for fresh Supabase projects. Run via: npx supabase db push
+-- Osra 3D Family Tree - Full schema (single migration)
+-- Fresh Supabase projects: npx supabase db push
 -- Or paste into Supabase SQL Editor.
+-- Includes: tables, RLS, create_relative_secure, link_existing_relative_secure (LIN-29).
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -262,6 +263,14 @@ DECLARE
   maternal_cluster TEXT;
   v_target uuid := target_node_id;
 BEGIN
+  IF auth.uid() IS NULL OR auth.uid() != creator_id THEN
+    RETURN json_build_object('success', false, 'message', 'Unauthorized');
+  END IF;
+
+  IF NOT (is_admin() OR is_within_1_degree(v_target)) THEN
+    RETURN json_build_object('success', false, 'message', 'Unauthorized');
+  END IF;
+
   SELECT paternal_family_cluster INTO target_cluster FROM public.nodes WHERE id = v_target;
 
   IF rel_type = 'child' AND p_parent_role IS NOT NULL THEN
@@ -368,6 +377,144 @@ AS $$
   WHERE node_id IS NOT NULL;
 $$;
 
+CREATE OR REPLACE FUNCTION public.link_existing_relative_secure(
+  existing_node_id uuid,
+  rel_type text,
+  target_node_id uuid,
+  creator_id uuid,
+  p_parent_role text DEFAULT NULL
+)
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  parent_id UUID;
+  parent_count INTEGER := 0;
+  missing_count INTEGER := 0;
+  v_existing uuid := existing_node_id;
+  v_target uuid := target_node_id;
+BEGIN
+  IF auth.uid() IS NULL OR auth.uid() != creator_id THEN
+    RETURN json_build_object('success', false, 'message', 'Unauthorized');
+  END IF;
+
+  IF NOT (is_admin() OR is_within_1_degree(v_target)) THEN
+    RETURN json_build_object('success', false, 'message', 'Unauthorized');
+  END IF;
+
+  IF v_existing = v_target THEN
+    RETURN json_build_object('success', false, 'message', 'Cannot link a node to itself');
+  END IF;
+
+  IF rel_type = 'parent' THEN
+    IF EXISTS (
+      SELECT 1 FROM public.links
+      WHERE type = 'parent' AND source_node_id = v_existing AND target_node_id = v_target
+    ) THEN
+      RETURN json_build_object(
+        'success', true,
+        'new_node_id', v_existing,
+        'already_connected', true,
+        'message', 'Already connected'
+      );
+    END IF;
+    INSERT INTO public.links (source_node_id, target_node_id, type, parent_role, created_by_user_id)
+    VALUES (v_existing, v_target, 'parent', NULL, creator_id);
+
+  ELSIF rel_type = 'child' THEN
+    IF EXISTS (
+      SELECT 1 FROM public.links
+      WHERE type = 'parent' AND source_node_id = v_target AND target_node_id = v_existing
+        AND (parent_role IS NOT DISTINCT FROM p_parent_role)
+    ) THEN
+      RETURN json_build_object(
+        'success', true,
+        'new_node_id', v_existing,
+        'already_connected', true,
+        'message', 'Already connected'
+      );
+    END IF;
+    INSERT INTO public.links (source_node_id, target_node_id, type, parent_role, created_by_user_id)
+    VALUES (v_target, v_existing, 'parent', p_parent_role, creator_id);
+
+  ELSIF rel_type = 'spouse' THEN
+    IF EXISTS (
+      SELECT 1 FROM public.links
+      WHERE type IN ('marriage', 'divorce')
+        AND (
+          (source_node_id = v_target AND target_node_id = v_existing)
+          OR (source_node_id = v_existing AND target_node_id = v_target)
+        )
+    ) THEN
+      RETURN json_build_object(
+        'success', true,
+        'new_node_id', v_existing,
+        'already_connected', true,
+        'message', 'Already connected'
+      );
+    END IF;
+    INSERT INTO public.links (source_node_id, target_node_id, type, created_by_user_id)
+    VALUES (v_target, v_existing, 'marriage', creator_id);
+
+  ELSIF rel_type = 'sibling' THEN
+    SELECT COUNT(*) INTO parent_count
+    FROM public.links l
+    WHERE l.target_node_id = v_target AND l.type = 'parent';
+
+    IF parent_count = 0 THEN
+      RETURN json_build_object('success', false, 'message', 'Cannot add sibling: Target node has no parents to branch from.');
+    END IF;
+
+    SELECT COUNT(*) INTO missing_count
+    FROM public.links l
+    WHERE l.target_node_id = v_target AND l.type = 'parent'
+      AND NOT EXISTS (
+        SELECT 1 FROM public.links l2
+        WHERE l2.type = 'parent'
+          AND l2.source_node_id = l.source_node_id
+          AND l2.target_node_id = v_existing
+      );
+
+    IF missing_count = 0 THEN
+      RETURN json_build_object(
+        'success', true,
+        'new_node_id', v_existing,
+        'already_connected', true,
+        'message', 'Already connected'
+      );
+    END IF;
+
+    FOR parent_id IN
+      SELECT l.source_node_id FROM public.links l
+      WHERE l.target_node_id = v_target AND l.type = 'parent'
+    LOOP
+      IF NOT EXISTS (
+        SELECT 1 FROM public.links
+        WHERE type = 'parent' AND source_node_id = parent_id AND target_node_id = v_existing
+      ) THEN
+        INSERT INTO public.links (source_node_id, target_node_id, type, parent_role, created_by_user_id)
+        VALUES (parent_id, v_existing, 'parent', NULL, creator_id);
+      END IF;
+    END LOOP;
+
+  ELSE
+    RETURN json_build_object('success', false, 'message', format('Invalid relationship type: %s', rel_type));
+  END IF;
+
+  RETURN json_build_object(
+    'success', true,
+    'new_node_id', v_existing,
+    'already_connected', false,
+    'message', 'Relative linked successfully'
+  );
+
+EXCEPTION WHEN OTHERS THEN
+  RETURN json_build_object('success', false, 'message', SQLERRM);
+END;
+$$;
+
 -- -----------------------------------------------------------------------------
 -- GRANTS
 -- -----------------------------------------------------------------------------
@@ -376,11 +523,29 @@ GRANT EXECUTE ON FUNCTION public.get_public_metrics() TO anon;
 GRANT EXECUTE ON FUNCTION public.get_invite_by_token(text) TO anon;
 GRANT EXECUTE ON FUNCTION public.claim_invite_secure(text, uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.create_relative_secure(text, text, uuid, uuid, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.link_existing_relative_secure(uuid, text, uuid, uuid, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_claimed_node_ids() TO authenticated;
 
 -- -----------------------------------------------------------------------------
 -- POLICIES (use (select auth.uid()) to avoid RLS initplan issues)
 -- -----------------------------------------------------------------------------
+
+-- Idempotent: allow push on DBs that already have these policies (e.g. after migration squash)
+DROP POLICY IF EXISTS users_select_own_or_admin ON public.users;
+DROP POLICY IF EXISTS users_insert_blocked ON public.users;
+DROP POLICY IF EXISTS users_update_admin_only ON public.users;
+DROP POLICY IF EXISTS users_delete_admin_only ON public.users;
+DROP POLICY IF EXISTS nodes_select_authenticated ON public.nodes;
+DROP POLICY IF EXISTS nodes_insert_by_bound_users ON public.nodes;
+DROP POLICY IF EXISTS nodes_update_1degree_or_admin ON public.nodes;
+DROP POLICY IF EXISTS nodes_delete_admin_only ON public.nodes;
+DROP POLICY IF EXISTS links_select_authenticated ON public.links;
+DROP POLICY IF EXISTS links_insert_1degree_or_admin ON public.links;
+DROP POLICY IF EXISTS links_update_1degree_or_admin ON public.links;
+DROP POLICY IF EXISTS links_delete_admin_only ON public.links;
+DROP POLICY IF EXISTS node_invites_select ON public.node_invites;
+DROP POLICY IF EXISTS node_invites_insert_1degree ON public.node_invites;
+DROP POLICY IF EXISTS node_invites_delete_1degree ON public.node_invites;
 
 CREATE POLICY users_select_own_or_admin ON public.users
   FOR SELECT TO authenticated
