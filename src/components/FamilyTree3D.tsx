@@ -1214,7 +1214,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       {isSimulationLoading && graphData && (
         <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.7)', zIndex: 1000, color: '#fff', fontSize: '18px', pointerEvents: 'none' }}>
           <div style={{ textAlign: 'center' }}>
-            <div>Loading <span style={{ fontFamily: 'cursive', fontWeight: 'bold' }}>Osra</span> 3D Family Tree...</div>
+            <div>Loading <span style={{ fontFamily: 'cursive', fontWeight: 'bold' }}>Osra</span>...</div>
             <div style={{ width: '40px', height: '40px', border: '4px solid rgba(255,255,255,0.3)', borderTop: '4px solid #fff', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '10px auto' }} />
           </div>
         </div>
