@@ -973,7 +973,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
 
   useEffect(() => {
     if (fgRef.current?.refresh) fgRef.current.refresh();
-  }, [nodeTexture, selectedNode?.id, searchHighlightedNodeId, pendingLinkPreview?.anchorId, pendingLinkPreview?.existingId]);
+  }, [nodeTexture, selectedNode?.id, searchHighlightedNodeId, pendingLinkPreview?.anchorId, pendingLinkPreview?.existingId, showArrows, showLinks]);
 
   // Preview pair framing: one shot after layout; deps = endpoint ids only (no simulation churn).
   useEffect(() => {
@@ -1070,7 +1070,8 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
 
   const linkThreeObject = useCallback((link: any) => {
     // Preview links must use default rendering so linkColor / linkDashArray / linkWidth apply (custom object bypasses them).
-    if (activePreset && link.type === 'parent') {
+    // When showArrows is on, use default links so linkDirectionalArrowLength / linkDirectionalArrowColor apply (custom THREE.Line has no arrows).
+    if (activePreset && link.type === 'parent' && !showArrows) {
       const sourceCluster = typeof link.source === 'object' ? link.source.familyCluster : null;
       const targetCluster = typeof link.target === 'object' ? link.target.familyCluster : null;
       
@@ -1082,7 +1083,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       }
     }
     return null;
-  }, [activePreset]);
+  }, [activePreset, showArrows]);
 
   const linkPositionUpdate = useCallback((line: any, { start, end }: any, link: any) => {
     if (activePreset && link.type === 'parent' && line instanceof THREE.Line) {
@@ -1272,7 +1273,11 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
           return l.type === 'divorce' ? [3, 2] : null;
         }}
         linkOpacity={(l: any) =>
-          isPreviewLink(l) ? 1 : showLinks ? 0.4 : 0}
+          isPreviewLink(l)
+            ? 1
+            : showLinks || (showArrows && l.type === 'parent')
+              ? 0.4
+              : 0}
         linkCurvature={(l: any) => {
           if (isPreviewLink(l)) return 0;
           if (!activePreset) return (l.type === 'marriage' || l.type === 'divorce') ? 0.3 : 0;
@@ -1289,7 +1294,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
           return 0.3;
         }}
         linkDirectionalArrowLength={(l: any) =>
-          isPreviewLink(l) ? 0 : (showArrows && l.type === 'parent') ? 8 : 0}
+          isPreviewLink(l) ? 0 : (showArrows && l.type === 'parent') ? 14 : 0}
         linkDirectionalArrowColor={() => '#60a5fa'}
         showNavInfo={false}
       />
