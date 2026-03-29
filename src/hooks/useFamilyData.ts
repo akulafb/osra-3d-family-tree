@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { dropOrphanLinks } from '../lib/sanitizeFamilyGraph';
 import { FamilyGraph, FamilyNode, FamilyLink } from '../types/graph';
 
 export function useFamilyData() {
@@ -110,7 +111,16 @@ export function useFamilyData() {
         parentRole: link.parent_role || undefined,
       }));
 
-      setGraphData({ nodes, links });
+      const safeLinks = dropOrphanLinks(nodes, links);
+      if (safeLinks.length < links.length) {
+        console.warn(
+          '[useFamilyData] Removed',
+          links.length - safeLinks.length,
+          'orphan link(s) (endpoint missing from nodes). Check DB integrity.'
+        );
+      }
+
+      setGraphData({ nodes, links: safeLinks });
       setIsLoading(false);
     } catch (err) {
       console.error('[useFamilyData] Error fetching family data:', err);

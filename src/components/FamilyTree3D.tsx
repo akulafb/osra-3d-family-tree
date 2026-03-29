@@ -338,12 +338,17 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
         descendants.forEach(dId => hiddenNodes.add(dId));
       });
 
+      const visibleNodes = graphData.nodes.filter(n => !hiddenNodes.has(n.id));
+      const visibleIds = new Set(visibleNodes.map(n => n.id));
+
       const filtered = {
-        nodes: graphData.nodes.filter(n => !hiddenNodes.has(n.id)),
+        nodes: visibleNodes,
         links: (graphData.links as any[]).filter(l => {
           const sourceId = getNodeId(l.source);
           const targetId = getNodeId(l.target);
-          return !hiddenNodes.has(sourceId) && !hiddenNodes.has(targetId);
+          if (!sourceId || !targetId) return false;
+          // Both endpoints must exist on visible nodes (drops orphan links + hidden endpoints)
+          return visibleIds.has(sourceId) && visibleIds.has(targetId);
         })
       };
 
