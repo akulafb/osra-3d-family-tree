@@ -319,7 +319,7 @@ export const FamilyTree: React.FC = () => {
             color: 'white',
             marginBottom: '4px',
           }}>
-            {selectedNode.name}
+            {selectedNode.firstName}
           </div>
           {selectedNode.familyCluster && (
             <div style={{

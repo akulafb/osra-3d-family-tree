@@ -945,14 +945,11 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       }
 
       if (showNames) {
-        const fullName = node.name || 'Unknown';
-        const nameParts = fullName.trim().split(' ');
-        let displayName = fullName;
-        
-        if (nameParts.length > 1) {
-          const firstName = nameParts.slice(0, -1).join(' ');
-          const lastName = nameParts[nameParts.length - 1];
-          displayName = `${firstName}\n${lastName}`;
+        const first = (node.firstName ?? '').trim();
+        const cluster = (node.familyCluster ?? '').trim();
+        let displayName = first || 'Unknown';
+        if (cluster) {
+          displayName = `${first || '?'}\n${cluster}`;
         }
         if (node.isClaimed) {
           displayName += ' ✓';

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Button from '@mui/material/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { FamilyNode } from '../../types/graph';
+import { formatNodeDisplayName } from '../../utils/nodeDisplayName';
 
 const MAX_NAME_LENGTH = 200;
 const MAX_CLUSTER_LENGTH = 100;
@@ -33,7 +34,7 @@ export default function EditNodeModal({
   // Reset state when modal opens with target node data
   useEffect(() => {
     if (isOpen && targetNode) {
-      setName(targetNode.name);
+      setName(targetNode.firstName);
       setFamilyCluster(targetNode.familyCluster || '');
       setMaternalFamilyCluster(targetNode.maternalFamilyCluster || '');
       setError(null);
@@ -44,17 +45,17 @@ export default function EditNodeModal({
 
   // Check for duplicates when name changes
   useEffect(() => {
-    if (name.trim().length > 2 && name.trim() !== targetNode.name) {
+    if (name.trim().length > 2 && name.trim() !== targetNode.firstName) {
       const matches = existingNodes.filter(
         (node) =>
-          node.name.toLowerCase().includes(name.toLowerCase()) &&
+          node.firstName.toLowerCase().includes(name.toLowerCase()) &&
           node.id !== targetNode.id
       );
       setDuplicateWarning(matches);
     } else {
       setDuplicateWarning([]);
     }
-  }, [name, existingNodes, targetNode.id, targetNode.name]);
+  }, [name, existingNodes, targetNode.id, targetNode.firstName]);
 
   // Clear success message after 3 seconds
   useEffect(() => {
@@ -79,11 +80,11 @@ export default function EditNodeModal({
       const authToken = session?.access_token || supabaseKey;
 
       const updateData: {
-        name: string;
+        first_name: string;
         paternal_family_cluster?: string | null;
         maternal_family_cluster?: string | null;
       } = {
-        name: sanitizedName,
+        first_name: sanitizedName,
       };
 
       // Only include clusters if admin (regular users shouldn't change clusters)
@@ -133,23 +134,23 @@ export default function EditNodeModal({
   return (
     <div style={modalOverlayStyle}>
       <div style={modalContentStyle}>
-        <h2 style={{ marginTop: 0, color: 'white' }}>Edit {targetNode.name}</h2>
+        <h2 style={{ marginTop: 0, color: 'white' }}>Edit {formatNodeDisplayName(targetNode)}</h2>
 
         <form onSubmit={handleSubmit}>
           <div style={fieldStyle}>
-            <label style={labelStyle}>Full Name</label>
+            <label style={labelStyle}>First name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value.slice(0, MAX_NAME_LENGTH))}
-              placeholder="e.g. John - Smith"
+              placeholder="Given name"
               style={inputStyle}
               maxLength={MAX_NAME_LENGTH}
               required
               disabled={isSubmitting}
             />
             <p style={{ margin: '5px 0 0 0', fontSize: '0.8rem', color: '#888' }}>
-              Format: First Name - Family Name
+              Paternal / maternal family clusters are set below (admin) or inherited from the tree.
             </p>
           </div>
 
@@ -205,7 +206,7 @@ export default function EditNodeModal({
               ⚠️ <strong>Similar names found:</strong>
               <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
                 {duplicateWarning.map((m) => (
-                  <li key={m.id}>{m.name}</li>
+                  <li key={m.id}>{formatNodeDisplayName(m)}</li>
                 ))}
               </ul>
               <p style={{ fontSize: '0.8em', margin: 0 }}>

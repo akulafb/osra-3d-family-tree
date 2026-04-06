@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Button from '@mui/material/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { FamilyNode, FamilyLink } from '../../types/graph';
+import { formatNodeDisplayName } from '../../utils/nodeDisplayName';
 import { get1DegreeNodesSync } from '../../lib/permissions';
 
 interface BulkInviteModalProps {
@@ -127,7 +128,7 @@ export default function BulkInviteModal({
         const aIdx = order.indexOf(a.relationship);
         const bIdx = order.indexOf(b.relationship);
         if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
-        return a.node.name.localeCompare(b.node.name);
+        return formatNodeDisplayName(a.node).localeCompare(formatNodeDisplayName(b.node));
       });
 
       setRelatives(relativesData);
@@ -278,13 +279,15 @@ export default function BulkInviteModal({
 
   if (!isOpen) return null;
 
+  const inviteTargetNode = inviteForNodeId ? allNodes.find((n) => n.id === inviteForNodeId) : undefined;
+
   return (
     <div style={modalOverlayStyle}>
       <div style={modalContentStyle}>
         <h2 style={{ marginTop: 0, color: 'white' }}>
           {step === 'select'
             ? inviteForNodeId
-              ? `Generate Invite for ${allNodes.find(n => n.id === inviteForNodeId)?.name ?? 'this person'}`
+              ? `Generate Invite for ${inviteTargetNode ? formatNodeDisplayName(inviteTargetNode) : 'this person'}`
               : 'Send Invites to Your Family'
             : 'Generated Invites'}
         </h2>
@@ -309,7 +312,7 @@ export default function BulkInviteModal({
                       <div key={r.node.id} style={{ ...relativeItemStyle, opacity: r.generatedToken ? 0.6 : 1 }}>
                         <label style={checkboxLabelStyle}>
                           <input type="checkbox" checked={r.selected} onChange={() => toggleSelection(r.node.id)} disabled={!!r.generatedToken || isGenerating} style={checkboxStyle} />
-                          <span style={nameStyle}>{r.node.name}</span>
+                          <span style={nameStyle}>{formatNodeDisplayName(r.node)}</span>
                         </label>
                         {r.existingInvites > 0 && <span style={existingBadgeStyle}>{r.existingInvites} active invite</span>}
                         {r.generatedToken && <span style={generatedBadgeStyle}>✓ Created</span>}
@@ -331,7 +334,7 @@ export default function BulkInviteModal({
             <div style={generatedListStyle}>
               {relatives.filter(r => r.generatedToken).map(r => (
                 <div key={r.node.id} style={generatedItemStyle}>
-                  <div style={generatedHeaderStyle}><strong>{r.node.name}</strong><span style={relationshipTagStyle}>{r.relationship}</span></div>
+                  <div style={generatedHeaderStyle}><strong>{formatNodeDisplayName(r.node)}</strong><span style={relationshipTagStyle}>{r.relationship}</span></div>
                   <div style={linkRowStyle}>
                     <code style={tokenStyle}>{r.generatedToken}</code>
                     <Button variant="contained" color={copiedToken === r.generatedToken ? 'success' : 'primary'} size="small" onClick={() => copyLink(r.generatedToken!)}>

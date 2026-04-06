@@ -1,16 +1,17 @@
 // src/utils/familyContext.ts
 
 import { FamilyNode, FamilyLink } from '../types/graph';
+import { formatNodeDisplayName } from './nodeDisplayName';
 
 export function formatFamilyData(nodes: FamilyNode[], links: FamilyLink[]): string {
   if (!nodes || nodes.length === 0) return 'No family data available.';
 
-  const nodeMap = new Map<string, { name: string, cluster: string, parents: string[], spouses: string[], children: string[], siblings: string[] }>();
+  const nodeMap = new Map<string, { displayName: string, cluster: string, parents: string[], spouses: string[], children: string[], siblings: string[] }>();
 
   // Initialize map
   nodes.forEach(node => {
     nodeMap.set(node.id, {
-      name: node.name,
+      displayName: formatNodeDisplayName(node),
       cluster: node.familyCluster || 'Unknown',
       parents: [],
       spouses: [],
@@ -31,11 +32,11 @@ export function formatFamilyData(nodes: FamilyNode[], links: FamilyLink[]): stri
 
     if (s && t) {
       if (link.type === 'parent') {
-        t.parents.push(s.name);
-        s.children.push(t.name);
+        t.parents.push(s.displayName);
+        s.children.push(t.displayName);
       } else if (link.type === 'marriage') {
-        s.spouses.push(t.name);
-        t.spouses.push(s.name);
+        s.spouses.push(t.displayName);
+        t.spouses.push(s.displayName);
       }
     }
   });
@@ -55,8 +56,8 @@ export function formatFamilyData(nodes: FamilyNode[], links: FamilyLink[]): stri
         const t = nodeMap.get(tId);
         
         if (s && t) {
-          if (data.parents.includes(s.name)) inferredParents.add(t.name);
-          if (data.parents.includes(t.name)) inferredParents.add(s.name);
+          if (data.parents.includes(s.displayName)) inferredParents.add(t.displayName);
+          if (data.parents.includes(t.displayName)) inferredParents.add(s.displayName);
         }
       }
     });
@@ -75,7 +76,7 @@ export function formatFamilyData(nodes: FamilyNode[], links: FamilyLink[]): stri
 
       const sharedParents = data.parents.filter(p => otherData.parents.includes(p));
       if (sharedParents.length > 0) {
-        if (!data.siblings.includes(otherData.name)) data.siblings.push(otherData.name);
+        if (!data.siblings.includes(otherData.displayName)) data.siblings.push(otherData.displayName);
       }
     });
   });
@@ -85,7 +86,7 @@ export function formatFamilyData(nodes: FamilyNode[], links: FamilyLink[]): stri
   context += '===============\n\n';
 
   nodeMap.forEach(data => {
-    context += `PERSON: ${data.name}\n`;
+    context += `PERSON: ${data.displayName}\n`;
     context += `- Family Cluster: ${data.cluster}\n`;
     if (data.parents.length > 0) context += `- Parents: ${data.parents.join(', ')}\n`;
     if (data.siblings.length > 0) context += `- Siblings: ${data.siblings.join(', ')}\n`;
@@ -95,7 +96,7 @@ export function formatFamilyData(nodes: FamilyNode[], links: FamilyLink[]): stri
   });
 
   context += '\nVALID NAMES SUMMARY (FOR VERIFICATION):\n';
-  context += nodes.map(n => n.name).join(', ');
+  context += nodes.map(n => formatNodeDisplayName(n)).join(', ');
   context += '\n';
 
   return context;
