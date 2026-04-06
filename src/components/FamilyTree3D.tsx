@@ -371,6 +371,25 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
     }
   }, [graphData, effectiveCollapsedNodes, pendingLinkPreview]);
 
+  // three-forcegraph multiplies linkOpacity as a number (arrows use state.linkOpacity * 3).
+  // Per-link visibility must use linkVisibility, not a function passed to linkOpacity.
+  const linkVisibility = useCallback((l: any) => {
+    if (isPreviewLink(l)) return true;
+    if (l.type === 'parent') return showLinks || showArrows;
+    return showLinks;
+  }, [showLinks, showArrows]);
+
+  const linkMaterial = useCallback((l: any) => {
+    if (isPreviewLink(l)) {
+      return new THREE.MeshLambertMaterial({
+        color: '#22d3ee',
+        transparent: true,
+        opacity: 1,
+      });
+    }
+    return undefined;
+  }, []);
+
   // Focus Logic (duration in ms; search navigation uses 2x for slower travel)
   const FOCUS_DURATION = 1665;
   const SEARCH_FOCUS_DURATION = 3330;
@@ -1274,12 +1293,9 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
           if (isPreviewLink(l)) return [6, 5];
           return l.type === 'divorce' ? [3, 2] : null;
         }}
-        linkOpacity={(l: any) =>
-          isPreviewLink(l)
-            ? 1
-            : showLinks || (showArrows && l.type === 'parent')
-              ? 0.4
-              : 0}
+        linkVisibility={linkVisibility}
+        linkOpacity={0.4}
+        linkMaterial={linkMaterial}
         linkCurvature={(l: any) => {
           if (isPreviewLink(l)) return 0;
           if (!activePreset) return (l.type === 'marriage' || l.type === 'divorce') ? 0.3 : 0;
