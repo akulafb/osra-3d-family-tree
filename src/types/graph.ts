@@ -2,7 +2,7 @@
 
 export interface FamilyNode {
   id: string;  // UUID from Supabase
-  name: string;
+  firstName: string;
   /** ISO timestamp from Supabase `created_at` */
   createdAt?: string;
   birthDate?: string;

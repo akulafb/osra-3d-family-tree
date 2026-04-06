@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useSyncExternalStore } from 'react
 import Button from '@mui/material/Button';
 import { useAuth } from '../../contexts/AuthContext';
 import { FamilyNode } from '../../types/graph';
+import { formatNodeDisplayName, nodeSearchHaystack } from '../../utils/nodeDisplayName';
 
 interface AddRelativeModalProps {
   isOpen: boolean;
@@ -35,10 +36,10 @@ function getPreviewNarrowServer() {
 function sortDuplicateCandidates(trimmedName: string, candidates: FamilyNode[]): FamilyNode[] {
   const lower = trimmedName.toLowerCase();
   return [...candidates].sort((a, b) => {
-    const ae = a.name.trim().toLowerCase() === lower ? 0 : 1;
-    const be = b.name.trim().toLowerCase() === lower ? 0 : 1;
+    const ae = a.firstName.trim().toLowerCase() === lower ? 0 : 1;
+    const be = b.firstName.trim().toLowerCase() === lower ? 0 : 1;
     if (ae !== be) return ae - be;
-    return a.name.localeCompare(b.name);
+    return a.firstName.localeCompare(b.firstName);
   });
 }
 
@@ -65,7 +66,7 @@ export default function AddRelativeModal({
     const matches = existingNodes.filter(
       (node) =>
         node.id !== targetNode.id &&
-        node.name.toLowerCase().includes(t.toLowerCase())
+        nodeSearchHaystack(node).toLowerCase().includes(t.toLowerCase())
     );
     return sortDuplicateCandidates(t, matches);
   }, [name, existingNodes, targetNode.id]);
@@ -147,7 +148,7 @@ export default function AddRelativeModal({
         Authorization: `Bearer ${authToken}`,
       },
       body: JSON.stringify({
-        new_node_name: sanitizedName,
+        new_first_name: sanitizedName,
         rel_type: relationship,
         target_node_id: targetNode.id,
         creator_id: user.id,
@@ -256,16 +257,16 @@ export default function AddRelativeModal({
             Preview: cyan dashed line shows the link that will be created. Pan or rotate the tree if needed.
           </p>
         )}
-        <h2 style={{ marginTop: 0 }}>Add relative to {targetNode.name}</h2>
+        <h2 style={{ marginTop: 0 }}>Add relative to {formatNodeDisplayName(targetNode)}</h2>
 
         <form onSubmit={handleSubmit}>
           <div style={fieldStyle}>
-            <label style={labelStyle}>First &amp; last name</label>
+            <label style={labelStyle}>First name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value.slice(0, MAX_NAME_LENGTH))}
-              placeholder="example: Fahd Badran"
+              placeholder="Given name only; family comes from the tree"
               style={inputStyle}
               maxLength={MAX_NAME_LENGTH}
               required
@@ -330,12 +331,7 @@ export default function AddRelativeModal({
                           selectedExistingId === m.id ? 'rgba(34, 211, 238, 0.12)' : '#1a1a1a',
                       }}
                     >
-                      <span style={{ fontWeight: 600 }}>{m.name}</span>
-                      {m.familyCluster && (
-                        <span style={{ fontSize: '0.75rem', color: '#888', display: 'block' }}>
-                          {m.familyCluster}
-                        </span>
-                      )}
+                      <span style={{ fontWeight: 600 }}>{formatNodeDisplayName(m)}</span>
                       <span
                         style={{
                           fontSize: '0.7rem',

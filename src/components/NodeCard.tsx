@@ -54,10 +54,8 @@ export const NodeCard: React.FC<NodeCardProps> = ({
   );
   const colors = isMaternalOnly ? lightenColors(baseColors) : baseColors;
 
-  // Split name for better display
-  const nameParts = node.name.trim().split(' ');
-  const firstName = nameParts.slice(0, -1).join(' ') || node.name;
-  const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : '';
+  const firstName = node.firstName.trim();
+  const lastName = (node.familyCluster ?? '').trim();
 
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();

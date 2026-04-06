@@ -97,7 +97,7 @@ export function useFamilyData() {
       // Transform Supabase data to FamilyGraph format
       const nodes: FamilyNode[] = (nodesData || []).map((node: any) => ({
         id: node.id,
-        name: node.name,
+        firstName: node.first_name,
         createdAt: typeof node.created_at === 'string' ? node.created_at : undefined,
         familyCluster: node.paternal_family_cluster ?? node.family_cluster ?? undefined,
         maternalFamilyCluster: node.maternal_family_cluster || undefined,

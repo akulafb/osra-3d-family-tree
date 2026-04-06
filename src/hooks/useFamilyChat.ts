@@ -3,6 +3,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { Message, callLLM } from '../utils/llmClient';
 import { formatFamilyData } from '../utils/familyContext';
+import { formatNodeDisplayName } from '../utils/nodeDisplayName';
 import { useFamilyData } from './useFamilyData';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -18,7 +19,7 @@ export function useFamilyChat() {
   const currentUserName = useMemo(() => {
     if (!userProfile?.node_id || !graphData?.nodes) return null;
     const node = graphData.nodes.find(n => n.id === userProfile.node_id);
-    return node?.name || null;
+    return node ? formatNodeDisplayName(node) : null;
   }, [userProfile, graphData]);
 
   const sendMessage = useCallback(async (userQuery: string) => {

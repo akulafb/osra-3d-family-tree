@@ -1,9 +1,10 @@
 import type { FamilyNode } from '../types/graph';
+import { nodeSearchHaystack } from './nodeDisplayName';
 
 /**
- * Search nodes by name. Case-insensitive substring match.
+ * Search nodes by first name and family clusters. Case-insensitive substring match.
  * Supports Arabic and English; uses NFC normalization for Unicode variants.
- * @returns Nodes whose name matches the query (trimmed). Empty array if query is empty.
+ * @returns Nodes whose searchable text matches the query (trimmed). Empty array if query is empty.
  */
 export function searchNodes(nodes: FamilyNode[], query: string): FamilyNode[] {
   const trimmed = query.trim();
@@ -12,7 +13,7 @@ export function searchNodes(nodes: FamilyNode[], query: string): FamilyNode[] {
   const normalizedQuery = trimmed.normalize('NFC').toLowerCase();
 
   return nodes.filter((node) => {
-    const name = (node.name ?? '').normalize('NFC');
-    return name.toLowerCase().includes(normalizedQuery);
+    const haystack = nodeSearchHaystack(node).normalize('NFC');
+    return haystack.toLowerCase().includes(normalizedQuery);
   });
 }

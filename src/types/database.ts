@@ -41,7 +41,7 @@ export interface Database {
       nodes: {
         Row: {
           id: string; // UUID
-          name: string;
+          first_name: string;
           paternal_family_cluster: string | null;
           maternal_family_cluster: string | null;
           created_by_user_id: string | null; // UUID from auth.users
@@ -49,7 +49,7 @@ export interface Database {
         };
         Insert: {
           id?: string;
-          name: string;
+          first_name: string;
           paternal_family_cluster?: string | null;
           maternal_family_cluster?: string | null;
           created_by_user_id?: string | null; // UUID from auth.users
@@ -57,7 +57,7 @@ export interface Database {
         };
         Update: {
           id?: string;
-          name?: string;
+          first_name?: string;
           paternal_family_cluster?: string | null;
           maternal_family_cluster?: string | null;
           created_by_user_id?: string | null; // UUID from auth.users
@@ -185,7 +185,7 @@ export interface Database {
       };
       create_relative_secure: {
         Args: {
-          new_node_name: string;
+          new_first_name: string;
           rel_type: string;
           target_node_id: string;
           creator_id: string;

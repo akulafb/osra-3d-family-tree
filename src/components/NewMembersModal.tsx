@@ -46,7 +46,7 @@ export const NewMembersModal: React.FC<NewMembersModalProps> = ({ open, onClose,
           {shown.map((n) => (
             <ListItem key={n.id} disableGutters sx={{ justifyContent: 'center', textAlign: 'center' }}>
               <ListItemText
-                primary={n.name || 'Unknown'}
+                primary={n.firstName || 'Unknown'}
                 secondary={clusterLine(n)}
                 primaryTypographyProps={{ align: 'center', component: 'div' }}
                 secondaryTypographyProps={{ align: 'center' }}
