@@ -8,6 +8,10 @@ import { useFamilyData } from '../hooks/useFamilyData';
 import { useNewNodesSinceSignIn } from '../hooks/useNewNodesSinceSignIn';
 import { FamilyNode, FamilyLink } from '../types/graph';
 import { useAuth } from '../contexts/AuthContext';
+import AdminManageLinksModal from './modals/AdminManageLinksModal';
+import AdminConnectLinkModal from './modals/AdminConnectLinkModal';
+import AdminAddPersonModal from './modals/AdminAddPersonModal';
+import { adminDeleteNode } from '../lib/adminSupabaseRest';
 import { canEdit, canManageInvites } from '../lib/permissions';
 import { filterGraphData, filterGraphDataFor3D } from '../lib/filterGraphData';
 import { searchNodes } from '../utils/treeSearch';
@@ -19,7 +23,7 @@ import { NewMembersModal } from './NewMembersModal';
 import { isMobile } from '../utils/device';
 
 export const FamilyTree: React.FC = () => {
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, isAdmin, session } = useAuth();
   const { mode, switchMode, isHydrated } = useViewMode();
   const { theme: backgroundTheme, setTheme: setBackgroundTheme } = useBackgroundTheme();
   const { graphData, isLoading, error, refetch } = useFamilyData();
@@ -42,6 +46,11 @@ export const FamilyTree: React.FC = () => {
   const [isBulkInviteOpen, setIsBulkInviteOpen] = useState(false);
   const [canEditSelected, setCanEditSelected] = useState(false);
   const [pendingConnectExistingId, setPendingConnectExistingId] = useState<string | null>(null);
+
+  const [adminConnectFirstId, setAdminConnectFirstId] = useState<string | null>(null);
+  const [adminConnectPair, setAdminConnectPair] = useState<{ fromId: string; toId: string } | null>(null);
+  const [adminManageLinksOpen, setAdminManageLinksOpen] = useState(false);
+  const [adminAddPersonOpen, setAdminAddPersonOpen] = useState(false);
 
   const handlePendingConnectTargetChange = useCallback((id: string | null) => {
     setPendingConnectExistingId(id);
@@ -114,13 +123,50 @@ export const FamilyTree: React.FC = () => {
     });
   }, []);
 
-  const handleNodeSelect = useCallback((node: FamilyNode) => {
-    setSelectedNode(prev => prev?.id === node.id ? null : node);
-  }, []);
+  const handleNodeSelect = useCallback(
+    (node: FamilyNode) => {
+      if (isAdmin && adminConnectFirstId) {
+        if (node.id === adminConnectFirstId) {
+          setAdminConnectFirstId(null);
+          return;
+        }
+        setAdminConnectPair({ fromId: adminConnectFirstId, toId: node.id });
+        setAdminConnectFirstId(null);
+        setSelectedNode(node);
+        return;
+      }
+      setSelectedNode((prev) => (prev?.id === node.id ? null : node));
+    },
+    [isAdmin, adminConnectFirstId]
+  );
 
   const handleBackgroundClick = useCallback(() => {
+    setAdminConnectFirstId(null);
     setSelectedNode(null);
   }, []);
+
+  const handleAdminDeleteSelectedNode = useCallback(async () => {
+    if (!selectedNode || !isAdmin || !user) return;
+    if (
+      !window.confirm(
+        `Delete ${selectedNode.firstName} and all their invites and links? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+    try {
+      await adminDeleteNode({
+        session,
+        isAdmin,
+        nodeId: selectedNode.id,
+      });
+      await refetch();
+      setSelectedNode(null);
+    } catch (e) {
+      console.error(e);
+      window.alert(e instanceof Error ? e.message : 'Delete failed.');
+    }
+  }, [selectedNode, isAdmin, user, session, refetch]);
 
   const handleToggleCollapse = useCallback((nodeId: string) => {
     setCollapsedNodes(prev => {
@@ -307,6 +353,48 @@ export const FamilyTree: React.FC = () => {
       overflow: 'hidden',
       background: '#0a0a0a',
     }}>
+      {isAdmin && adminConnectFirstId && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 16,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1500,
+            background: 'rgba(30, 40, 80, 0.95)',
+            color: '#e0e7ff',
+            padding: '10px 16px',
+            borderRadius: 8,
+            border: '1px solid rgba(129, 140, 248, 0.4)',
+            fontSize: '0.9rem',
+            maxWidth: 'min(92vw, 420px)',
+            textAlign: 'center',
+          }}
+        >
+          Tap another person to connect them, or tap the same person again to cancel.
+        </div>
+      )}
+
+      {isAdmin && graphData && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            zIndex: 1490,
+          }}
+        >
+          <Button
+            variant="outlined"
+            size="small"
+            onClick={() => setAdminAddPersonOpen(true)}
+            sx={{ color: '#c4b5fd', borderColor: '#6d28d9' }}
+          >
+            + Add person (admin)
+          </Button>
+        </div>
+      )}
+
       {mode === '2D' && showSeeWhosNewButton && newMembers.length > 0 && (
         <div
           style={{
@@ -396,6 +484,34 @@ export const FamilyTree: React.FC = () => {
                 )}
               </>
             )}
+            {isAdmin && graphData && (
+              <>
+                <Button
+                  variant="contained"
+                  color="secondary"
+                  size="small"
+                  onClick={() => setAdminConnectFirstId(selectedNode.id)}
+                >
+                  Connect…
+                </Button>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setAdminManageLinksOpen(true)}
+                  sx={{ color: '#a78bfa', borderColor: '#6d28d9' }}
+                >
+                  Links (admin)
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  onClick={handleAdminDeleteSelectedNode}
+                >
+                  Delete (admin)
+                </Button>
+              </>
+            )}
             <Button variant="outlined" size="small" onClick={() => setSelectedNode(null)} sx={{ color: '#888', borderColor: '#444' }}>
               Close
             </Button>
@@ -418,10 +534,50 @@ export const FamilyTree: React.FC = () => {
             isOpen={isEditModalOpen} 
             onClose={() => setIsEditModalOpen(false)} 
             targetNode={selectedNode} 
-            onSuccess={() => {}} 
+            onSuccess={refetch} 
             existingNodes={graphData?.nodes || []} 
           />
         </>
+      )}
+      {isAdmin && graphData && user && adminConnectPair && (
+        <AdminConnectLinkModal
+          isOpen
+          onClose={() => setAdminConnectPair(null)}
+          graph={graphData}
+          fromId={adminConnectPair.fromId}
+          toId={adminConnectPair.toId}
+          session={session}
+          isAdmin={isAdmin}
+          userId={user.id}
+          onSuccess={() => {
+            void refetch();
+          }}
+        />
+      )}
+      {isAdmin && graphData && selectedNode && (
+        <AdminManageLinksModal
+          isOpen={adminManageLinksOpen}
+          onClose={() => setAdminManageLinksOpen(false)}
+          graph={graphData}
+          nodeId={selectedNode.id}
+          session={session}
+          isAdmin={isAdmin}
+          onSuccess={() => {
+            void refetch();
+          }}
+        />
+      )}
+      {isAdmin && user && (
+        <AdminAddPersonModal
+          isOpen={adminAddPersonOpen}
+          onClose={() => setAdminAddPersonOpen(false)}
+          session={session}
+          isAdmin={isAdmin}
+          userId={user.id}
+          onSuccess={() => {
+            void refetch();
+          }}
+        />
       )}
       {userProfile?.node_id && (
         <BulkInviteModal 

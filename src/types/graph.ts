@@ -13,6 +13,8 @@ export interface FamilyNode {
 }
 
 export interface FamilyLink {
+  /** DB row id when loaded from Supabase (needed for admin PATCH/DELETE) */
+  id?: string;
   source: string;  // UUID
   target: string;  // UUID
   type: 'parent' | 'marriage' | 'divorce';
