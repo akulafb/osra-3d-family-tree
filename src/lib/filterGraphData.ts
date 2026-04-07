@@ -127,10 +127,11 @@ function allClustersVisible(
 }
 
 /**
- * 3D-only: filter by union of selected family clusters (paternal/maternal match + maternal bridge),
- * then collapsed subtrees. When `visibleClusters` is empty → empty graph. When it includes every
- * name in `allClusterNames` → no cluster filter (full graph, including unclustered nodes), then collapse.
- * Does not change {@link filterGraphData} (2D single-preset API).
+ * 3D-only: filter by union of selected **paternal** family clusters (`familyCluster` only — same
+ * field as the visibility checkboxes). Does not match `maternalFamilyCluster`, so children whose
+ * surname line is another family (e.g. mother’s cluster) are excluded when only her line is selected.
+ * 2D {@link filterGraphData} still uses paternal OR maternal for its single-preset view.
+ * Then collapsed subtrees. Empty `visibleClusters` → empty graph; all names selected → full graph.
  */
 export function filterGraphDataFor3D(
   graphData: FamilyGraph,
@@ -159,11 +160,7 @@ export function filterGraphDataFor3D(
   const getLinkKey = (sourceId: string, targetId: string, type: string) =>
     `${sourceId}|${targetId}|${type}`;
 
-  nodes = nodes.filter(
-    (n) =>
-      (n.familyCluster && V.has(n.familyCluster)) ||
-      (n.maternalFamilyCluster && V.has(n.maternalFamilyCluster))
-  );
+  nodes = nodes.filter((n) => !!(n.familyCluster && V.has(n.familyCluster)));
   const nodeIds = new Set(nodes.map((n) => n.id));
   const visibleLinkKeys = new Set<string>();
 
@@ -176,42 +173,6 @@ export function filterGraphDataFor3D(
     if (visibleLinkKeys.has(key)) return false;
     visibleLinkKeys.add(key);
     return true;
-  });
-
-  const maternalOnlyIds = new Set(
-    nodes
-      .filter((n) => {
-        const m = n.maternalFamilyCluster;
-        const p = n.familyCluster;
-        return !!(m && V.has(m) && (!p || !V.has(p)));
-      })
-      .map((n) => n.id)
-  );
-  const marriageByNode = new Map<string, string>();
-  graphData.links.forEach((l) => {
-    if (l.type === 'marriage') {
-      const a = getNodeId(l.source);
-      const b = getNodeId(l.target);
-      if (a && b) {
-        marriageByNode.set(a, b);
-        marriageByNode.set(b, a);
-      }
-    }
-  });
-  graphData.links.forEach((l) => {
-    if (l.type !== 'parent') return;
-    const fatherId = getNodeId(l.source);
-    const childId = getNodeId(l.target);
-    if (!fatherId || !childId || !maternalOnlyIds.has(childId)) return;
-    if (nodeIds.has(fatherId)) return;
-    const motherId = marriageByNode.get(fatherId);
-    if (motherId && nodeIds.has(motherId)) {
-      const key = getLinkKey(motherId, childId, 'parent');
-      if (!visibleLinkKeys.has(key)) {
-        visibleLinkKeys.add(key);
-        links.push({ source: motherId, target: childId, type: 'parent' });
-      }
-    }
   });
 
   return applyCollapsedNodesFilter(nodes, links, collapsedNodes);
