@@ -16,7 +16,9 @@ dist-ssr
 .env.local
 
 # Editor directories and files
-.cursor
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
 .vscode/*
 !.vscode/extensions.json
 .idea
