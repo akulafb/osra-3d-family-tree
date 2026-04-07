@@ -67,6 +67,14 @@ export function filterGraphData(
     });
   }
 
+  return applyCollapsedNodesFilter(nodes, links, collapsedNodes);
+}
+
+function applyCollapsedNodesFilter(
+  nodes: FamilyGraph['nodes'],
+  links: FamilyGraph['links'],
+  collapsedNodes: Set<string>
+): FamilyGraph {
   if (collapsedNodes.size === 0) return { nodes, links };
 
   const hiddenNodes = new Set<string>();
@@ -107,6 +115,106 @@ export function filterGraphData(
       return !hiddenNodes.has(sourceId) && !hiddenNodes.has(targetId);
     }),
   };
+}
+
+function allClustersVisible(
+  visibleClusters: ReadonlySet<string>,
+  allClusterNames: readonly string[]
+): boolean {
+  if (allClusterNames.length === 0) return true;
+  if (visibleClusters.size !== allClusterNames.length) return false;
+  return allClusterNames.every((c) => visibleClusters.has(c));
+}
+
+/**
+ * 3D-only: filter by union of selected family clusters (paternal/maternal match + maternal bridge),
+ * then collapsed subtrees. When `visibleClusters` is empty → empty graph. When it includes every
+ * name in `allClusterNames` → no cluster filter (full graph, including unclustered nodes), then collapse.
+ * Does not change {@link filterGraphData} (2D single-preset API).
+ */
+export function filterGraphDataFor3D(
+  graphData: FamilyGraph,
+  collapsedNodes: Set<string>,
+  visibleClusters: ReadonlySet<string>,
+  allClusterNames: readonly string[]
+): FamilyGraph {
+  if (!graphData?.nodes) return { nodes: [], links: [] };
+
+  if (allClusterNames.length === 0) {
+    return applyCollapsedNodesFilter(graphData.nodes, graphData.links, collapsedNodes);
+  }
+
+  if (visibleClusters.size === 0) {
+    return { nodes: [], links: [] };
+  }
+
+  if (allClustersVisible(visibleClusters, allClusterNames)) {
+    return applyCollapsedNodesFilter(graphData.nodes, graphData.links, collapsedNodes);
+  }
+
+  const V = visibleClusters;
+  let nodes = graphData.nodes;
+  let links = graphData.links;
+
+  const getLinkKey = (sourceId: string, targetId: string, type: string) =>
+    `${sourceId}|${targetId}|${type}`;
+
+  nodes = nodes.filter(
+    (n) =>
+      (n.familyCluster && V.has(n.familyCluster)) ||
+      (n.maternalFamilyCluster && V.has(n.maternalFamilyCluster))
+  );
+  const nodeIds = new Set(nodes.map((n) => n.id));
+  const visibleLinkKeys = new Set<string>();
+
+  links = links.filter((l) => {
+    const sourceId = getNodeId(l.source);
+    const targetId = getNodeId(l.target);
+    if (!nodeIds.has(sourceId) || !nodeIds.has(targetId)) return false;
+
+    const key = getLinkKey(sourceId, targetId, l.type);
+    if (visibleLinkKeys.has(key)) return false;
+    visibleLinkKeys.add(key);
+    return true;
+  });
+
+  const maternalOnlyIds = new Set(
+    nodes
+      .filter((n) => {
+        const m = n.maternalFamilyCluster;
+        const p = n.familyCluster;
+        return !!(m && V.has(m) && (!p || !V.has(p)));
+      })
+      .map((n) => n.id)
+  );
+  const marriageByNode = new Map<string, string>();
+  graphData.links.forEach((l) => {
+    if (l.type === 'marriage') {
+      const a = getNodeId(l.source);
+      const b = getNodeId(l.target);
+      if (a && b) {
+        marriageByNode.set(a, b);
+        marriageByNode.set(b, a);
+      }
+    }
+  });
+  graphData.links.forEach((l) => {
+    if (l.type !== 'parent') return;
+    const fatherId = getNodeId(l.source);
+    const childId = getNodeId(l.target);
+    if (!fatherId || !childId || !maternalOnlyIds.has(childId)) return;
+    if (nodeIds.has(fatherId)) return;
+    const motherId = marriageByNode.get(fatherId);
+    if (motherId && nodeIds.has(motherId)) {
+      const key = getLinkKey(motherId, childId, 'parent');
+      if (!visibleLinkKeys.has(key)) {
+        visibleLinkKeys.add(key);
+        links.push({ source: motherId, target: childId, type: 'parent' });
+      }
+    }
+  });
+
+  return applyCollapsedNodesFilter(nodes, links, collapsedNodes);
 }
 
 /**
