@@ -39,27 +39,28 @@ export async function adminDeleteNode(params: {
 }): Promise<void> {
   requireAdmin(params.isAdmin);
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const id = encodeURIComponent(params.nodeId);
-  const res = await fetch(`${supabaseUrl}/rest/v1/nodes?id=eq.${id}`, {
-    method: 'DELETE',
+  const res = await fetch(`${supabaseUrl}/rest/v1/rpc/admin_delete_node_secure`, {
+    method: 'POST',
     headers: {
       ...baseHeaders(params.session),
-      Prefer: 'return=representation',
+      'Content-Type': 'application/json',
     },
+    body: JSON.stringify({ p_node_id: params.nodeId }),
   });
   const text = await res.text();
   if (!res.ok) {
     throw new Error(messageFromErrorBody(text, res.status));
   }
-  let rows: unknown[] = [];
+  let payload: { success?: boolean; message?: string };
   try {
-    rows = text ? (JSON.parse(text) as unknown[]) : [];
+    payload = text ? (JSON.parse(text) as { success?: boolean; message?: string }) : {};
   } catch {
-    rows = [];
+    throw new Error('Unexpected response when deleting node.');
   }
-  if (!Array.isArray(rows) || rows.length === 0) {
+  if (!payload.success) {
     throw new Error(
-      'No row was deleted. Confirm your account has role admin in the database, then refresh and try again.'
+      payload.message ||
+        'Could not delete this node. Confirm your account has role admin in the database.'
     );
   }
 }

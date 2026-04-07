@@ -375,26 +375,6 @@ export const FamilyTree: React.FC = () => {
         </div>
       )}
 
-      {isAdmin && graphData && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 20,
-            left: 16,
-            zIndex: 1490,
-          }}
-        >
-          <Button
-            variant="outlined"
-            size="small"
-            onClick={() => setAdminAddPersonOpen(true)}
-            sx={{ color: '#c4b5fd', borderColor: '#6d28d9' }}
-          >
-            + Add person (admin)
-          </Button>
-        </div>
-      )}
-
       {mode === '2D' && showSeeWhosNewButton && newMembers.length > 0 && (
         <div
           style={{
@@ -640,6 +620,8 @@ export const FamilyTree: React.FC = () => {
               ) : null
             }
             pendingLinkPreview={pendingLinkPreview}
+            isAdmin={isAdmin}
+            onAdminAddPersonClick={() => setAdminAddPersonOpen(true)}
           />
         ) : (
           <FamilyTree2D
@@ -672,6 +654,8 @@ export const FamilyTree: React.FC = () => {
             searchNavigateTrigger={searchNavigateTrigger}
             searchDisabled={!activePreset}
             pendingLinkPreview={pendingLinkPreview}
+            isAdmin={isAdmin}
+            onAdminAddPersonClick={() => setAdminAddPersonOpen(true)}
           />
         )}
       </div>

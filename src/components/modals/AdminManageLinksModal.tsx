@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import Button from '@mui/material/Button';
 import Alert from '@mui/material/Alert';
 import FormControl from '@mui/material/FormControl';
@@ -51,6 +51,18 @@ export default function AdminManageLinksModal({
   const [editRole, setEditRole] = useState<'mother' | 'father' | ''>('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Portal Select menus into the overlay so they stack above the modal card (body portal + z-index on Paper is unreliable here). */
+  const overlayRef = useRef<HTMLDivElement | null>(null);
+
+  const selectMenuProps = useMemo(
+    () => ({
+      disableScrollLock: true,
+      container: () => overlayRef.current ?? document.body,
+      sx: { zIndex: 4000 },
+      PaperProps: { sx: { maxHeight: 280, zIndex: 4000 } },
+    }),
+    []
+  );
 
   const incident = useMemo(
     () =>
@@ -158,7 +170,7 @@ export default function AdminManageLinksModal({
   };
 
   return (
-    <div style={overlayStyle}>
+    <div ref={overlayRef} style={overlayStyle}>
       <div style={contentStyle}>
         <h2 style={{ marginTop: 0, color: '#fff' }}>Links for this person</h2>
         <p style={{ color: '#888', fontSize: '0.85rem' }}>
@@ -232,6 +244,7 @@ export default function AdminManageLinksModal({
                 value={editSource}
                 onChange={(e) => setEditSource(e.target.value)}
                 sx={{ color: '#fff' }}
+                MenuProps={selectMenuProps}
               >
                 {graph.nodes.map((n) => (
                   <MenuItem key={n.id} value={n.id}>
@@ -250,6 +263,7 @@ export default function AdminManageLinksModal({
                 value={editTarget}
                 onChange={(e) => setEditTarget(e.target.value)}
                 sx={{ color: '#fff' }}
+                MenuProps={selectMenuProps}
               >
                 {graph.nodes.map((n) => (
                   <MenuItem key={n.id} value={n.id}>
@@ -270,6 +284,7 @@ export default function AdminManageLinksModal({
                   setEditType(e.target.value as FamilyLink['type'])
                 }
                 sx={{ color: '#fff' }}
+                MenuProps={selectMenuProps}
               >
                 <MenuItem value="parent">parent</MenuItem>
                 <MenuItem value="marriage">marriage</MenuItem>
@@ -289,6 +304,7 @@ export default function AdminManageLinksModal({
                     setEditRole(e.target.value as 'mother' | 'father' | '')
                   }
                   sx={{ color: '#fff' }}
+                  MenuProps={selectMenuProps}
                 >
                   <MenuItem value="">Not specified</MenuItem>
                   <MenuItem value="mother">Mother</MenuItem>
@@ -337,6 +353,8 @@ const overlayStyle: React.CSSProperties = {
 };
 
 const contentStyle: React.CSSProperties = {
+  position: 'relative',
+  zIndex: 0,
   background: '#1a1a24',
   borderRadius: 12,
   padding: 24,

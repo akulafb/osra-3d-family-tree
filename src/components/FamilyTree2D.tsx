@@ -71,6 +71,9 @@ interface FamilyTree2DProps {
   onBackgroundThemeChange?: (theme: BackgroundTheme) => void;
   /** Dashed preview edge while Add Relative connect-to-existing is focused */
   pendingLinkPreview?: { anchorId: string; existingId: string } | null;
+  /** Admin: add standalone person (opens modal in parent) */
+  isAdmin?: boolean;
+  onAdminAddPersonClick?: () => void;
 }
 
 function ExpandableSpring({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) {
@@ -117,6 +120,8 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
   backgroundTheme = 'deep-space',
   onBackgroundThemeChange,
   pendingLinkPreview = null,
+  isAdmin = false,
+  onAdminAddPersonClick,
 }) => {
   const presetBackground = getBackgroundForTheme(backgroundTheme);
   const emptyBackground = getBackgroundForTheme(backgroundTheme);
@@ -553,6 +558,18 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
             {userNodeId && (
               <Button variant="contained" color="success" size="small" onClick={handleFindMe}>
                 Find me!
+              </Button>
+            )}
+
+            {isAdmin && onAdminAddPersonClick && (
+              <Button
+                variant="outlined"
+                size="small"
+                fullWidth
+                onClick={onAdminAddPersonClick}
+                sx={{ color: '#c4b5fd', borderColor: '#6d28d9' }}
+              >
+                + Add person (admin)
               </Button>
             )}
 

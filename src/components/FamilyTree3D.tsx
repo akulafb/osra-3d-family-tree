@@ -196,6 +196,9 @@ interface FamilyTree3DProps {
   seeWhosNewButtonSlot?: React.ReactNode;
   /** Dashed preview edge while Add Relative connect-to-existing is focused */
   pendingLinkPreview?: { anchorId: string; existingId: string } | null;
+  /** Admin: add standalone person (opens modal in parent) */
+  isAdmin?: boolean;
+  onAdminAddPersonClick?: () => void;
 }
 
 export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
@@ -229,6 +232,8 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   onEnsureClusterVisible3D,
   seeWhosNewButtonSlot,
   pendingLinkPreview = null,
+  isAdmin = false,
+  onAdminAddPersonClick,
 }) => {
   const ForceGraph3DAny = ForceGraph3D as unknown as React.ComponentType<any>;
   const { userProfile } = useAuth();
@@ -1363,6 +1368,18 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
                 }}
               >
                 Find me!
+              </Button>
+            )}
+
+            {isAdmin && onAdminAddPersonClick && (
+              <Button
+                variant="outlined"
+                size="small"
+                fullWidth
+                onClick={onAdminAddPersonClick}
+                sx={{ color: '#c4b5fd', borderColor: '#6d28d9' }}
+              >
+                + Add person (admin)
               </Button>
             )}
 
