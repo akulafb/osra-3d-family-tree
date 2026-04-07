@@ -125,7 +125,10 @@ export function useFamilyData() {
         );
       }
 
-      setGraphData({ nodes, links: safeLinks });
+      // Shallow-clone links so react-force-graph cannot replace string endpoints with object refs in React state.
+      const linksForState = safeLinks.map((l) => ({ ...l }));
+
+      setGraphData({ nodes, links: linksForState });
       setIsLoading(false);
     } catch (err) {
       console.error('[useFamilyData] Error fetching family data:', err);

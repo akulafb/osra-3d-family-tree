@@ -1,4 +1,5 @@
 import type { FamilyGraph, FamilyLink } from '../types/graph';
+import { getNodeId } from '../utils/getNodeId';
 
 export const MSG_SELF = "A person can't be linked to themselves.";
 export const MSG_DUPLICATE = 'These two people are already connected.';
@@ -36,8 +37,8 @@ export type ExcludeLinkSpec = {
 
 function sameLinkEdge(a: FamilyLink, b: ExcludeLinkSpec): boolean {
   return (
-    a.source === b.source &&
-    a.target === b.target &&
+    getNodeId(a.source) === b.source &&
+    getNodeId(a.target) === b.target &&
     a.type === b.type &&
     (a.parentRole ?? null) === (b.parentRole ?? null)
   );
@@ -50,8 +51,9 @@ function filterLinks(graph: FamilyGraph, exclude?: ExcludeLinkSpec): FamilyLink[
 
 function getParents(nodeId: string, links: FamilyLink[]): string[] {
   return links
-    .filter((l) => l.type === 'parent' && l.target === nodeId)
-    .map((l) => l.source);
+    .filter((l) => l.type === 'parent' && getNodeId(l.target) === nodeId)
+    .map((l) => getNodeId(l.source))
+    .filter((id) => id.length > 0);
 }
 
 /** True if `ancestorId` is a strict ancestor of `descendantId` (walking up parent edges from descendant). */
@@ -72,17 +74,19 @@ export function isAncestorOf(ancestorId: string, descendantId: string, links: Fa
 }
 
 function hasAnyLinkBetween(a: string, b: string, links: FamilyLink[]): boolean {
-  return links.some(
-    (l) =>
-      (l.source === a && l.target === b) || (l.source === b && l.target === a)
-  );
+  return links.some((l) => {
+    const s = getNodeId(l.source);
+    const t = getNodeId(l.target);
+    return (s === a && t === b) || (s === b && t === a);
+  });
 }
 
 function hasMarriageOrDivorceBetween(a: string, b: string, links: FamilyLink[]): boolean {
   return links.some(
     (l) =>
       (l.type === 'marriage' || l.type === 'divorce') &&
-      ((l.source === a && l.target === b) || (l.source === b && l.target === a))
+      ((getNodeId(l.source) === a && getNodeId(l.target) === b) ||
+        (getNodeId(l.source) === b && getNodeId(l.target) === a))
   );
 }
 
@@ -90,7 +94,8 @@ function hasParentEdgeBetween(a: string, b: string, links: FamilyLink[]): boolea
   return links.some(
     (l) =>
       l.type === 'parent' &&
-      ((l.source === a && l.target === b) || (l.source === b && l.target === a))
+      ((getNodeId(l.source) === a && getNodeId(l.target) === b) ||
+        (getNodeId(l.source) === b && getNodeId(l.target) === a))
   );
 }
 
@@ -136,7 +141,7 @@ export function validateProposedLink(
       const hasMother = links.some(
         (l) =>
           l.type === 'parent' &&
-          l.target === target &&
+          getNodeId(l.target) === target &&
           l.parentRole === 'mother'
       );
       if (hasMother) {
@@ -147,7 +152,7 @@ export function validateProposedLink(
       const hasFather = links.some(
         (l) =>
           l.type === 'parent' &&
-          l.target === target &&
+          getNodeId(l.target) === target &&
           l.parentRole === 'father'
       );
       if (hasFather) {

@@ -15,17 +15,21 @@ function baseHeaders(session: Session | null): HeadersInit {
   };
 }
 
-async function parseError(response: Response): Promise<string> {
-  const text = await response.text();
+function messageFromErrorBody(text: string, status: number): string {
   try {
-    const j = JSON.parse(text);
+    const j = JSON.parse(text) as { message?: string; error?: string; hint?: string };
     if (j.message) return String(j.message);
     if (j.error) return String(j.error);
     if (j.hint) return String(j.hint);
   } catch {
     /* ignore */
   }
-  return text || `Request failed (${response.status})`;
+  return text || `Request failed (${status})`;
+}
+
+async function parseError(response: Response): Promise<string> {
+  const text = await response.text();
+  return messageFromErrorBody(text, response.status);
 }
 
 export async function adminDeleteNode(params: {
@@ -35,14 +39,29 @@ export async function adminDeleteNode(params: {
 }): Promise<void> {
   requireAdmin(params.isAdmin);
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const res = await fetch(`${supabaseUrl}/rest/v1/nodes?id=eq.${params.nodeId}`, {
+  const id = encodeURIComponent(params.nodeId);
+  const res = await fetch(`${supabaseUrl}/rest/v1/nodes?id=eq.${id}`, {
     method: 'DELETE',
     headers: {
       ...baseHeaders(params.session),
-      Prefer: 'return=minimal',
+      Prefer: 'return=representation',
     },
   });
-  if (!res.ok) throw new Error(await parseError(res));
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(messageFromErrorBody(text, res.status));
+  }
+  let rows: unknown[] = [];
+  try {
+    rows = text ? (JSON.parse(text) as unknown[]) : [];
+  } catch {
+    rows = [];
+  }
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error(
+      'No row was deleted. Confirm your account has role admin in the database, then refresh and try again.'
+    );
+  }
 }
 
 export async function adminInsertNode(params: {
@@ -111,7 +130,8 @@ export async function adminPatchLink(params: {
 }): Promise<void> {
   requireAdmin(params.isAdmin);
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const res = await fetch(`${supabaseUrl}/rest/v1/links?id=eq.${params.linkId}`, {
+  const lid = encodeURIComponent(params.linkId);
+  const res = await fetch(`${supabaseUrl}/rest/v1/links?id=eq.${lid}`, {
     method: 'PATCH',
     headers: {
       ...baseHeaders(params.session),
@@ -130,12 +150,27 @@ export async function adminDeleteLink(params: {
 }): Promise<void> {
   requireAdmin(params.isAdmin);
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const res = await fetch(`${supabaseUrl}/rest/v1/links?id=eq.${params.linkId}`, {
+  const lid = encodeURIComponent(params.linkId);
+  const res = await fetch(`${supabaseUrl}/rest/v1/links?id=eq.${lid}`, {
     method: 'DELETE',
     headers: {
       ...baseHeaders(params.session),
-      Prefer: 'return=minimal',
+      Prefer: 'return=representation',
     },
   });
-  if (!res.ok) throw new Error(await parseError(res));
+  const text = await res.text();
+  if (!res.ok) {
+    throw new Error(messageFromErrorBody(text, res.status));
+  }
+  let rows: unknown[] = [];
+  try {
+    rows = text ? (JSON.parse(text) as unknown[]) : [];
+  } catch {
+    rows = [];
+  }
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw new Error(
+      'No link was deleted. Confirm your account has role admin in the database, then refresh and try again.'
+    );
+  }
 }

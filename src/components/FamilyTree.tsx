@@ -379,8 +379,8 @@ export const FamilyTree: React.FC = () => {
         <div
           style={{
             position: 'absolute',
-            top: 16,
-            right: 16,
+            top: 20,
+            left: 16,
             zIndex: 1490,
           }}
         >

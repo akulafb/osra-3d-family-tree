@@ -8,6 +8,7 @@ import Select from '@mui/material/Select';
 import type { Session } from '@supabase/supabase-js';
 import type { FamilyGraph, FamilyLink, FamilyNode } from '../../types/graph';
 import { formatNodeDisplayName } from '../../utils/nodeDisplayName';
+import { getNodeId } from '../../utils/getNodeId';
 import {
   validateProposedLink,
   type ExcludeLinkSpec,
@@ -27,8 +28,8 @@ interface AdminManageLinksModalProps {
 
 function toExcludeSpec(link: FamilyLink): ExcludeLinkSpec {
   return {
-    source: link.source,
-    target: link.target,
+    source: getNodeId(link.source),
+    target: getNodeId(link.target),
     type: link.type,
     parentRole: link.parentRole ?? null,
   };
@@ -53,7 +54,11 @@ export default function AdminManageLinksModal({
 
   const incident = useMemo(
     () =>
-      graph.links.filter((l) => l.source === nodeId || l.target === nodeId),
+      graph.links.filter((l) => {
+        const s = getNodeId(l.source);
+        const t = getNodeId(l.target);
+        return s === nodeId || t === nodeId;
+      }),
     [graph.links, nodeId]
   );
 
@@ -66,8 +71,8 @@ export default function AdminManageLinksModal({
 
   useEffect(() => {
     if (!editing) return;
-    setEditSource(editing.source);
-    setEditTarget(editing.target);
+    setEditSource(getNodeId(editing.source));
+    setEditTarget(getNodeId(editing.target));
     setEditType(editing.type);
     setEditRole(
       editing.parentRole === 'mother' || editing.parentRole === 'father'
@@ -99,7 +104,9 @@ export default function AdminManageLinksModal({
     graph.nodes.find((n) => n.id === id);
 
   const otherLabel = (link: FamilyLink): string => {
-    const oid = link.source === nodeId ? link.target : link.source;
+    const sid = getNodeId(link.source);
+    const tid = getNodeId(link.target);
+    const oid = sid === nodeId ? tid : sid;
     const n = nodeById(oid);
     return n ? formatNodeDisplayName(n) : oid;
   };
