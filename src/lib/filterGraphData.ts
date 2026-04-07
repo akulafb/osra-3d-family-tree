@@ -39,14 +39,17 @@ export function filterGraphData(
         .filter((n) => n.maternalFamilyCluster === activePreset && n.familyCluster !== activePreset)
         .map((n) => n.id)
     );
-    const marriageByNode = new Map<string, string>();
+    // Spouse / ex-spouse edges (marriage and divorce) — needed so maternal-only children
+    // still get a synthetic parent→child link to the in-cluster mother when the father
+    // is out of scope (raw parent links are often father→child only).
+    const spouseByNode = new Map<string, string>();
     graphData.links.forEach((l) => {
-      if (l.type === 'marriage') {
+      if (l.type === 'marriage' || l.type === 'divorce') {
         const a = getNodeId(l.source);
         const b = getNodeId(l.target);
         if (a && b) {
-          marriageByNode.set(a, b);
-          marriageByNode.set(b, a);
+          spouseByNode.set(a, b);
+          spouseByNode.set(b, a);
         }
       }
     });
@@ -56,7 +59,7 @@ export function filterGraphData(
       const childId = getNodeId(l.target);
       if (!fatherId || !childId || !maternalOnlyIds.has(childId)) return;
       if (nodeIds.has(fatherId)) return;
-      const motherId = marriageByNode.get(fatherId);
+      const motherId = spouseByNode.get(fatherId);
       if (motherId && nodeIds.has(motherId)) {
         const key = getLinkKey(motherId, childId, 'parent');
         if (!visibleLinkKeys.has(key)) {
