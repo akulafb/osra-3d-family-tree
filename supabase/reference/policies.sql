@@ -53,7 +53,7 @@ CREATE POLICY nodes_insert_admin ON public.nodes
   FOR INSERT TO authenticated
   WITH CHECK (
     is_admin()
-    AND (created_by_user_id = (select auth.uid()))
+    AND (created_by_user_id = (select auth.uid()::text))
   );
 
 CREATE POLICY nodes_update_1degree_or_admin ON public.nodes

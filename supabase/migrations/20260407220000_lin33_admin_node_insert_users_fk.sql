@@ -20,9 +20,10 @@ ALTER TABLE public.users
 -- -----------------------------------------------------------------------------
 -- RLS: allow admins to insert nodes (e.g. orphan person) without bound node_id
 -- -----------------------------------------------------------------------------
+-- DEV DB stores created_by_user_id as text; cast auth.uid() so the policy compiles.
 CREATE POLICY nodes_insert_admin ON public.nodes
   FOR INSERT TO authenticated
   WITH CHECK (
     is_admin()
-    AND (created_by_user_id = (select auth.uid()))
+    AND (created_by_user_id = (select auth.uid()::text))
   );
