@@ -1,0 +1,25 @@
+---
+description: For any code or data change, trace upstream/downstream knock-on effects and surface them before finishing.
+alwaysApply: true
+---
+
+# Change impact — upstream and downstream
+
+Whenever you implement, fix, or refactor **anything** (not only graph or links), treat the change as part of a system:
+
+## Do this before considering the work done
+
+1. **Upstream:** What feeds this code or data (sources, env, callers, imports, API contracts, migrations, seed, feature flags)?
+2. **Downstream:** What depends on it (other modules, UI surfaces, 2D vs 3D paths, filters, permissions, types, tests, build, runtime behavior)?
+3. **Consistency:** Are there parallel code paths (e.g. `marriage` vs `divorce`, 2D vs 3D filters) that must stay aligned?
+
+Use search and reading real call sites — do not assume a single edit is isolated.
+
+## Communicate
+
+- If a change can break or silently alter behavior elsewhere, **say so** and **ask** whether to fix those paths in the same pass, follow up separately, or accept the tradeoff.
+- Prefer flagging **second-order effects** early (e.g. “we only handle X in one filter”) rather than discovering them later.
+
+## Domain-heavy changes (extra care)
+
+Schema, link/relationship types, shared types, or global filters deserve an explicit **impact pass**: list affected areas and verify each or note gaps.

@@ -155,7 +155,8 @@ export const FamilyTree2D: React.FC<FamilyTree2DProps> = ({
     return calculateLayout(
       filteredGraphData.nodes,
       filteredGraphData.links,
-      layoutType
+      layoutType,
+      activePreset ?? undefined
     );
   }, [filteredGraphData, layoutType]);
 

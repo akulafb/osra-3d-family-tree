@@ -34,36 +34,46 @@ export function filterGraphData(
       return true;
     });
 
-    const maternalOnlyIds = new Set(
-      nodes
-        .filter((n) => n.maternalFamilyCluster === activePreset && n.familyCluster !== activePreset)
-        .map((n) => n.id)
-    );
-    const marriageByNode = new Map<string, string>();
+    // Spouse / ex-spouse edges (marriage and divorce) — when one co-parent is outside the
+    // preset, parent→child edges are dropped by the filter; reconnect via the co-parent who
+    // is still in scope (applies to any child cluster mix, not only "maternal-only" rows).
+    const spouseByNode = new Map<string, string>();
     graphData.links.forEach((l) => {
-      if (l.type === 'marriage') {
+      if (l.type === 'marriage' || l.type === 'divorce') {
         const a = getNodeId(l.source);
         const b = getNodeId(l.target);
         if (a && b) {
-          marriageByNode.set(a, b);
-          marriageByNode.set(b, a);
+          spouseByNode.set(a, b);
+          spouseByNode.set(b, a);
         }
       }
     });
     graphData.links.forEach((l) => {
       if (l.type !== 'parent') return;
-      const fatherId = getNodeId(l.source);
+      const parentId = getNodeId(l.source);
       const childId = getNodeId(l.target);
-      if (!fatherId || !childId || !maternalOnlyIds.has(childId)) return;
-      if (nodeIds.has(fatherId)) return;
-      const motherId = marriageByNode.get(fatherId);
-      if (motherId && nodeIds.has(motherId)) {
-        const key = getLinkKey(motherId, childId, 'parent');
-        if (!visibleLinkKeys.has(key)) {
-          visibleLinkKeys.add(key);
-          links.push({ source: motherId, target: childId, type: 'parent' });
-        }
-      }
+      if (!parentId || !childId || !nodeIds.has(childId)) return;
+      if (nodeIds.has(parentId)) return;
+
+      const altParentId = spouseByNode.get(parentId);
+      if (!altParentId || !nodeIds.has(altParentId)) return;
+
+      const key = getLinkKey(altParentId, childId, 'parent');
+      if (visibleLinkKeys.has(key)) return;
+
+      visibleLinkKeys.add(key);
+      const parentRole =
+        l.parentRole === 'father'
+          ? ('mother' as const)
+          : l.parentRole === 'mother'
+            ? ('father' as const)
+            : undefined;
+      links.push({
+        source: altParentId,
+        target: childId,
+        type: 'parent',
+        ...(parentRole ? { parentRole } : {}),
+      });
     });
   }
 
