@@ -191,7 +191,6 @@ interface FamilyTree3DProps {
   visibleClusters3D: Set<string>;
   onVisibleClusters3DChange: React.Dispatch<React.SetStateAction<Set<string>>>;
   uniqueClusters: string[];
-  onResetVisibleClusters3D: () => void;
   onEnsureClusterVisible3D: (cluster: string) => void;
   /** Optional "See who's new!" control; rendered above NAV CONTROLS, same column */
   seeWhosNewButtonSlot?: React.ReactNode;
@@ -227,7 +226,6 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   visibleClusters3D,
   onVisibleClusters3DChange,
   uniqueClusters,
-  onResetVisibleClusters3D,
   onEnsureClusterVisible3D,
   seeWhosNewButtonSlot,
   pendingLinkPreview = null,
@@ -276,7 +274,9 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   const [nodeTexture, setNodeTexture] = useState<'spheres' | 'planets' | 'none'>('spheres');
   const [showArrows, setShowArrows] = useState(false);
   const [isPresetsOpen, setIsPresetsOpen] = useState(false);
+  const [isVisibilityOpen, setIsVisibilityOpen] = useState(false);
   const presetsRef = useRef<HTMLDivElement>(null);
+  const visibilityRef = useRef<HTMLDivElement>(null);
   const textureRef = useRef<HTMLDivElement>(null);
   const [isTextureMenuOpen, setIsTextureMenuOpen] = useState(false);
   const [isAmbienceOn, setIsAmbienceOn] = useState(false);
@@ -568,7 +568,6 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
     if (!fgRef.current || !graphData) return;
 
     if (!clusterName) {
-      onResetVisibleClusters3D();
       resetView();
       return;
     }
@@ -780,7 +779,6 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
     focusNodeById,
     userProfile,
     onEnsureClusterVisible3D,
-    onResetVisibleClusters3D,
   ]);
 
   // Navigation Flight Loop (WASD + Mouse Steering)
@@ -1511,16 +1509,36 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
               >
                 Family Presets {isPresetsOpen ? '▴' : '▾'}
               </Button>
-              <TextureMenuSpring isOpen={isPresetsOpen} maxHeightOpen={380}>
-                <div style={{ marginTop: '4px', backgroundColor: 'rgba(42, 42, 42, 0.95)', borderRadius: '4px', overflow: 'hidden' }}>
+              <TextureMenuSpring isOpen={isPresetsOpen}>
+                <div style={{ marginTop: '4px', backgroundColor: 'rgba(42, 42, 42, 0.95)', borderRadius: '4px', overflow: 'hidden', maxHeight: '250px', overflowY: 'auto' }}>
                   <Button fullWidth size="small" sx={{ justifyContent: 'flex-start', color: !activePreset ? 'primary.main' : 'inherit' }} onClick={() => applyPreset(null)}>3D Global View</Button>
+                  <div style={{ padding: '8px 8px 4px', fontSize: '0.6rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>Families</div>
+                  {uniqueClusters.map((cluster) => (
+                    <Button key={cluster} fullWidth size="small" sx={{ justifyContent: 'flex-start', color: activePreset === cluster ? 'primary.main' : 'inherit' }} onClick={() => applyPreset(cluster)}>{cluster}</Button>
+                  ))}
+                </div>
+              </TextureMenuSpring>
+            </div>
+
+            <div ref={visibilityRef}>
+              <Button
+                variant="contained"
+                color="secondary"
+                size="small"
+                onClick={() => setIsVisibilityOpen(!isVisibilityOpen)}
+                sx={{ width: '100%', justifyContent: 'flex-start' }}
+              >
+                Family Visibility {isVisibilityOpen ? '▴' : '▾'}
+              </Button>
+              <TextureMenuSpring isOpen={isVisibilityOpen} maxHeightOpen={380}>
+                <div style={{ marginTop: '4px', backgroundColor: 'rgba(42, 42, 42, 0.95)', borderRadius: '4px', overflow: 'hidden' }}>
                   <div
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
                       alignItems: 'center',
                       padding: '4px 8px',
-                      borderTop: '1px solid rgba(255,255,255,0.05)',
+                      borderBottom: '1px solid rgba(255,255,255,0.05)',
                       gap: '8px',
                     }}
                   >
@@ -1539,7 +1557,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
                       None
                     </Button>
                   </div>
-                  <div style={{ padding: '8px 8px 4px', fontSize: '0.6rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>Families</div>
+                  <div style={{ padding: '8px 8px 4px', fontSize: '0.6rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Families</div>
                   <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
                     {uniqueClusters.map((cluster) => (
                       <div
@@ -1564,14 +1582,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
                           inputProps={{ 'aria-label': `Show ${cluster} family in 3D` }}
                           sx={{ p: 0.5, color: 'rgba(255,255,255,0.5)', '&.Mui-checked': { color: 'secondary.main' } }}
                         />
-                        <Button
-                          fullWidth
-                          size="small"
-                          sx={{ justifyContent: 'flex-start', color: activePreset === cluster ? 'primary.main' : 'inherit', flex: 1, minWidth: 0 }}
-                          onClick={() => applyPreset(cluster)}
-                        >
-                          {cluster}
-                        </Button>
+                        <span style={{ flex: 1, fontSize: '0.8125rem', color: '#e5e7eb', paddingRight: '8px' }}>{cluster}</span>
                       </div>
                     ))}
                   </div>

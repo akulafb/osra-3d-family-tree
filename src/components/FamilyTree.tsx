@@ -114,10 +114,6 @@ export const FamilyTree: React.FC = () => {
     });
   }, []);
 
-  const resetVisibleClusters3D = useCallback(() => {
-    setVisibleClusters3D(new Set(uniqueClusters));
-  }, [uniqueClusters]);
-
   const handleNodeSelect = useCallback((node: FamilyNode) => {
     setSelectedNode(prev => prev?.id === node.id ? null : node);
   }, []);
@@ -473,7 +469,6 @@ export const FamilyTree: React.FC = () => {
             visibleClusters3D={visibleClusters3D}
             onVisibleClusters3DChange={setVisibleClusters3D}
             uniqueClusters={uniqueClusters}
-            onResetVisibleClusters3D={resetVisibleClusters3D}
             onEnsureClusterVisible3D={ensureClusterVisible3D}
             seeWhosNewButtonSlot={
               showSeeWhosNewButton && newMembers.length > 0 ? (
