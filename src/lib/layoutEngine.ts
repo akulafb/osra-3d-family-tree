@@ -14,9 +14,17 @@ const DEFAULT_CONFIG: LayoutConfig = {
 function getParentPreferenceScore(
   parentNode: FamilyNode | undefined,
   childNode: FamilyNode | undefined,
-  link: FamilyLink | undefined
+  link: FamilyLink | undefined,
+  viewCluster?: string
 ): number {
   if (!parentNode || !childNode) return 100;
+
+  // 2D cluster preset: matrilineal children attach under the in-cluster parent (usually mother)
+  // before generic father preference, so missing parent_role in the DB does not hide them under dad.
+  if (viewCluster && childNode.maternalFamilyCluster === viewCluster) {
+    if (link?.parentRole === 'mother') return -1;
+    if (parentNode.familyCluster === viewCluster) return -1;
+  }
 
   if (link?.parentRole === 'father') return 0;
   if (parentNode.familyCluster && childNode.familyCluster && parentNode.familyCluster === childNode.familyCluster) {
@@ -33,15 +41,16 @@ function shouldPreferLayoutParent(
   childNode: FamilyNode | undefined,
   nodesById: Map<string, FamilyNode>,
   currentLink: FamilyLink | undefined,
-  candidateLink: FamilyLink | undefined
+  candidateLink: FamilyLink | undefined,
+  viewCluster?: string
 ): boolean {
   if (!currentParentId) return true;
 
   const currentParentNode = nodesById.get(currentParentId);
   const candidateParentNode = nodesById.get(candidateParentId);
 
-  const currentScore = getParentPreferenceScore(currentParentNode, childNode, currentLink);
-  const candidateScore = getParentPreferenceScore(candidateParentNode, childNode, candidateLink);
+  const currentScore = getParentPreferenceScore(currentParentNode, childNode, currentLink, viewCluster);
+  const candidateScore = getParentPreferenceScore(candidateParentNode, childNode, candidateLink, viewCluster);
 
   if (candidateScore !== currentScore) {
     return candidateScore < currentScore;
@@ -191,7 +200,8 @@ function buildHierarchy(
           childNode,
           nodesById,
           currentParentLink,
-          link
+          link,
+          clusterName
         )
       ) {
         canonicalParentOf.set(targetId, sourceId);
