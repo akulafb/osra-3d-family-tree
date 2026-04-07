@@ -1,0 +1,11 @@
+---
+description: Never implement on main; use Linear-named feature branches unless the user explicitly allows main.
+alwaysApply: true
+---
+
+# Git — default branch and Linear work
+
+- **Do not** implement features, fixes, or refactors directly on `main` unless the user **explicitly** says to work on `main` (e.g. “do this on main”, “commit to main”).
+- For work tied to a Linear issue, create or use a **feature branch** named from the issue, e.g. `lin-34-short-description` or match the issue’s suggested git branch name when available.
+- Start new work by branching from an up-to-date `main` (or the agreed base), not by committing unreviewed changes on `main`.
+- If you discover uncommitted work on `main`, move it to a feature branch (checkout `-b`, commit there) so `main` stays clean unless the user says otherwise.

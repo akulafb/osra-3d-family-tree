@@ -6,19 +6,20 @@ import ForceGraph3D from 'react-force-graph-3d';
 import SpriteText from 'three-spritetext';
 import * as THREE from 'three';
 import Button from '@mui/material/Button';
+import Checkbox from '@mui/material/Checkbox';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import { FamilyGraph, FamilyNode } from '../types/graph';
 import { useAuth } from '../contexts/AuthContext';
-import { FamilyLink } from '../lib/permissions';
 import { createStarfield, type NebulaData } from '../utils/starfield';
 import { isMobile } from '../utils/device';
 import type { BackgroundTheme } from '../hooks/useBackgroundTheme';
 import { getTexturePath } from '../utils/imageFormat';
 import { getClusterColor } from '../utils/familyColors';
 import { getNodeId } from '../utils/getNodeId';
+import { filterGraphDataFor3D } from '../lib/filterGraphData';
 import { TreeSearchBar } from './TreeSearchBar';
 
 // V3 Shared Assets - paths resolved at runtime for WebP when supported
@@ -126,29 +127,6 @@ const getMaterial = (color: string, isMobileDevice: boolean = false) => {
   return materialCache.get(color)!;
 };
 
-const getDescendantIds = (nodeId: string, links: FamilyLink[]): string[] => {
-  const descendants: string[] = [];
-  const queue = [nodeId];
-  const visited = new Set<string>();
-
-  while (queue.length > 0) {
-    const currentId = queue.shift()!;
-    if (visited.has(currentId)) continue;
-    visited.add(currentId);
-
-    const children = links
-      .filter(l => {
-        const sourceId = getNodeId(l.source);
-        return sourceId === currentId && l.type === 'parent';
-      })
-      .map(l => getNodeId(l.target));
-
-    descendants.push(...children);
-    queue.push(...children);
-  }
-  return descendants;
-};
-
 function SettingsPanelSpring({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) {
   const spring = useSpring({
     maxHeight: isOpen ? 800 : 0,
@@ -162,9 +140,17 @@ function SettingsPanelSpring({ isOpen, children }: { isOpen: boolean; children: 
   );
 }
 
-function TextureMenuSpring({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) {
+function TextureMenuSpring({
+  isOpen,
+  children,
+  maxHeightOpen = 200,
+}: {
+  isOpen: boolean;
+  children: React.ReactNode;
+  maxHeightOpen?: number;
+}) {
   const spring = useSpring({
-    maxHeight: isOpen ? 200 : 0,
+    maxHeight: isOpen ? maxHeightOpen : 0,
     opacity: isOpen ? 1 : 0,
     config: { tension: 300, friction: 30 },
   });
@@ -201,6 +187,11 @@ interface FamilyTree3DProps {
   searchDisabled?: boolean;
   backgroundTheme?: BackgroundTheme;
   onBackgroundThemeChange?: (theme: BackgroundTheme) => void;
+  /** 3D-only: which paternal family clusters are visible in the force graph */
+  visibleClusters3D: Set<string>;
+  onVisibleClusters3DChange: React.Dispatch<React.SetStateAction<Set<string>>>;
+  uniqueClusters: string[];
+  onEnsureClusterVisible3D: (cluster: string) => void;
   /** Optional "See who's new!" control; rendered above NAV CONTROLS, same column */
   seeWhosNewButtonSlot?: React.ReactNode;
   /** Dashed preview edge while Add Relative connect-to-existing is focused */
@@ -232,6 +223,10 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   searchDisabled = false,
   backgroundTheme = 'deep-space',
   onBackgroundThemeChange,
+  visibleClusters3D,
+  onVisibleClusters3DChange,
+  uniqueClusters,
+  onEnsureClusterVisible3D,
   seeWhosNewButtonSlot,
   pendingLinkPreview = null,
 }) => {
@@ -265,6 +260,13 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   const [isSimulationLoading, setIsSimulationLoading] = useState(true);
   const [activePreset, setActivePreset] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (activePreset && !visibleClusters3D.has(activePreset)) {
+      setActivePreset(null);
+      fgRef.current?.d3ReheatSimulation?.();
+    }
+  }, [activePreset, visibleClusters3D]);
+
   // V3 Features: Toggles
   const [showNames, setShowNames] = useState(true);
   const [showLinks, setShowLinks] = useState(true);
@@ -272,7 +274,9 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   const [nodeTexture, setNodeTexture] = useState<'spheres' | 'planets' | 'none'>('spheres');
   const [showArrows, setShowArrows] = useState(false);
   const [isPresetsOpen, setIsPresetsOpen] = useState(false);
+  const [isVisibilityOpen, setIsVisibilityOpen] = useState(false);
   const presetsRef = useRef<HTMLDivElement>(null);
+  const visibilityRef = useRef<HTMLDivElement>(null);
   const textureRef = useRef<HTMLDivElement>(null);
   const [isTextureMenuOpen, setIsTextureMenuOpen] = useState(false);
   const [isAmbienceOn, setIsAmbienceOn] = useState(false);
@@ -315,14 +319,6 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
     };
   }, [isAmbienceOn]);
 
-  // Get unique clusters for presets
-  const uniqueClusters = React.useMemo(() => {
-    if (!graphData?.nodes) return [];
-    const clusters = new Set<string>();
-    graphData.nodes.forEach(n => { if (n.familyCluster) clusters.add(n.familyCluster); });
-    return Array.from(clusters).sort();
-  }, [graphData]);
-
   // Use external collapsed nodes if provided
   const effectiveCollapsedNodes = externalCollapsedNodes || new Set();
   const effectiveSetCollapsedNodes = externalSetCollapsedNodes || (() => {});
@@ -332,35 +328,25 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
     try {
       if (!graphData) return { nodes: [], links: [] };
 
-      const hiddenNodes = new Set<string>();
-      effectiveCollapsedNodes.forEach(id => {
-        const descendants = getDescendantIds(id, graphData.links as FamilyLink[]);
-        descendants.forEach(dId => hiddenNodes.add(dId));
-      });
-
-      const visibleNodes = graphData.nodes.filter(n => !hiddenNodes.has(n.id));
-      const visibleIds = new Set(visibleNodes.map(n => n.id));
-
-      const filtered = {
-        nodes: visibleNodes,
-        links: (graphData.links as any[]).filter(l => {
-          const sourceId = getNodeId(l.source);
-          const targetId = getNodeId(l.target);
-          if (!sourceId || !targetId) return false;
-          // Both endpoints must exist on visible nodes (drops orphan links + hidden endpoints)
-          return visibleIds.has(sourceId) && visibleIds.has(targetId);
-        })
-      };
+      const filtered = filterGraphDataFor3D(
+        graphData,
+        effectiveCollapsedNodes,
+        visibleClusters3D,
+        uniqueClusters
+      );
 
       if (pendingLinkPreview) {
         const { anchorId, existingId } = pendingLinkPreview;
         const anchorVisible = filtered.nodes.some(n => n.id === anchorId);
         const existingVisible = filtered.nodes.some(n => n.id === existingId);
         if (anchorVisible && existingVisible) {
-          filtered.links = [
-            ...filtered.links,
-            { source: anchorId, target: existingId, type: 'preview' },
-          ];
+          return {
+            ...filtered,
+            links: [
+              ...filtered.links,
+              { source: anchorId, target: existingId, type: 'preview' },
+            ],
+          };
         }
       }
 
@@ -369,7 +355,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       console.error('[FamilyTree3D] Error filtering graph data:', err);
       return { nodes: [], links: [] };
     }
-  }, [graphData, effectiveCollapsedNodes, pendingLinkPreview]);
+  }, [graphData, effectiveCollapsedNodes, visibleClusters3D, uniqueClusters, pendingLinkPreview]);
 
   // three-forcegraph multiplies linkOpacity as a number (arrows use state.linkOpacity * 3).
   // Per-link visibility must use linkVisibility, not a function passed to linkOpacity.
@@ -588,11 +574,15 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
 
     if (clusterName === 'me') {
       if (userProfile?.node_id) {
+        const meNode = graphData.nodes.find((n) => n.id === userProfile.node_id);
+        const c = meNode?.familyCluster || meNode?.maternalFamilyCluster;
+        if (c) onEnsureClusterVisible3D(c);
         focusNodeById(userProfile.node_id);
       }
       return;
     }
 
+    onEnsureClusterVisible3D(clusterName);
     setActivePreset(clusterName);
     const levels = calculateGenerationLevels(clusterName);
     const generationHeight = 250; // Increased for better vertical clarity
@@ -782,7 +772,14 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
     const rep = graphData.nodes.find(n => n.familyCluster === clusterName);
     
     if (rep) focusNodeById(rep.id);
-  }, [graphData, calculateGenerationLevels, resetView, focusNodeById, userProfile]);
+  }, [
+    graphData,
+    calculateGenerationLevels,
+    resetView,
+    focusNodeById,
+    userProfile,
+    onEnsureClusterVisible3D,
+  ]);
 
   // Navigation Flight Loop (WASD + Mouse Steering)
   useEffect(() => {
@@ -879,14 +876,15 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       
       if (key === 'r') {
         setIsSteeringActive(prev => !prev);
-      } else if (key === 'tab') {
+      } else       if (key === 'tab') {
         e.preventDefault();
-        if (graphData?.nodes?.length) {
-          const idx = selectedNode ? graphData.nodes.findIndex(n => n.id === selectedNode.id) : -1;
-          const next = e.shiftKey 
-            ? (idx <= 0 ? graphData.nodes.length - 1 : idx - 1) 
-            : (idx + 1) % graphData.nodes.length;
-          handleNodeClick(graphData.nodes[next]);
+        const cycleNodes = filteredGraphData.nodes;
+        if (cycleNodes.length) {
+          const idx = selectedNode ? cycleNodes.findIndex(n => n.id === selectedNode.id) : -1;
+          const next = e.shiftKey
+            ? (idx <= 0 ? cycleNodes.length - 1 : idx - 1)
+            : (idx + 1) % cycleNodes.length;
+          handleNodeClick(cycleNodes[next]);
         }
       } else if (key === 'enter' || key === ' ') {
         if (selectedNode) {
@@ -928,7 +926,15 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       window.removeEventListener('mouseleave', onOut);
       window.removeEventListener('mouseenter', onIn);
     };
-  }, [graphData, selectedNode, handleNodeClick, isAddModalOpen, isEditModalOpen, isBulkInviteOpen]);
+  }, [
+    graphData,
+    filteredGraphData.nodes,
+    selectedNode,
+    handleNodeClick,
+    isAddModalOpen,
+    isEditModalOpen,
+    isBulkInviteOpen,
+  ]);
 
   // Node UI
   const nodeThreeObject = useCallback((node: FamilyNode) => {
@@ -1345,7 +1351,17 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
         <SettingsPanelSpring isOpen={showControls}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '180px', backgroundColor: 'rgba(30, 30, 40, 0.95)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
             {userProfile?.node_id && (
-              <Button variant="contained" color="success" size="small" onClick={() => focusNodeById(userProfile!.node_id!)}>
+              <Button
+                variant="contained"
+                color="success"
+                size="small"
+                onClick={() => {
+                  const meNode = graphData?.nodes?.find((n) => n.id === userProfile.node_id);
+                  const c = meNode?.familyCluster || meNode?.maternalFamilyCluster;
+                  if (c) onEnsureClusterVisible3D(c);
+                  focusNodeById(userProfile.node_id!);
+                }}
+              >
                 Find me!
               </Button>
             )}
@@ -1497,9 +1513,79 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
                 <div style={{ marginTop: '4px', backgroundColor: 'rgba(42, 42, 42, 0.95)', borderRadius: '4px', overflow: 'hidden', maxHeight: '250px', overflowY: 'auto' }}>
                   <Button fullWidth size="small" sx={{ justifyContent: 'flex-start', color: !activePreset ? 'primary.main' : 'inherit' }} onClick={() => applyPreset(null)}>3D Global View</Button>
                   <div style={{ padding: '8px 8px 4px', fontSize: '0.6rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>Families</div>
-                  {uniqueClusters.map(cluster => (
+                  {uniqueClusters.map((cluster) => (
                     <Button key={cluster} fullWidth size="small" sx={{ justifyContent: 'flex-start', color: activePreset === cluster ? 'primary.main' : 'inherit' }} onClick={() => applyPreset(cluster)}>{cluster}</Button>
                   ))}
+                </div>
+              </TextureMenuSpring>
+            </div>
+
+            <div ref={visibilityRef}>
+              <Button
+                variant="contained"
+                color="secondary"
+                size="small"
+                onClick={() => setIsVisibilityOpen(!isVisibilityOpen)}
+                sx={{ width: '100%', justifyContent: 'flex-start' }}
+              >
+                Family Visibility {isVisibilityOpen ? '▴' : '▾'}
+              </Button>
+              <TextureMenuSpring isOpen={isVisibilityOpen} maxHeightOpen={380}>
+                <div style={{ marginTop: '4px', backgroundColor: 'rgba(42, 42, 42, 0.95)', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '4px 8px',
+                      borderBottom: '1px solid rgba(255,255,255,0.05)',
+                      gap: '8px',
+                    }}
+                  >
+                    <Button
+                      size="small"
+                      sx={{ minWidth: 0, fontSize: '0.7rem', textTransform: 'none', color: 'rgba(255,255,255,0.7)' }}
+                      onClick={() => onVisibleClusters3DChange(new Set(uniqueClusters))}
+                    >
+                      All
+                    </Button>
+                    <Button
+                      size="small"
+                      sx={{ minWidth: 0, fontSize: '0.7rem', textTransform: 'none', color: 'rgba(255,255,255,0.7)' }}
+                      onClick={() => onVisibleClusters3DChange(new Set())}
+                    >
+                      None
+                    </Button>
+                  </div>
+                  <div style={{ padding: '8px 8px 4px', fontSize: '0.6rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Families</div>
+                  <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                    {uniqueClusters.map((cluster) => (
+                      <div
+                        key={cluster}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          borderBottom: '1px solid rgba(255,255,255,0.04)',
+                        }}
+                      >
+                        <Checkbox
+                          size="small"
+                          checked={visibleClusters3D.has(cluster)}
+                          onChange={() => {
+                            onVisibleClusters3DChange((prev) => {
+                              const n = new Set(prev);
+                              if (n.has(cluster)) n.delete(cluster);
+                              else n.add(cluster);
+                              return n;
+                            });
+                          }}
+                          inputProps={{ 'aria-label': `Show ${cluster} family in 3D` }}
+                          sx={{ p: 0.5, color: 'rgba(255,255,255,0.5)', '&.Mui-checked': { color: 'secondary.main' } }}
+                        />
+                        <span style={{ flex: 1, fontSize: '0.8125rem', color: '#e5e7eb', paddingRight: '8px' }}>{cluster}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </TextureMenuSpring>
             </div>

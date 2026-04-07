@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import Button from '@mui/material/Button';
 import FamilyTree3D from './FamilyTree3D';
 import { FamilyTree2D } from './FamilyTree2D';
@@ -9,7 +9,7 @@ import { useNewNodesSinceSignIn } from '../hooks/useNewNodesSinceSignIn';
 import { FamilyNode, FamilyLink } from '../types/graph';
 import { useAuth } from '../contexts/AuthContext';
 import { canEdit, canManageInvites } from '../lib/permissions';
-import { filterGraphData, getVisibleNodes3D } from '../lib/filterGraphData';
+import { filterGraphData, filterGraphDataFor3D } from '../lib/filterGraphData';
 import { searchNodes } from '../utils/treeSearch';
 import AddRelativeModal from './modals/AddRelativeModal';
 import EditNodeModal from './modals/EditNodeModal';
@@ -33,7 +33,9 @@ export const FamilyTree: React.FC = () => {
   const [newMembersModalOpen, setNewMembersModalOpen] = useState(false);
   const [collapsedNodes, setCollapsedNodes] = useState<Set<string>>(new Set());
   const [activePreset, setActivePreset] = useState<string | null>(null);
-  
+  const [visibleClusters3D, setVisibleClusters3D] = useState<Set<string>>(new Set());
+  const prevUniqueClustersRef = useRef<string[]>([]);
+
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -80,6 +82,38 @@ export const FamilyTree: React.FC = () => {
     return Array.from(clusters).sort();
   }, [graphData]);
 
+  useEffect(() => {
+    const oldList = prevUniqueClustersRef.current;
+    const oldSet = new Set(oldList);
+    setVisibleClusters3D((prev) => {
+      const next = new Set<string>();
+      if (prev.size === 0) {
+        uniqueClusters.forEach((c) => next.add(c));
+        prevUniqueClustersRef.current = [...uniqueClusters];
+        return next;
+      }
+      for (const name of uniqueClusters) {
+        if (!oldSet.has(name)) {
+          next.add(name);
+        } else if (prev.has(name)) {
+          next.add(name);
+        }
+      }
+      prevUniqueClustersRef.current = [...uniqueClusters];
+      return next;
+    });
+  }, [uniqueClusters]);
+
+  const ensureClusterVisible3D = useCallback((cluster: string) => {
+    if (!cluster) return;
+    setVisibleClusters3D((prev) => {
+      if (prev.has(cluster)) return prev;
+      const n = new Set(prev);
+      n.add(cluster);
+      return n;
+    });
+  }, []);
+
   const handleNodeSelect = useCallback((node: FamilyNode) => {
     setSelectedNode(prev => prev?.id === node.id ? null : node);
   }, []);
@@ -120,11 +154,16 @@ export const FamilyTree: React.FC = () => {
   const visibleNodes = useMemo(() => {
     if (!graphData) return [];
     if (mode === '3D') {
-      return getVisibleNodes3D(graphData, collapsedNodes);
+      return filterGraphDataFor3D(
+        graphData,
+        collapsedNodes,
+        visibleClusters3D,
+        uniqueClusters
+      ).nodes;
     }
     const filtered = filterGraphData(graphData, collapsedNodes, activePreset);
     return filtered.nodes;
-  }, [graphData, mode, collapsedNodes, activePreset]);
+  }, [graphData, mode, collapsedNodes, activePreset, visibleClusters3D, uniqueClusters]);
 
   const searchMatches = useMemo(
     () => searchNodes(visibleNodes, searchQuery),
@@ -427,6 +466,10 @@ export const FamilyTree: React.FC = () => {
             searchOpenRequested={searchOpenRequested}
             searchNavigateTrigger={searchNavigateTrigger}
             searchDisabled={false}
+            visibleClusters3D={visibleClusters3D}
+            onVisibleClusters3DChange={setVisibleClusters3D}
+            uniqueClusters={uniqueClusters}
+            onEnsureClusterVisible3D={ensureClusterVisible3D}
             seeWhosNewButtonSlot={
               showSeeWhosNewButton && newMembers.length > 0 ? (
                 <Button

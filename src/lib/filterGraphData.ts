@@ -67,6 +67,14 @@ export function filterGraphData(
     });
   }
 
+  return applyCollapsedNodesFilter(nodes, links, collapsedNodes);
+}
+
+function applyCollapsedNodesFilter(
+  nodes: FamilyGraph['nodes'],
+  links: FamilyGraph['links'],
+  collapsedNodes: Set<string>
+): FamilyGraph {
   if (collapsedNodes.size === 0) return { nodes, links };
 
   const hiddenNodes = new Set<string>();
@@ -107,6 +115,67 @@ export function filterGraphData(
       return !hiddenNodes.has(sourceId) && !hiddenNodes.has(targetId);
     }),
   };
+}
+
+function allClustersVisible(
+  visibleClusters: ReadonlySet<string>,
+  allClusterNames: readonly string[]
+): boolean {
+  if (allClusterNames.length === 0) return true;
+  if (visibleClusters.size !== allClusterNames.length) return false;
+  return allClusterNames.every((c) => visibleClusters.has(c));
+}
+
+/**
+ * 3D-only: filter by union of selected **paternal** family clusters (`familyCluster` only — same
+ * field as the visibility checkboxes). Does not match `maternalFamilyCluster`, so children whose
+ * surname line is another family (e.g. mother’s cluster) are excluded when only her line is selected.
+ * 2D {@link filterGraphData} still uses paternal OR maternal for its single-preset view.
+ * Then collapsed subtrees. Empty `visibleClusters` → empty graph; all names selected → full graph.
+ */
+export function filterGraphDataFor3D(
+  graphData: FamilyGraph,
+  collapsedNodes: Set<string>,
+  visibleClusters: ReadonlySet<string>,
+  allClusterNames: readonly string[]
+): FamilyGraph {
+  if (!graphData?.nodes) return { nodes: [], links: [] };
+
+  if (allClusterNames.length === 0) {
+    return applyCollapsedNodesFilter(graphData.nodes, graphData.links, collapsedNodes);
+  }
+
+  if (visibleClusters.size === 0) {
+    return { nodes: [], links: [] };
+  }
+
+  if (allClustersVisible(visibleClusters, allClusterNames)) {
+    return applyCollapsedNodesFilter(graphData.nodes, graphData.links, collapsedNodes);
+  }
+
+  const V = visibleClusters;
+  let nodes = graphData.nodes;
+  let links = graphData.links;
+
+  const getLinkKey = (sourceId: string, targetId: string, type: string) =>
+    `${sourceId}|${targetId}|${type}`;
+
+  nodes = nodes.filter((n) => !!(n.familyCluster && V.has(n.familyCluster)));
+  const nodeIds = new Set(nodes.map((n) => n.id));
+  const visibleLinkKeys = new Set<string>();
+
+  links = links.filter((l) => {
+    const sourceId = getNodeId(l.source);
+    const targetId = getNodeId(l.target);
+    if (!nodeIds.has(sourceId) || !nodeIds.has(targetId)) return false;
+
+    const key = getLinkKey(sourceId, targetId, l.type);
+    if (visibleLinkKeys.has(key)) return false;
+    visibleLinkKeys.add(key);
+    return true;
+  });
+
+  return applyCollapsedNodesFilter(nodes, links, collapsedNodes);
 }
 
 /**
