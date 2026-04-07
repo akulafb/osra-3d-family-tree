@@ -48,6 +48,14 @@ CREATE POLICY nodes_insert_by_bound_users ON public.nodes
     ))
   );
 
+-- LIN-33: Admins can create standalone nodes (no bound node_id required)
+CREATE POLICY nodes_insert_admin ON public.nodes
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    is_admin()
+    AND (created_by_user_id = (select auth.uid()::text))
+  );
+
 CREATE POLICY nodes_update_1degree_or_admin ON public.nodes
   FOR UPDATE TO authenticated
   USING (is_admin() OR is_within_1_degree(id))

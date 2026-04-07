@@ -1,0 +1,29 @@
+-- LIN-33: Admin can insert nodes without being bound; users.node_id references nodes with ON DELETE SET NULL.
+
+-- -----------------------------------------------------------------------------
+-- Clean dangling node_id before adding FK (existing rows may reference deleted nodes)
+-- -----------------------------------------------------------------------------
+UPDATE public.users u
+SET node_id = NULL
+WHERE u.node_id IS NOT NULL
+  AND NOT EXISTS (SELECT 1 FROM public.nodes n WHERE n.id = u.node_id);
+
+-- -----------------------------------------------------------------------------
+-- FK: when a node is deleted, clear users.node_id instead of dangling UUIDs
+-- -----------------------------------------------------------------------------
+ALTER TABLE public.users
+  ADD CONSTRAINT users_node_id_fkey
+  FOREIGN KEY (node_id)
+  REFERENCES public.nodes(id)
+  ON DELETE SET NULL;
+
+-- -----------------------------------------------------------------------------
+-- RLS: allow admins to insert nodes (e.g. orphan person) without bound node_id
+-- -----------------------------------------------------------------------------
+-- DEV DB stores created_by_user_id as text; cast auth.uid() so the policy compiles.
+CREATE POLICY nodes_insert_admin ON public.nodes
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    is_admin()
+    AND (created_by_user_id = (select auth.uid()::text))
+  );

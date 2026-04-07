@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { dropOrphanLinks } from '../lib/sanitizeFamilyGraph';
 import { FamilyGraph, FamilyNode, FamilyLink } from '../types/graph';
+import type { Database } from '../types/database';
+
+type NodeRow = Database['public']['Tables']['nodes']['Row'];
+type LinkRow = Database['public']['Tables']['links']['Row'];
 
 export function useFamilyData() {
   const { session } = useAuth();
@@ -86,7 +90,7 @@ export function useFamilyData() {
             claimedNodeIds = new Set(claimed.filter(Boolean).map(String));
           }
         }
-      } catch (err) {
+      } catch {
         // Non-fatal: tree still works without claim indicators
       }
 
@@ -95,16 +99,17 @@ export function useFamilyData() {
       }
 
       // Transform Supabase data to FamilyGraph format
-      const nodes: FamilyNode[] = (nodesData || []).map((node: any) => ({
+      const nodes: FamilyNode[] = ((nodesData ?? []) as NodeRow[]).map((node) => ({
         id: node.id,
         firstName: node.first_name,
         createdAt: typeof node.created_at === 'string' ? node.created_at : undefined,
-        familyCluster: node.paternal_family_cluster ?? node.family_cluster ?? undefined,
+        familyCluster: node.paternal_family_cluster ?? undefined,
         maternalFamilyCluster: node.maternal_family_cluster || undefined,
         isClaimed: claimedNodeIds.has(String(node.id)),
       }));
 
-      const links: FamilyLink[] = (linksData || []).map((link: any) => ({
+      const links: FamilyLink[] = ((linksData ?? []) as LinkRow[]).map((link) => ({
+        id: String(link.id),
         source: link.source_node_id,
         target: link.target_node_id,
         type: link.type as 'parent' | 'marriage' | 'divorce',
@@ -120,7 +125,10 @@ export function useFamilyData() {
         );
       }
 
-      setGraphData({ nodes, links: safeLinks });
+      // Shallow-clone links so react-force-graph cannot replace string endpoints with object refs in React state.
+      const linksForState = safeLinks.map((l) => ({ ...l }));
+
+      setGraphData({ nodes, links: linksForState });
       setIsLoading(false);
     } catch (err) {
       console.error('[useFamilyData] Error fetching family data:', err);
