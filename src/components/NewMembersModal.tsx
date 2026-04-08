@@ -32,8 +32,8 @@ export const NewMembersModal: React.FC<NewMembersModalProps> = ({ open, onClose,
       open={open}
       onClose={onClose}
       maxWidth={false}
-      PaperProps={{
-        sx: {
+      sx={{
+        '& .MuiDialog-paper': {
           maxWidth: 300,
           width: '100%',
           mx: 2,
@@ -48,8 +48,7 @@ export const NewMembersModal: React.FC<NewMembersModalProps> = ({ open, onClose,
               <ListItemText
                 primary={n.firstName || 'Unknown'}
                 secondary={clusterLine(n)}
-                primaryTypographyProps={{ align: 'center', component: 'div' }}
-                secondaryTypographyProps={{ align: 'center' }}
+                sx={{ textAlign: 'center' }}
               />
             </ListItem>
           ))}

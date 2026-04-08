@@ -205,7 +205,7 @@ export default function EditNodeModal({
           {/* Show current cluster for non-admins */}
           {!isAdmin && targetNode.familyCluster && (
             <div style={infoBoxStyle}>
-              <strong style={{ fontSize: '0.65rem', letterSpacing: '0.05em', display: 'block', mb: 0.5 }}>FAMILY CLUSTER</strong>
+              <strong style={{ fontSize: '0.65rem', letterSpacing: '0.05em', display: 'block', marginBottom: '4px' }}>FAMILY CLUSTER</strong>
               <span style={{ fontSize: '0.9rem', color: 'white' }}>{targetNode.familyCluster}</span>
             </div>
           )}

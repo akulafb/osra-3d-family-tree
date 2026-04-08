@@ -14,7 +14,6 @@ import { calculateLayout, calculateBounds } from '../lib/layoutEngine';
 import { NodeCard } from './NodeCard';
 import { OrthogonalLinks } from './OrthogonalLinks';
 import { getNodeId } from '../utils/getNodeId';
-import { getClusterColor } from '../utils/familyColors';
 import { filterGraphData } from '../lib/filterGraphData';
 import { TreeSearchBar } from './TreeSearchBar';
 import type { BackgroundTheme } from '../hooks/useBackgroundTheme';

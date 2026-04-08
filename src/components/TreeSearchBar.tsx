@@ -1,5 +1,4 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import Paper from '@mui/material/Paper';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -141,9 +140,11 @@ export function TreeSearchBar({
           onKeyDown={handleKeyDown}
           placeholder={disabled ? 'Select a family to search' : placeholder}
           disabled={disabled}
-          inputProps={{
-            dir: 'auto',
-            'aria-label': 'Search family tree',
+          slotProps={{
+            htmlInput: {
+              dir: 'auto',
+              'aria-label': 'Search family tree',
+            }
           }}
           sx={textFieldSx}
         />
@@ -179,9 +180,11 @@ export function TreeSearchBar({
         onKeyDown={handleKeyDown}
         placeholder={disabled ? 'Select a family to search' : placeholder}
         disabled={disabled}
-        inputProps={{
-          dir: 'auto',
-          'aria-label': 'Search family tree',
+        slotProps={{
+          htmlInput: {
+            dir: 'auto',
+            'aria-label': 'Search family tree',
+          }
         }}
         sx={{ flex: 1, minWidth: 220, ...textFieldSx }}
       />

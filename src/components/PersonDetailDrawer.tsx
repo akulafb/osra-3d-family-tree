@@ -58,8 +58,8 @@ export const PersonDetailDrawer: React.FC<PersonDetailDrawerProps> = ({
       open={!!selectedNode}
       onClose={onClose}
       variant="persistent"
-      PaperProps={{
-        sx: {
+      sx={{
+        '& .MuiDrawer-paper': {
           width: { xs: '100%', sm: 400 },
           background: 'rgba(5, 5, 5, 0.75)',
           backdropFilter: 'blur(24px)',

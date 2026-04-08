@@ -1,5 +1,3 @@
-// src/components/FamilyTree3D.tsx
-
 import React, { useCallback, useRef, useState, useEffect, useMemo } from 'react';
 import { useSpring, animated } from 'react-spring';
 import ForceGraph3D from 'react-force-graph-3d';
@@ -19,7 +17,7 @@ import { createStarfield, type NebulaData } from '../utils/starfield';
 import { isMobile } from '../utils/device';
 import type { BackgroundTheme } from '../hooks/useBackgroundTheme';
 import { getTexturePath } from '../utils/imageFormat';
-import { getClusterColor } from '../utils/familyColors';
+import { getClusterColors } from '../utils/familyColors';
 import { getNodeId } from '../utils/getNodeId';
 import { filterGraphDataFor3D } from '../lib/filterGraphData';
 import { TreeSearchBar } from './TreeSearchBar';
@@ -964,7 +962,8 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
     try {
       const isMob = isMobile();
       const isSelected = selectedNode?.id === node.id;
-      const color = getClusterColor(node.familyCluster);
+      const colors = getClusterColors(node.familyCluster);
+      const color = colors.border;
       const group = new THREE.Group();
 
       if (nodeTexture !== 'none') {
