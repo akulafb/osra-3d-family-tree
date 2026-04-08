@@ -288,6 +288,20 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   const [isStarfieldLoading, setIsStarfieldLoading] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [showNavControls, setShowNavControls] = useState(false);
+  const [isMobileDevice, setIsMobileDevice] = useState(
+    () => typeof window !== 'undefined' && isMobile()
+  );
+
+  useEffect(() => {
+    const update = () => {
+      const mob = isMobile();
+      setIsMobileDevice(mob);
+      if (mob) setShowNavControls(false);
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
 
   // Navigation state for WASD/Mouse Steering
   const [isSteeringActive, setIsSteeringActive] = useState(false);
@@ -1625,43 +1639,47 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
         }}
       >
         {seeWhosNewButtonSlot}
-        <Button
-          variant="outlined"
-          onClick={() => setShowNavControls(!showNavControls)}
-          sx={{
-            backgroundColor: 'rgba(30, 30, 40, 0.95)',
-            borderColor: 'rgba(255,255,255,0.1)',
-            color: '#e5e7eb',
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            letterSpacing: '1px',
-            '&:hover': { borderColor: 'rgba(255,255,255,0.2)', backgroundColor: 'rgba(30, 30, 40, 0.95)' },
-          }}
-        >
-          NAV CONTROLS 👁️ {showNavControls ? '▴' : '▾'}
-        </Button>
-        <SettingsPanelSpring isOpen={showNavControls}>
-          <div style={{
-            marginTop: '8px',
-            backgroundColor: 'rgba(30, 30, 40, 0.95)',
-            padding: '8px 12px',
-            borderRadius: '8px',
-            color: '#e5e7eb',
-            fontSize: '0.7rem',
-            border: '1px solid rgba(255,255,255,0.1)',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
-            minWidth: '180px',
-          }}>
-            <div style={{ lineHeight: '1.6' }}>
-              <div><span style={{ color: isSteeringActive ? '#10b981' : '#fbbf24', fontWeight: 600 }}>R</span>: Mouse Steering <span style={{ color: isSteeringActive ? '#10b981' : '#fbbf24' }}>({isSteeringActive ? 'ACTIVE' : 'LOCKED'})</span></div>
-              <div><span style={{ color: '#fff', fontWeight: 600 }}>WASD</span>: Move (Hold <span style={{ color: '#fff', fontWeight: 600 }}>Shift</span> for Boost)</div>
-              <div><span style={{ color: '#fff', fontWeight: 600 }}>Q / E</span>: Roll View L / R</div>
-              <div><span style={{ color: '#fff', fontWeight: 600 }}>Tab</span>: Cycle Names</div>
-              <div><span style={{ color: '#fff', fontWeight: 600 }}>Enter</span>: Focus selection</div>
-              <div><span style={{ color: '#fff', fontWeight: 600 }}>Esc</span>: Deselect</div>
-            </div>
-          </div>
-        </SettingsPanelSpring>
+        {!isMobileDevice && (
+          <>
+            <Button
+              variant="outlined"
+              onClick={() => setShowNavControls(!showNavControls)}
+              sx={{
+                backgroundColor: 'rgba(30, 30, 40, 0.95)',
+                borderColor: 'rgba(255,255,255,0.1)',
+                color: '#e5e7eb',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                letterSpacing: '1px',
+                '&:hover': { borderColor: 'rgba(255,255,255,0.2)', backgroundColor: 'rgba(30, 30, 40, 0.95)' },
+              }}
+            >
+              NAV CONTROLS 👁️ {showNavControls ? '▴' : '▾'}
+            </Button>
+            <SettingsPanelSpring isOpen={showNavControls}>
+              <div style={{
+                marginTop: '8px',
+                backgroundColor: 'rgba(30, 30, 40, 0.95)',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                color: '#e5e7eb',
+                fontSize: '0.7rem',
+                border: '1px solid rgba(255,255,255,0.1)',
+                boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+                minWidth: '180px',
+              }}>
+                <div style={{ lineHeight: '1.6' }}>
+                  <div><span style={{ color: isSteeringActive ? '#10b981' : '#fbbf24', fontWeight: 600 }}>R</span>: Mouse Steering <span style={{ color: isSteeringActive ? '#10b981' : '#fbbf24' }}>({isSteeringActive ? 'ACTIVE' : 'LOCKED'})</span></div>
+                  <div><span style={{ color: '#fff', fontWeight: 600 }}>WASD</span>: Move (Hold <span style={{ color: '#fff', fontWeight: 600 }}>Shift</span> for Boost)</div>
+                  <div><span style={{ color: '#fff', fontWeight: 600 }}>Q / E</span>: Roll View L / R</div>
+                  <div><span style={{ color: '#fff', fontWeight: 600 }}>Tab</span>: Cycle Names</div>
+                  <div><span style={{ color: '#fff', fontWeight: 600 }}>Enter</span>: Focus selection</div>
+                  <div><span style={{ color: '#fff', fontWeight: 600 }}>Esc</span>: Deselect</div>
+                </div>
+              </div>
+            </SettingsPanelSpring>
+          </>
+        )}
       </div>
     </div>
   );
