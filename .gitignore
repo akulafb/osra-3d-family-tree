@@ -38,3 +38,5 @@ supabase/.temp/
 # Confidential scripts
 supabase/scripts/
 scripts/generate-badran-additions.mjs
+.aidesigner/*
+!.aidesigner/.gitkeep

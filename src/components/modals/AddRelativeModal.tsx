@@ -253,20 +253,28 @@ export default function AddRelativeModal({
     <div style={overlayStyle}>
       <div style={panelStyle}>
         {isPreviewConnectMode && (
-          <p style={{ margin: '0 0 12px 0', fontSize: '0.85rem', color: '#7dd3fc' }}>
-            Preview: cyan dashed line shows the link that will be created. Pan or rotate the tree if needed.
+          <p style={{ margin: '0 0 16px 0', fontSize: '0.75rem', color: '#D4AF37', fontWeight: 600, letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+            Preview: cyan dashed line shows the link that will be created.
           </p>
         )}
-        <h2 style={{ marginTop: 0 }}>Add relative to {formatNodeDisplayName(targetNode)}</h2>
+        <h2 style={{ 
+          marginTop: 0, 
+          fontFamily: '"Lora", serif', 
+          fontSize: '1.5rem',
+          color: 'white',
+          marginBottom: '24px'
+        }}>
+          Add relative to {formatNodeDisplayName(targetNode)}
+        </h2>
 
         <form onSubmit={handleSubmit}>
           <div style={fieldStyle}>
-            <label style={labelStyle}>First name</label>
+            <label style={labelStyle}>FIRST NAME</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value.slice(0, MAX_NAME_LENGTH))}
-              placeholder="Given name only; family comes from the tree"
+              placeholder="Given name only"
               style={inputStyle}
               maxLength={MAX_NAME_LENGTH}
               required
@@ -274,7 +282,7 @@ export default function AddRelativeModal({
           </div>
 
           <div style={fieldStyle}>
-            <label style={labelStyle}>Relationship</label>
+            <label style={labelStyle}>RELATIONSHIP</label>
             <select
               value={relationship}
               onChange={(e) => {
@@ -292,7 +300,7 @@ export default function AddRelativeModal({
 
           {relationship === 'child' && (
             <div style={fieldStyle}>
-              <label style={labelStyle}>I am the…</label>
+              <label style={labelStyle}>I AM THE…</label>
               <select
                 value={parentRole ?? ''}
                 onChange={(e) =>
@@ -304,7 +312,7 @@ export default function AddRelativeModal({
                 <option value="mother">Mother</option>
                 <option value="father">Father</option>
               </select>
-              <p style={{ margin: '5px 0 0 0', fontSize: '0.8rem', color: '#888' }}>
+              <p style={{ margin: '8px 0 0 0', fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
                 Helps show children on both parents&apos; family trees
               </p>
             </div>
@@ -312,12 +320,11 @@ export default function AddRelativeModal({
 
           {duplicateCandidates.length > 0 && (
             <div style={warningStyle}>
-              <strong>Possible matches already on the tree</strong>
-              <p style={{ fontSize: '0.85rem', margin: '8px 0', color: '#ddd' }}>
-                Select someone to connect with the relationship above, or confirm you are adding a
-                different person.
+              <strong style={{ fontSize: '0.75rem', letterSpacing: '0.05em' }}>MATCHES DETECTED IN ARCHIVE</strong>
+              <p style={{ fontSize: '0.8rem', margin: '8px 0', color: 'rgba(255,255,255,0.7)' }}>
+                Select someone to connect, or confirm this is a new entry.
               </p>
-              <ul style={{ margin: '8px 0', paddingLeft: '0', listStyle: 'none' }}>
+              <ul style={{ margin: '12px 0', paddingLeft: '0', listStyle: 'none' }}>
                 {duplicateCandidates.map((m) => (
                   <li key={m.id} style={{ marginBottom: '8px' }}>
                     <button
@@ -326,19 +333,20 @@ export default function AddRelativeModal({
                       style={{
                         ...matchRowStyle,
                         borderColor:
-                          selectedExistingId === m.id ? '#22d3ee' : '#555',
+                          selectedExistingId === m.id ? '#D4AF37' : 'rgba(255,255,255,0.1)',
                         backgroundColor:
-                          selectedExistingId === m.id ? 'rgba(34, 211, 238, 0.12)' : '#1a1a1a',
+                          selectedExistingId === m.id ? 'rgba(212, 175, 55, 0.1)' : 'rgba(0,0,0,0.2)',
                       }}
                     >
-                      <span style={{ fontWeight: 600 }}>{formatNodeDisplayName(m)}</span>
+                      <span style={{ fontWeight: 600, color: 'white' }}>{formatNodeDisplayName(m)}</span>
                       <span
                         style={{
-                          fontSize: '0.7rem',
-                          color: '#666',
+                          fontSize: '0.65rem',
+                          color: 'rgba(255,255,255,0.4)',
                           fontFamily: 'monospace',
                           display: 'block',
                           wordBreak: 'break-all',
+                          marginTop: '2px'
                         }}
                       >
                         {m.id}
@@ -347,7 +355,7 @@ export default function AddRelativeModal({
                   </li>
                 ))}
               </ul>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', marginTop: '12px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', marginTop: '16px' }}>
                 <input
                   type="checkbox"
                   checked={confirmedDifferentPerson}
@@ -358,8 +366,9 @@ export default function AddRelativeModal({
                       setConfirmedDifferentPerson(false);
                     }
                   }}
+                  style={{ accentColor: '#D4AF37' }}
                 />
-                <span style={{ fontSize: '0.9rem' }}>No, I am adding a totally different person</span>
+                <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.8)' }}>I am adding a totally different person</span>
               </label>
             </div>
           )}
@@ -367,14 +376,24 @@ export default function AddRelativeModal({
           {error && <div style={errorStyle}>{error}</div>}
 
           <div style={actionsStyle}>
-            <Button variant="outlined" onClick={onClose} disabled={isSubmitting}>
+            <Button 
+              variant="text" 
+              onClick={onClose} 
+              disabled={isSubmitting}
+              sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}
+            >
               Cancel
             </Button>
             <Button
               type="submit"
               variant="contained"
-              color="primary"
               disabled={primaryDisabled}
+              sx={{ 
+                background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                fontWeight: 700,
+                letterSpacing: '0.05em',
+                px: 3
+              }}
             >
               {primaryLabel}
             </Button>
@@ -391,78 +410,84 @@ const modalOverlayStyle: React.CSSProperties = {
   left: 0,
   right: 0,
   bottom: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.75)',
+  backgroundColor: 'rgba(0, 0, 0, 0.8)',
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
   zIndex: 2000,
+  backdropFilter: 'blur(8px)',
 };
 
 const modalContentStyle: React.CSSProperties = {
-  backgroundColor: '#2a2a2a',
+  backgroundColor: 'rgba(5, 5, 5, 0.85)',
+  backdropFilter: 'blur(24px)',
   color: 'white',
-  padding: '30px',
+  padding: '40px',
   borderRadius: '12px',
   width: '100%',
-  maxWidth: '450px',
-  boxShadow: '0 10px 25px rgba(0,0,0,0.5)',
+  maxWidth: '480px',
+  boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+  border: '1px solid rgba(212, 175, 55, 0.2)',
 };
 
 const fieldStyle: React.CSSProperties = {
-  marginBottom: '20px',
+  marginBottom: '24px',
 };
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  marginBottom: '8px',
-  fontSize: '0.9rem',
-  color: '#aaa',
+  marginBottom: '10px',
+  fontSize: '0.65rem',
+  fontWeight: 700,
+  letterSpacing: '0.1em',
+  color: '#D4AF37',
 };
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  padding: '12px',
-  borderRadius: '6px',
-  border: '1px solid #444',
-  backgroundColor: '#1a1a1a',
+  padding: '14px',
+  borderRadius: '4px',
+  border: '1px solid rgba(255,255,255,0.1)',
+  backgroundColor: 'rgba(255,255,255,0.03)',
   color: 'white',
-  fontSize: '1rem',
+  fontSize: '0.95rem',
   boxSizing: 'border-box',
+  fontFamily: '"Inter", sans-serif',
 };
 
 const warningStyle: React.CSSProperties = {
-  backgroundColor: 'rgba(255, 165, 0, 0.08)',
-  border: '1px solid orange',
-  color: '#ffcc00',
-  padding: '12px',
-  borderRadius: '6px',
-  marginBottom: '20px',
-  fontSize: '0.9rem',
+  backgroundColor: 'rgba(212, 175, 55, 0.05)',
+  border: '1px solid rgba(212, 175, 55, 0.3)',
+  color: '#D4AF37',
+  padding: '20px',
+  borderRadius: '8px',
+  marginBottom: '24px',
 };
 
 const matchRowStyle: React.CSSProperties = {
   width: '100%',
   textAlign: 'left',
-  padding: '10px 12px',
-  borderRadius: '8px',
-  border: '1px solid #555',
+  padding: '12px 16px',
+  borderRadius: '4px',
+  border: '1px solid rgba(255,255,255,0.1)',
   color: '#fff',
   cursor: 'pointer',
+  transition: 'all 0.2s ease',
 };
 
 const errorStyle: React.CSSProperties = {
-  backgroundColor: 'rgba(255, 0, 0, 0.1)',
-  border: '1px solid #ff4444',
-  color: '#ff4444',
-  padding: '12px',
-  borderRadius: '6px',
-  marginBottom: '20px',
-  fontSize: '0.9rem',
+  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  border: '1px solid rgba(239, 68, 68, 0.3)',
+  color: '#ef4444',
+  padding: '16px',
+  borderRadius: '4px',
+  marginBottom: '24px',
+  fontSize: '0.85rem',
 };
 
 const actionsStyle: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'flex-end',
-  gap: '12px',
-  marginTop: '30px',
+  gap: '16px',
+  marginTop: '40px',
 };

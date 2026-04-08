@@ -68,42 +68,70 @@ export function TreeSearchBar({
   const textFieldSx = {
     width: '100%',
     '& .MuiOutlinedInput-root': {
-      backgroundColor: 'rgba(0,0,0,0.2)',
+      backgroundColor: 'rgba(0,0,0,0.3)',
       color: '#fff',
-      '& fieldset': { borderColor: 'rgba(255,255,255,0.2)' },
-      '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
+      fontFamily: '"Inter", sans-serif',
+      letterSpacing: '0.02em',
+      '& fieldset': { borderColor: 'rgba(212, 175, 55, 0.1)' },
+      '&:hover fieldset': { borderColor: 'rgba(212, 175, 55, 0.3)' },
+      '&.Mui-focused fieldset': { borderColor: 'rgba(212, 175, 55, 0.5)' },
     },
   };
 
   const controlsRow = (
-    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-      <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.7)', minWidth: 36 }}>
-        {hasMatches ? `${currentIndex + 1} / ${matches.length}` : '0 / 0'}
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 1 }}>
+      <Typography 
+        variant="caption" 
+        sx={{ 
+          color: 'primary.main', 
+          minWidth: 45, 
+          fontFamily: 'monospace',
+          fontWeight: 600,
+          textAlign: 'center',
+          background: 'rgba(212, 175, 55, 0.1)',
+          px: 1,
+          py: 0.5,
+          borderRadius: '4px'
+        }}
+      >
+        {hasMatches ? `${currentIndex + 1}/${matches.length}` : '0/0'}
       </Typography>
-      <IconButton
-        size="small"
-        onClick={onPrev}
-        disabled={!canNavigate}
-        aria-label="Previous match"
-        sx={{ color: 'rgba(255,255,255,0.8)' }}
-      >
-        ‹
-      </IconButton>
-      <IconButton
-        size="small"
-        onClick={onNext}
-        disabled={!canNavigate}
-        aria-label="Next match"
-        sx={{ color: 'rgba(255,255,255,0.8)' }}
-      >
-        ›
-      </IconButton>
+      <Box sx={{ display: 'flex', gap: 0.5 }}>
+        <IconButton
+          size="small"
+          onClick={onPrev}
+          disabled={!canNavigate}
+          aria-label="Previous match"
+          sx={{ 
+            color: 'white',
+            background: 'rgba(255,255,255,0.05)',
+            '&:hover': { background: 'rgba(255,255,255,0.1)' },
+            '&.Mui-disabled': { color: 'rgba(255,255,255,0.2)' }
+          }}
+        >
+          ‹
+        </IconButton>
+        <IconButton
+          size="small"
+          onClick={onNext}
+          disabled={!canNavigate}
+          aria-label="Next match"
+          sx={{ 
+            color: 'white',
+            background: 'rgba(255,255,255,0.05)',
+            '&:hover': { background: 'rgba(255,255,255,0.1)' },
+            '&.Mui-disabled': { color: 'rgba(255,255,255,0.2)' }
+          }}
+        >
+          ›
+        </IconButton>
+      </Box>
     </Box>
   );
 
   if (embedded) {
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, width: '100%' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, width: '100%' }}>
         <TextField
           inputRef={inputRef}
           size="small"
@@ -126,19 +154,22 @@ export function TreeSearchBar({
 
   const containerSx = {
     position: 'absolute' as const,
-    top: 20,
-    left: 20,
-    zIndex: 10,
-    p: 1,
+    top: 24,
+    left: 24,
+    zIndex: 1000,
+    p: '6px 12px',
     display: 'flex',
     alignItems: 'center',
     gap: 1,
-    backgroundColor: 'rgba(30, 30, 40, 0.95)',
-    border: '1px solid rgba(255,255,255,0.1)',
+    backgroundColor: 'rgba(5, 5, 5, 0.7)',
+    backdropFilter: 'blur(24px)',
+    border: '1px solid rgba(212, 175, 55, 0.2)',
+    borderRadius: '8px',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
   };
 
   return (
-    <Paper elevation={3} sx={containerSx}>
+    <Box sx={containerSx}>
       <TextField
         inputRef={inputRef}
         size="small"
@@ -152,9 +183,9 @@ export function TreeSearchBar({
           dir: 'auto',
           'aria-label': 'Search family tree',
         }}
-        sx={{ flex: 1, minWidth: 180, ...textFieldSx }}
+        sx={{ flex: 1, minWidth: 220, ...textFieldSx }}
       />
       {controlsRow}
-    </Paper>
+    </Box>
   );
 }

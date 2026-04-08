@@ -20,6 +20,7 @@ import EditNodeModal from './modals/EditNodeModal';
 import BulkInviteModal from './modals/BulkInviteModal';
 import { FamilyChat } from './FamilyChat';
 import { NewMembersModal } from './NewMembersModal';
+import { PersonDetailDrawer } from './PersonDetailDrawer';
 import { isMobile } from '../utils/device';
 
 export const FamilyTree: React.FC = () => {
@@ -404,100 +405,20 @@ export const FamilyTree: React.FC = () => {
         members={newMembers}
       />
 
-      {/* Selected Node Info - Bottom Center */}
-      {selectedNode && (
-        <div style={{
-          position: 'absolute',
-          bottom: '40px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          backgroundColor: 'rgba(30, 30, 40, 0.95)',
-          padding: '16px 24px',
-          borderRadius: '12px',
-          zIndex: 100,
-          boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
-          border: '1px solid rgba(255,255,255,0.1)',
-          minWidth: '280px',
-          textAlign: 'center',
-        }}>
-          <div style={{
-            fontWeight: 'bold',
-            fontSize: '1.1rem',
-            color: 'white',
-            marginBottom: '4px',
-          }}>
-            {selectedNode.firstName}
-          </div>
-          {selectedNode.familyCluster && (
-            <div style={{
-              fontSize: '0.85rem',
-              color: '#888',
-              textTransform: 'uppercase',
-              letterSpacing: '1px',
-              marginBottom: '4px',
-            }}>
-              {selectedNode.familyCluster} Family
-            </div>
-          )}
-          <div style={{
-            fontSize: '0.75rem',
-            color: '#666',
-            fontFamily: 'monospace',
-            marginBottom: selectedNode.familyCluster ? '12px' : '8px',
-          }}>
-            {selectedNode.id}
-          </div>
-
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
-            {canEditSelected && (
-              <>
-                <Button variant="contained" color="warning" size="small" onClick={() => setIsEditModalOpen(true)}>
-                  Edit
-                </Button>
-                <Button variant="contained" color="primary" size="small" onClick={() => setIsAddModalOpen(true)}>
-                  + Add
-                </Button>
-                {canManageInvites(selectedNode.id, userProfile?.node_id, userProfile?.role === 'admin', (graphData?.links ?? []) as FamilyLink[]) && (
-                  <Button variant="contained" color="success" size="small" onClick={() => setIsBulkInviteOpen(true)}>
-                    Invite
-                  </Button>
-                )}
-              </>
-            )}
-            {isAdmin && graphData && (
-              <>
-                <Button
-                  variant="contained"
-                  color="secondary"
-                  size="small"
-                  onClick={() => setAdminConnectFirstId(selectedNode.id)}
-                >
-                  Connect…
-                </Button>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={() => setAdminManageLinksOpen(true)}
-                  sx={{ color: '#a78bfa', borderColor: '#6d28d9' }}
-                >
-                  Links (admin)
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  size="small"
-                  onClick={handleAdminDeleteSelectedNode}
-                >
-                  Delete (admin)
-                </Button>
-              </>
-            )}
-            <Button variant="outlined" size="small" onClick={() => setSelectedNode(null)} sx={{ color: '#888', borderColor: '#444' }}>
-              Close
-            </Button>
-          </div>
-        </div>
-      )}
+      <PersonDetailDrawer
+        selectedNode={selectedNode}
+        onClose={() => setSelectedNode(null)}
+        canEditSelected={canEditSelected}
+        isAdmin={isAdmin}
+        userProfile={userProfile}
+        graphData={graphData}
+        onEdit={() => setIsEditModalOpen(true)}
+        onAdd={() => setIsAddModalOpen(true)}
+        onInvite={() => setIsBulkInviteOpen(true)}
+        onConnect={() => setAdminConnectFirstId(selectedNode?.id || null)}
+        onManageLinks={() => setAdminManageLinksOpen(true)}
+        onDelete={handleAdminDeleteSelectedNode}
+      />
 
       {/* Modals */}
       {selectedNode && (
@@ -587,6 +508,7 @@ export const FamilyTree: React.FC = () => {
             collapsedNodes={collapsedNodes}
             onToggleCollapse={handleToggleCollapse}
             onSetCollapsedNodes={handleSetCollapsedNodes}
+            mode={mode}
             onModeChange={handleModeChange}
             isAddModalOpen={isAddModalOpen}
             isEditModalOpen={isEditModalOpen}
@@ -637,6 +559,7 @@ export const FamilyTree: React.FC = () => {
             collapsedNodes={collapsedNodes}
             onToggleCollapse={handleToggleCollapse}
             onSetCollapsedNodes={handleSetCollapsedNodes}
+            mode={mode}
             onModeChange={handleModeChange}
             uniqueClusters={uniqueClusters}
             onPresetSelect={handlePresetSelect}

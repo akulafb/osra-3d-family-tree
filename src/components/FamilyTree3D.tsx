@@ -6,6 +6,8 @@ import ForceGraph3D from 'react-force-graph-3d';
 import SpriteText from 'three-spritetext';
 import * as THREE from 'three';
 import Button from '@mui/material/Button';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 import Checkbox from '@mui/material/Checkbox';
 import Switch from '@mui/material/Switch';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -170,6 +172,7 @@ interface FamilyTree3DProps {
   collapsedNodes?: Set<string>;
   onToggleCollapse?: (nodeId: string) => void;
   onSetCollapsedNodes?: (nodes: Set<string>) => void;
+  mode?: '3D' | '2D';
   onModeChange?: (mode: '3D' | '2D') => void;
   isAddModalOpen?: boolean;
   isEditModalOpen?: boolean;
@@ -209,6 +212,7 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
   collapsedNodes: externalCollapsedNodes,
   onToggleCollapse: externalToggleCollapse,
   onSetCollapsedNodes: externalSetCollapsedNodes,
+  mode,
   onModeChange,
   isAddModalOpen = false,
   isEditModalOpen = false,
@@ -1343,36 +1347,76 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
       />
 
       {/* Settings Controls - Top Right */}
-      <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 1000, alignItems: 'flex-end' }}>
+      <div style={{ position: 'absolute', top: '24px', right: '24px', display: 'flex', flexDirection: 'column', gap: '12px', zIndex: 1000, alignItems: 'flex-end' }}>
         {/* Settings Toggle - First */}
         <Button
           variant="contained"
-          color="primary"
           onClick={() => setShowControls(!showControls)}
-          sx={{ minWidth: 'auto' }}
+          sx={{ 
+            minWidth: '140px',
+            background: 'rgba(5, 5, 5, 0.7)',
+            backdropFilter: 'blur(24px)',
+            border: '1px solid rgba(212, 175, 55, 0.2)',
+            color: 'primary.main',
+            fontWeight: 700,
+            letterSpacing: '0.05em',
+            '&:hover': {
+              background: 'rgba(5, 5, 5, 0.85)',
+              borderColor: 'rgba(212, 175, 55, 0.4)',
+            }
+          }}
         >
-          Settings ⚙️ {showControls ? '▴' : '▾'}
+          INSTRUMENTS {showControls ? '▴' : '▾'}
         </Button>
 
-        {/* Ambiance Toggle */}
-        <FormControlLabel
-          control={
-            <Switch
-              checked={isAmbienceOn}
-              onChange={() => setIsAmbienceOn(!isAmbienceOn)}
-              color="success"
-            />
-          }
-          label="Ambiance"
-          sx={{ color: 'text.primary', '& .MuiFormControlLabel-label': { fontSize: '0.8rem' } }}
-        />
+        {/* Ambiance Toggle - Floating slightly below button */}
+        <Box sx={{ 
+          background: 'rgba(5, 5, 5, 0.5)', 
+          backdropFilter: 'blur(12px)', 
+          px: 1.5, 
+          py: 0.5, 
+          borderRadius: '20px',
+          border: '1px solid rgba(255,255,255,0.05)'
+        }}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={isAmbienceOn}
+                onChange={() => setIsAmbienceOn(!isAmbienceOn)}
+                color="success"
+                size="small"
+              />
+            }
+            label="AMBIANCE"
+            sx={{ 
+              m: 0,
+              color: 'rgba(255,255,255,0.6)', 
+              '& .MuiFormControlLabel-label': { 
+                fontSize: '0.65rem', 
+                fontWeight: 700, 
+                letterSpacing: '0.1em' 
+              } 
+            }}
+          />
+        </Box>
 
         <SettingsPanelSpring isOpen={showControls}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '180px', backgroundColor: 'rgba(30, 30, 40, 0.95)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)' }}>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: '12px', 
+            width: '220px', 
+            backgroundColor: 'rgba(5, 5, 5, 0.8)', 
+            backdropFilter: 'blur(24px)',
+            padding: '20px', 
+            borderRadius: '12px', 
+            border: '1px solid rgba(212, 175, 55, 0.2)',
+            boxShadow: '0 20px 50px rgba(0,0,0,0.6)'
+          }}>
             {userProfile?.node_id && (
               <Button
                 variant="contained"
-                color="success"
+                fullWidth
                 size="small"
                 onClick={() => {
                   const meNode = graphData?.nodes?.find((n) => n.id === userProfile.node_id);
@@ -1380,8 +1424,13 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
                   if (c) onEnsureClusterVisible3D(c);
                   focusNodeById(userProfile.node_id!);
                 }}
+                sx={{ 
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  fontWeight: 700,
+                  letterSpacing: '0.05em'
+                }}
               >
-                Find me!
+                FIND ME
               </Button>
             )}
 
@@ -1391,89 +1440,109 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
                 size="small"
                 fullWidth
                 onClick={onAdminAddPersonClick}
-                sx={{ color: '#c4b5fd', borderColor: '#6d28d9' }}
+                sx={{ 
+                  color: 'secondary.main', 
+                  borderColor: 'secondary.main',
+                  fontSize: '0.7rem',
+                  fontWeight: 700,
+                  '&:hover': { borderColor: 'secondary.light', background: 'rgba(124, 58, 237, 0.1)' }
+                }}
               >
-                + Add person (admin)
+                + ADD PERSON
               </Button>
             )}
 
-            {onModeChange && (
-              <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
-                <Button variant="contained" color="primary" size="small" onClick={() => onModeChange('3D')} sx={{ flex: 1 }}>
-                  🌌 3D
-                </Button>
-                <Button variant="outlined" size="small" onClick={() => onModeChange('2D')} sx={{ flex: 1 }}>
-                  🌳 2D
-                </Button>
-              </div>
-            )}
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button 
+                variant={mode === '3D' ? "contained" : "outlined"} 
+                size="small" 
+                onClick={() => onModeChange?.('3D')} 
+                sx={{ flex: 1, fontSize: '0.7rem', fontWeight: 700 }}
+              >
+                3D
+              </Button>
+              <Button 
+                variant={mode === '2D' ? "contained" : "outlined"} 
+                size="small" 
+                onClick={() => onModeChange?.('2D')} 
+                sx={{ flex: 1, fontSize: '0.7rem', fontWeight: 700 }}
+              >
+                2D
+              </Button>
+            </Box>
 
-            <Button variant="contained" color="success" size="small" onClick={resetView}>
-              Reset View
+            <Button 
+              variant="text" 
+              size="small" 
+              onClick={resetView}
+              sx={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.7rem', fontWeight: 600 }}
+            >
+              RESET VIEWPORT
             </Button>
 
-            {onBackgroundThemeChange && (
-              <div style={{ marginBottom: '4px' }}>
-                <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#888', marginBottom: '6px' }}>
-                  Background
-                </div>
-                <Select
-                  value={backgroundTheme}
-                  onChange={(e) => onBackgroundThemeChange(e.target.value as BackgroundTheme)}
-                  size="small"
-                  fullWidth
-                  sx={{
-                    fontSize: '0.75rem',
-                    '& .MuiSelect-select': { py: 0.75, display: 'flex', alignItems: 'center', gap: 1 },
-                  }}
-                >
-                  {(['deep-space', 'wax-white', 'smooth-sepia', 'baby-blue'] as const).map((t) => (
-                    <MenuItem key={t} value={t} sx={{ fontSize: '0.75rem' }}>
-                      <span
-                        style={{
-                          display: 'inline-block',
-                          width: 12,
-                          height: 12,
-                          borderRadius: 2,
-                          marginRight: 8,
-                          backgroundColor: t === 'deep-space' ? '#1a1a2e' : t === 'wax-white' ? '#fffef8' : t === 'smooth-sepia' ? '#e8dcc8' : '#d4e8f7',
-                        }}
-                      />
-                      {THEME_LABELS[t]}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </div>
-            )}
+            <Box>
+              <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 700, letterSpacing: '0.1em', mb: 1, display: 'block', fontSize: '0.6rem' }}>
+                CHRONICLE THEME
+              </Typography>
+              <Select
+                value={backgroundTheme}
+                onChange={(e) => onBackgroundThemeChange?.(e.target.value as BackgroundTheme)}
+                size="small"
+                fullWidth
+                sx={{
+                  fontSize: '0.75rem',
+                  backgroundColor: 'rgba(255,255,255,0.03)',
+                  '& .MuiSelect-select': { py: 1, display: 'flex', alignItems: 'center', gap: 1 },
+                  '& fieldset': { borderColor: 'rgba(255,255,255,0.1)' },
+                }}
+              >
+                {(['deep-space', 'wax-white', 'smooth-sepia', 'baby-blue'] as const).map((t) => (
+                  <MenuItem key={t} value={t} sx={{ fontSize: '0.75rem' }}>
+                    <Box
+                      sx={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: '2px',
+                        mr: 1,
+                        backgroundColor: t === 'deep-space' ? '#050505' : t === 'wax-white' ? '#fffef8' : t === 'smooth-sepia' ? '#e8dcc8' : '#d4e8f7',
+                        border: '1px solid rgba(255,255,255,0.1)'
+                      }}
+                    />
+                    {THEME_LABELS[t]}
+                  </MenuItem>
+                ))}
+              </Select>
+            </Box>
 
-            <FormControlLabel
-              control={<Switch checked={showNames} onChange={() => setShowNames(!showNames)} color="primary" size="small" />}
-              label="Labels"
-              sx={{ color: 'text.primary', '& .MuiFormControlLabel-label': { fontSize: '0.75rem' } }}
-            />
-            <FormControlLabel
-              control={<Switch checked={showLinks} onChange={() => setShowLinks(!showLinks)} color="primary" size="small" />}
-              label="Links"
-              sx={{ color: 'text.primary', '& .MuiFormControlLabel-label': { fontSize: '0.75rem' } }}
-            />
-            <FormControlLabel
-              control={<Switch checked={showArrows} onChange={() => setShowArrows(!showArrows)} color="primary" size="small" />}
-              label="Arrows"
-              sx={{ color: 'text.primary', '& .MuiFormControlLabel-label': { fontSize: '0.75rem' } }}
-            />
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+              <FormControlLabel
+                control={<Switch checked={showNames} onChange={() => setShowNames(!showNames)} color="primary" size="small" />}
+                label="LABELS"
+                sx={{ m: 0, color: 'text.primary', '& .MuiFormControlLabel-label': { fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.05em' } }}
+              />
+              <FormControlLabel
+                control={<Switch checked={showLinks} onChange={() => setShowLinks(!showLinks)} color="primary" size="small" />}
+                label="LINKS"
+                sx={{ m: 0, color: 'text.primary', '& .MuiFormControlLabel-label': { fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.05em' } }}
+              />
+              <FormControlLabel
+                control={<Switch checked={showArrows} onChange={() => setShowArrows(!showArrows)} color="primary" size="small" />}
+                label="ARROWS"
+                sx={{ m: 0, color: 'text.primary', '& .MuiFormControlLabel-label': { fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.05em' } }}
+              />
+            </Box>
 
             {onSearchQueryChange && onSearchPrev && onSearchNext && onSearchClose && (
-              <div style={{
-                marginTop: '8px',
-                marginBottom: '8px',
-                padding: '12px',
-                backgroundColor: 'rgba(0, 0, 0, 0.25)',
-                borderRadius: '8px',
-                border: '1px solid rgba(255,255,255,0.12)',
+              <Box sx={{ 
+                mt: 1, 
+                p: 1.5, 
+                backgroundColor: 'rgba(0, 0, 0, 0.3)', 
+                borderRadius: '8px', 
+                border: '1px solid rgba(255,255,255,0.05)' 
               }}>
-                <div style={{ fontSize: '0.65rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1px', color: '#888', marginBottom: '8px' }}>
-                  Search
-                </div>
+                <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 700, letterSpacing: '0.1em', mb: 1, display: 'block', fontSize: '0.6rem' }}>
+                  SEARCH ARCHIVE
+                </Typography>
                 <TreeSearchBar
                   query={searchQuery}
                   onQueryChange={onSearchQueryChange}
@@ -1486,13 +1555,14 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
                   embedded
                   focusTrigger={searchOpenRequested}
                 />
-              </div>
+              </Box>
             )}
 
             <Button
-              variant="contained"
-              color="error"
+              variant="outlined"
+              color={effectiveCollapsedNodes.size > 0 ? "primary" : "inherit"}
               size="small"
+              fullWidth
               onClick={() => {
                 if (effectiveCollapsedNodes.size > 0) {
                   effectiveSetCollapsedNodes(new Set());
@@ -1507,98 +1577,69 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
                   effectiveSetCollapsedNodes(parents);
                 }
               }}
+              sx={{ mt: 1, fontSize: '0.65rem', fontWeight: 700, borderColor: 'rgba(255,255,255,0.1)' }}
             >
-              {effectiveCollapsedNodes.size > 0 ? 'Expand All' : 'Collapse All'}
+              {effectiveCollapsedNodes.size > 0 ? 'EXPAND ALL' : 'COLLAPSE ALL'}
             </Button>
 
             <div ref={textureRef}>
               <Button
-                variant="contained"
-                color="primary"
+                variant="text"
                 size="small"
+                fullWidth
                 onClick={() => setIsTextureMenuOpen(!isTextureMenuOpen)}
-                sx={{ width: '100%', justifyContent: 'flex-start' }}
+                sx={{ justifyContent: 'space-between', color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem' }}
               >
-                Texture: {nodeTexture} {isTextureMenuOpen ? '▴' : '▾'}
+                TEXTURE: {nodeTexture.toUpperCase()} {isTextureMenuOpen ? '▴' : '▾'}
               </Button>
               <TextureMenuSpring isOpen={isTextureMenuOpen}>
-                <div style={{ marginTop: '4px', backgroundColor: 'rgba(42, 42, 42, 0.95)', borderRadius: '4px', overflow: 'hidden' }}>
-                  <Button fullWidth size="small" sx={{ justifyContent: 'flex-start', color: nodeTexture === 'spheres' ? 'primary.main' : 'inherit' }} onClick={() => { setNodeTexture('spheres'); setIsTextureMenuOpen(false); }}>Spheres</Button>
-                  <Button fullWidth size="small" sx={{ justifyContent: 'flex-start', color: nodeTexture === 'planets' ? 'primary.main' : 'inherit' }} onClick={() => { setNodeTexture('planets'); setIsTextureMenuOpen(false); }}>Planets</Button>
-                  <Button fullWidth size="small" sx={{ justifyContent: 'flex-start', color: nodeTexture === 'none' ? 'primary.main' : 'inherit' }} onClick={() => { setNodeTexture('none'); setIsTextureMenuOpen(false); }}>None</Button>
-                </div>
+                <Box sx={{ mt: 0.5, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '4px', overflow: 'hidden' }}>
+                  <Button fullWidth size="small" sx={{ justifyContent: 'flex-start', fontSize: '0.7rem', py: 1 }} onClick={() => { setNodeTexture('spheres'); setIsTextureMenuOpen(false); }}>Spheres</Button>
+                  <Button fullWidth size="small" sx={{ justifyContent: 'flex-start', fontSize: '0.7rem', py: 1 }} onClick={() => { setNodeTexture('planets'); setIsTextureMenuOpen(false); }}>Planets</Button>
+                  <Button fullWidth size="small" sx={{ justifyContent: 'flex-start', fontSize: '0.7rem', py: 1 }} onClick={() => { setNodeTexture('none'); setIsTextureMenuOpen(false); }}>None</Button>
+                </Box>
               </TextureMenuSpring>
             </div>
 
             <div ref={presetsRef}>
               <Button
-                variant="contained"
-                color="secondary"
+                variant="text"
                 size="small"
+                fullWidth
                 onClick={() => setIsPresetsOpen(!isPresetsOpen)}
-                sx={{ width: '100%', justifyContent: 'flex-start' }}
+                sx={{ justifyContent: 'space-between', color: 'primary.main', fontSize: '0.7rem', fontWeight: 700 }}
               >
-                Family Presets {isPresetsOpen ? '▴' : '▾'}
+                FAMILY PRESETS {isPresetsOpen ? '▴' : '▾'}
               </Button>
               <TextureMenuSpring isOpen={isPresetsOpen}>
-                <div style={{ marginTop: '4px', backgroundColor: 'rgba(42, 42, 42, 0.95)', borderRadius: '4px', overflow: 'hidden', maxHeight: '250px', overflowY: 'auto' }}>
-                  <Button fullWidth size="small" sx={{ justifyContent: 'flex-start', color: !activePreset ? 'primary.main' : 'inherit' }} onClick={() => applyPreset(null)}>3D Global View</Button>
-                  <div style={{ padding: '8px 8px 4px', fontSize: '0.6rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>Families</div>
+                <Box sx={{ mt: 0.5, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '4px', overflow: 'hidden', maxHeight: '200px', overflowY: 'auto' }}>
+                  <Button fullWidth size="small" sx={{ justifyContent: 'flex-start', fontSize: '0.7rem' }} onClick={() => applyPreset(null)}>Global View</Button>
                   {uniqueClusters.map((cluster) => (
-                    <Button key={cluster} fullWidth size="small" sx={{ justifyContent: 'flex-start', color: activePreset === cluster ? 'primary.main' : 'inherit' }} onClick={() => applyPreset(cluster)}>{cluster}</Button>
+                    <Button key={cluster} fullWidth size="small" sx={{ justifyContent: 'flex-start', fontSize: '0.7rem', color: activePreset === cluster ? 'primary.main' : 'inherit' }} onClick={() => applyPreset(cluster)}>{cluster}</Button>
                   ))}
-                </div>
+                </Box>
               </TextureMenuSpring>
             </div>
 
             <div ref={visibilityRef}>
               <Button
-                variant="contained"
-                color="secondary"
+                variant="text"
                 size="small"
+                fullWidth
                 onClick={() => setIsVisibilityOpen(!isVisibilityOpen)}
-                sx={{ width: '100%', justifyContent: 'flex-start' }}
+                sx={{ justifyContent: 'space-between', color: 'rgba(255,255,255,0.6)', fontSize: '0.7rem' }}
               >
-                Family Visibility {isVisibilityOpen ? '▴' : '▾'}
+                VISIBILITY {isVisibilityOpen ? '▴' : '▾'}
               </Button>
-              <TextureMenuSpring isOpen={isVisibilityOpen} maxHeightOpen={380}>
-                <div style={{ marginTop: '4px', backgroundColor: 'rgba(42, 42, 42, 0.95)', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      padding: '4px 8px',
-                      borderBottom: '1px solid rgba(255,255,255,0.05)',
-                      gap: '8px',
-                    }}
-                  >
-                    <Button
-                      size="small"
-                      sx={{ minWidth: 0, fontSize: '0.7rem', textTransform: 'none', color: 'rgba(255,255,255,0.7)' }}
-                      onClick={() => onVisibleClusters3DChange(new Set(uniqueClusters))}
-                    >
-                      All
-                    </Button>
-                    <Button
-                      size="small"
-                      sx={{ minWidth: 0, fontSize: '0.7rem', textTransform: 'none', color: 'rgba(255,255,255,0.7)' }}
-                      onClick={() => onVisibleClusters3DChange(new Set())}
-                    >
-                      None
-                    </Button>
-                  </div>
-                  <div style={{ padding: '8px 8px 4px', fontSize: '0.6rem', color: '#888', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Families</div>
-                  <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
+              <TextureMenuSpring isOpen={isVisibilityOpen} maxHeightOpen={300}>
+                <Box sx={{ mt: 0.5, backgroundColor: 'rgba(255,255,255,0.03)', borderRadius: '4px', overflow: 'hidden' }}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', p: 1, borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                    <Button size="small" sx={{ fontSize: '0.6rem', minWidth: 0 }} onClick={() => onVisibleClusters3DChange(new Set(uniqueClusters))}>ALL</Button>
+                    <Button size="small" sx={{ fontSize: '0.6rem', minWidth: 0 }} onClick={() => onVisibleClusters3DChange(new Set())}>NONE</Button>
+                  </Box>
+                  <Box sx={{ maxHeight: '180px', overflowY: 'auto' }}>
                     {uniqueClusters.map((cluster) => (
-                      <div
-                        key={cluster}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          borderBottom: '1px solid rgba(255,255,255,0.04)',
-                        }}
-                      >
+                      <Box key={cluster} sx={{ display: 'flex', alignItems: 'center', px: 1 }}>
                         <Checkbox
                           size="small"
                           checked={visibleClusters3D.has(cluster)}
@@ -1610,14 +1651,13 @@ export const FamilyTree3DContent: React.FC<FamilyTree3DProps> = ({
                               return n;
                             });
                           }}
-                          inputProps={{ 'aria-label': `Show ${cluster} family in 3D` }}
-                          sx={{ p: 0.5, color: 'rgba(255,255,255,0.5)', '&.Mui-checked': { color: 'secondary.main' } }}
+                          sx={{ p: 0.5, color: 'rgba(255,255,255,0.3)', '&.Mui-checked': { color: 'primary.main' } }}
                         />
-                        <span style={{ flex: 1, fontSize: '0.8125rem', color: '#e5e7eb', paddingRight: '8px' }}>{cluster}</span>
-                      </div>
+                        <Typography sx={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.7)' }}>{cluster}</Typography>
+                      </Box>
                     ))}
-                  </div>
-                </div>
+                  </Box>
+                </Box>
               </TextureMenuSpring>
             </div>
           </div>
