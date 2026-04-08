@@ -134,11 +134,19 @@ export default function EditNodeModal({
   return (
     <div style={modalOverlayStyle}>
       <div style={modalContentStyle}>
-        <h2 style={{ marginTop: 0, color: 'white' }}>Edit {formatNodeDisplayName(targetNode)}</h2>
+        <h2 style={{ 
+          marginTop: 0, 
+          fontFamily: '"Lora", serif', 
+          fontSize: '1.5rem',
+          color: 'white',
+          marginBottom: '24px'
+        }}>
+          Edit {formatNodeDisplayName(targetNode)}
+        </h2>
 
         <form onSubmit={handleSubmit}>
           <div style={fieldStyle}>
-            <label style={labelStyle}>First name</label>
+            <label style={labelStyle}>FIRST NAME</label>
             <input
               type="text"
               value={name}
@@ -149,7 +157,7 @@ export default function EditNodeModal({
               required
               disabled={isSubmitting}
             />
-            <p style={{ margin: '5px 0 0 0', fontSize: '0.8rem', color: '#888' }}>
+            <p style={{ margin: '8px 0 0 0', fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
               Paternal / maternal family clusters are set below (admin) or inherited from the tree.
             </p>
           </div>
@@ -159,7 +167,7 @@ export default function EditNodeModal({
             <>
               <div style={fieldStyle}>
                 <label style={labelStyle}>
-                  Paternal Family Cluster (Admin Only)
+                  PATERNAL FAMILY CLUSTER (ADMIN ONLY)
                 </label>
                 <input
                   type="text"
@@ -170,13 +178,13 @@ export default function EditNodeModal({
                   maxLength={MAX_CLUSTER_LENGTH}
                   disabled={isSubmitting}
                 />
-                <p style={{ margin: '5px 0 0 0', fontSize: '0.8rem', color: '#888' }}>
+                <p style={{ margin: '8px 0 0 0', fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
                   Primary family name (3D positioning, display)
                 </p>
               </div>
               <div style={fieldStyle}>
                 <label style={labelStyle}>
-                  Maternal Family Cluster (Admin Only)
+                  MATERNAL FAMILY CLUSTER (ADMIN ONLY)
                 </label>
                 <input
                   type="text"
@@ -187,7 +195,7 @@ export default function EditNodeModal({
                   maxLength={MAX_CLUSTER_LENGTH}
                   disabled={isSubmitting}
                 />
-                <p style={{ margin: '5px 0 0 0', fontSize: '0.8rem', color: '#888' }}>
+                <p style={{ margin: '8px 0 0 0', fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>
                   For children to appear on mother&apos;s family tree in 2D
                 </p>
               </div>
@@ -197,20 +205,21 @@ export default function EditNodeModal({
           {/* Show current cluster for non-admins */}
           {!isAdmin && targetNode.familyCluster && (
             <div style={infoBoxStyle}>
-              <strong>Family Cluster:</strong> {targetNode.familyCluster}
+              <strong style={{ fontSize: '0.65rem', letterSpacing: '0.05em', display: 'block', marginBottom: '4px' }}>FAMILY CLUSTER</strong>
+              <span style={{ fontSize: '0.9rem', color: 'white' }}>{targetNode.familyCluster}</span>
             </div>
           )}
 
           {duplicateWarning.length > 0 && (
             <div style={warningStyle}>
-              ⚠️ <strong>Similar names found:</strong>
-              <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
+              <strong style={{ fontSize: '0.75rem', letterSpacing: '0.05em' }}>SIMILAR NAMES IN ARCHIVE</strong>
+              <ul style={{ margin: '12px 0', paddingLeft: '20px', color: 'rgba(255,255,255,0.8)' }}>
                 {duplicateWarning.map((m) => (
-                  <li key={m.id}>{formatNodeDisplayName(m)}</li>
+                  <li key={m.id} style={{ fontSize: '0.85rem' }}>{formatNodeDisplayName(m)}</li>
                 ))}
               </ul>
-              <p style={{ fontSize: '0.8em', margin: 0 }}>
-                Please ensure you're not creating a duplicate.
+              <p style={{ fontSize: '0.75rem', margin: 0, fontStyle: 'italic', color: 'rgba(255,255,255,0.6)' }}>
+                Please ensure you&apos;re not creating a duplicate entry.
               </p>
             </div>
           )}
@@ -219,14 +228,24 @@ export default function EditNodeModal({
           {error && <div style={errorStyle}>{error}</div>}
 
           <div style={actionsStyle}>
-            <Button variant="outlined" onClick={onClose} disabled={isSubmitting}>
+            <Button 
+              variant="text" 
+              onClick={onClose} 
+              disabled={isSubmitting}
+              sx={{ color: 'rgba(255,255,255,0.5)', fontWeight: 600 }}
+            >
               Cancel
             </Button>
             <Button
               type="submit"
               variant="contained"
-              color="primary"
               disabled={isSubmitting || !name.trim()}
+              sx={{ 
+                background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                fontWeight: 700,
+                letterSpacing: '0.05em',
+                px: 3
+              }}
             >
               {isSubmitting ? 'Saving...' : 'Save Changes'}
             </Button>
@@ -244,93 +263,97 @@ const modalOverlayStyle: React.CSSProperties = {
   left: 0,
   right: 0,
   bottom: 0,
-  backgroundColor: 'rgba(0, 0, 0, 0.85)',
+  backgroundColor: 'rgba(0, 0, 0, 0.8)',
   display: 'flex',
   justifyContent: 'center',
   alignItems: 'center',
   zIndex: 2000,
+  backdropFilter: 'blur(8px)',
 };
 
 const modalContentStyle: React.CSSProperties = {
-  backgroundColor: '#2a2a2a',
+  backgroundColor: 'rgba(5, 5, 5, 0.85)',
+  backdropFilter: 'blur(24px)',
   color: 'white',
-  padding: '30px',
+  padding: '40px',
   borderRadius: '12px',
   width: '100%',
-  maxWidth: '450px',
-  boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
-  border: '1px solid #333',
+  maxWidth: '480px',
+  boxShadow: '0 20px 60px rgba(0,0,0,0.6)',
+  border: '1px solid rgba(212, 175, 55, 0.2)',
 };
 
 const fieldStyle: React.CSSProperties = {
-  marginBottom: '20px',
+  marginBottom: '24px',
 };
 
 const labelStyle: React.CSSProperties = {
   display: 'block',
-  marginBottom: '8px',
-  fontSize: '0.9rem',
-  color: '#aaa',
-  fontWeight: 'bold',
+  marginBottom: '10px',
+  fontSize: '0.65rem',
+  fontWeight: 700,
+  letterSpacing: '0.1em',
+  color: '#D4AF37',
 };
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  padding: '12px',
-  borderRadius: '6px',
-  border: '1px solid #444',
-  backgroundColor: '#1a1a1a',
+  padding: '14px',
+  borderRadius: '4px',
+  border: '1px solid rgba(255,255,255,0.1)',
+  backgroundColor: 'rgba(255,255,255,0.03)',
   color: 'white',
-  fontSize: '1rem',
+  fontSize: '0.95rem',
   boxSizing: 'border-box',
+  fontFamily: '"Inter", sans-serif',
 };
 
 const infoBoxStyle: React.CSSProperties = {
-  backgroundColor: 'rgba(59, 130, 246, 0.1)',
-  border: '1px solid #3b82f6',
-  color: '#60a5fa',
-  padding: '12px',
-  borderRadius: '6px',
-  marginBottom: '20px',
-  fontSize: '0.9rem',
+  backgroundColor: 'rgba(212, 175, 55, 0.05)',
+  border: '1px solid rgba(212, 175, 55, 0.2)',
+  color: '#D4AF37',
+  padding: '16px',
+  borderRadius: '4px',
+  marginBottom: '24px',
 };
 
 const warningStyle: React.CSSProperties = {
-  backgroundColor: 'rgba(255, 165, 0, 0.1)',
-  border: '1px solid orange',
-  color: '#ffcc00',
-  padding: '12px',
-  borderRadius: '6px',
-  marginBottom: '20px',
-  fontSize: '0.9rem',
+  backgroundColor: 'rgba(212, 175, 55, 0.05)',
+  border: '1px solid rgba(212, 175, 55, 0.3)',
+  color: '#D4AF37',
+  padding: '20px',
+  borderRadius: '8px',
+  marginBottom: '24px',
 };
 
 const successStyle: React.CSSProperties = {
-  backgroundColor: 'rgba(16, 185, 129, 0.15)',
-  border: '1px solid #10b981',
+  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+  border: '1px solid rgba(16, 185, 129, 0.3)',
   color: '#10b981',
-  padding: '12px',
-  borderRadius: '6px',
-  marginBottom: '20px',
+  padding: '16px',
+  borderRadius: '4px',
+  marginBottom: '24px',
   fontSize: '0.9rem',
+  textAlign: 'center',
+  fontWeight: 600,
 };
 
 const errorStyle: React.CSSProperties = {
-  backgroundColor: 'rgba(239, 68, 68, 0.15)',
-  border: '1px solid #ef4444',
+  backgroundColor: 'rgba(239, 68, 68, 0.1)',
+  border: '1px solid rgba(239, 68, 68, 0.3)',
   color: '#ef4444',
-  padding: '12px',
-  borderRadius: '6px',
-  marginBottom: '20px',
-  fontSize: '0.9rem',
+  padding: '16px',
+  borderRadius: '4px',
+  marginBottom: '24px',
+  fontSize: '0.85rem',
 };
 
 const actionsStyle: React.CSSProperties = {
   display: 'flex',
   justifyContent: 'flex-end',
-  gap: '12px',
-  marginTop: '30px',
-  paddingTop: '15px',
-  borderTop: '1px solid #333',
+  gap: '16px',
+  marginTop: '40px',
+  paddingTop: '20px',
+  borderTop: '1px solid rgba(255,255,255,0.05)',
 };
 
